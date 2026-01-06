@@ -323,34 +323,78 @@
         <div class="lg:col-span-4">
           <div class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
             <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
-              <h2 class="text-lg font-semibold">Admin / Lecturer Access</h2>
-              <p class="mt-1 text-sm text-slate-600">Enter the system-generated PIN to access the dashboard.</p>
+              <h2 class="text-lg font-semibold">Access Control</h2>
+              <p class="mt-1 text-sm text-slate-600">Admins manage PINs. Lecturers use PINs to view data.</p>
             </div>
 
             <div class="px-5 py-5 sm:px-6">
-              <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <label for="pinInput" class="block text-sm font-semibold text-slate-800">Admin PIN</label>
-                <input id="pinInput" inputmode="numeric" autocomplete="one-time-code" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm tracking-widest focus:outline-none focus:ring-2 focus:ring-slate-400" placeholder="Enter PIN" />
-                <button id="btnUnlock" class="mt-3 w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400">Unlock Dashboard</button>
-                <p id="pinMsg" class="mt-2 text-xs text-slate-600"></p>
+              <!-- Admin Authentication Tabs -->
+              <div class="mb-4 flex gap-2" role="tablist" aria-label="Admin Sub-Sections">
+                <button id="tabLecturerLogin" class="flex-1 rounded-xl px-3 py-2 text-xs font-semibold ring-1 ring-slate-200 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-slate-400" role="tab" aria-selected="true" aria-controls="panelLecturerLogin">
+                  Lecturer Login
+                </button>
+                <button id="tabAdminAuth" class="flex-1 rounded-xl px-3 py-2 text-xs font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400" role="tab" aria-selected="false" aria-controls="panelAdminAuth">
+                  Admin Access
+                </button>
               </div>
 
-              <details class="mt-4 rounded-2xl border border-slate-200 bg-white p-4" open>
-                <summary class="cursor-pointer text-sm font-semibold text-slate-800">Lecturer tools (Reveal / Reset PIN)</summary>
-                <div class="mt-3 space-y-3">
-                  <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                    <strong>Note:</strong> This is a client-only application. The PIN is stored on this device. The Admin should generate the PIN here, copy it, and share it with Lecturers for them to input on their devices.
-                  </div>
-                  <div class="flex flex-col gap-2 sm:flex-row">
-                    <button id="btnCopyPin" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400">Copy PIN</button>
-                    <button id="btnResetPin" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300">Reset PIN</button>
-                  </div>
-                  <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3">
-                    <p class="text-xs text-slate-500">System PIN (Auto-Revealed)</p>
-                    <p id="pinDisplay" class="mt-1 text-xl font-bold tracking-widest text-slate-900">••••••</p>
-                  </div>
+              <!-- Lecturer Login View -->
+              <div id="panelLecturerLogin" role="tabpanel">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <label for="pinInput" class="block text-sm font-semibold text-slate-800">Enter Admin PIN</label>
+                  <input id="pinInput" inputmode="numeric" autocomplete="one-time-code" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm tracking-widest focus:outline-none focus:ring-2 focus:ring-slate-400" placeholder="Enter PIN" />
+                  <button id="btnUnlock" class="mt-3 w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400">Unlock Dashboard</button>
+                  <p id="pinMsg" class="mt-2 text-xs text-slate-600"></p>
                 </div>
-              </details>
+                <div class="mt-3 text-xs text-slate-500">
+                  Lecturers: Obtain the PIN from the Admin to access the dashboard.
+                </div>
+              </div>
+
+              <!-- Admin Auth View (Sign Up / Login) -->
+              <div id="panelAdminAuth" role="tabpanel" class="hidden">
+                <!-- Show Login Form if Admin exists, else Signup -->
+                <div id="authLogin" class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <h3 class="text-sm font-semibold text-slate-800 mb-2">Admin Login</h3>
+                  <input id="adminUser" type="text" class="mb-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" placeholder="Username" />
+                  <input id="adminPass" type="password" class="mb-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" placeholder="Password" />
+                  <button id="btnAdminLogin" class="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Login</button>
+                  <p id="authMsg" class="mt-2 text-xs text-slate-600"></p>
+                </div>
+
+                <div id="authSignup" class="hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <h3 class="text-sm font-semibold text-slate-800 mb-2">Admin Setup (Sign Up)</h3>
+                  <div class="rounded-xl border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 mb-2">
+                    No admin detected. Create a local account.
+                  </div>
+                  <input id="newUser" type="text" class="mb-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" placeholder="Choose Username" />
+                  <input id="newPass" type="password" class="mb-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" placeholder="Choose Password" />
+                  <button id="btnAdminSignup" class="w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Create Admin Account</button>
+                  <p id="signupMsg" class="mt-2 text-xs text-slate-600"></p>
+                </div>
+
+                <!-- Admin Tools (Only visible after login) -->
+                <div id="adminTools" class="hidden mt-4 space-y-3">
+                  <details class="rounded-2xl border border-slate-200 bg-white p-4" open>
+                    <summary class="cursor-pointer text-sm font-semibold text-slate-800">Lecturer tools (Reveal / Reset PIN)</summary>
+                    <div class="mt-3 space-y-3">
+                      <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                        This is a client-only application. The PIN is stored on this device. Share the generated PIN with Lecturers.
+                      </div>
+                      <div class="flex flex-col gap-2 sm:flex-row">
+                        <button id="btnCopyPin" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400">Copy PIN</button>
+                        <button id="btnResetPin" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300">Reset PIN</button>
+                      </div>
+                      <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3">
+                        <p class="text-xs text-slate-500">System PIN (Auto-Revealed)</p>
+                        <p id="pinDisplay" class="mt-1 text-xl font-bold tracking-widest text-slate-900">••••••</p>
+                      </div>
+                    </div>
+                  </details>
+                  
+                  <button id="btnAdminLogout" class="w-full rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Logout Admin</button>
+                </div>
+              </div>
 
               <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
                 <p class="text-xs font-semibold text-slate-700">Data Source</p>
@@ -370,7 +414,7 @@
                 </svg>
               </div>
               <h3 class="mt-4 text-base font-semibold">Dashboard Locked</h3>
-              <p class="mt-1 text-sm text-slate-600">Enter the correct PIN to view attendance records.</p>
+              <p class="mt-1 text-sm text-slate-600">Enter the correct PIN (Lecturer) or Login (Admin) to view attendance records.</p>
             </div>
           </div>
 
@@ -508,7 +552,7 @@
     /*********************
      * NSUK URP E-Attendance (Single-file, client-only)
      * - Student: Geolocation + Camera capture gates attendance submission
-     * - Admin: PIN-gated dashboard, localStorage records, PDF export
+     * - Admin: Local Auth -> Generate PIN -> Lecturer uses PIN to view Dashboard
      *********************/
 
     // ---------- DOM helpers ----------
@@ -518,13 +562,14 @@
     // ---------- Storage keys ----------
     const STORAGE_KEY_RECORDS = 'nsuk_urp_attendance_records_v1';
     const STORAGE_KEY_PIN = 'nsuk_urp_admin_pin_v1';
+    const STORAGE_KEY_ADMIN = 'nsuk_urp_admin_auth_v1'; // Stores { user, pass }
 
     // ---------- State ----------
     const state = {
       location: { ok: false, lat: null, lon: null, accuracy: null, denied: false },
       face: { ok: false, dataUrl: null, w: null, h: null },
       camera: { stream: null, started: false },
-      admin: { unlocked: false },
+      admin: { unlocked: false, isAuthenticated: false },
     };
 
     // ---------- Utilities ----------
@@ -535,13 +580,11 @@
     function pad2(n) { return String(n).padStart(2, '0'); }
 
     function formatDate(d) {
-      // e.g., 06 Jan 2026
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       return `${pad2(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()}`;
     }
 
     function formatTime(d) {
-      // 24-hour time: HH:MM:SS
       return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
     }
 
@@ -578,7 +621,6 @@
       $('checkFields').textContent = mark(fieldsOk);
       $('checkFields').className = `mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg ring-1 ${cls(fieldsOk)}`;
 
-      // Verification text inside the form
       const ver = (state.location.ok && state.face.ok && fieldsOk) ? 'Ready to submit' : 'Pending';
       $('verifyText').textContent = ver;
 
@@ -599,7 +641,6 @@
     }
 
     function updateSubmitState() {
-      // Form unlocking rule: remains disabled until face capture is successful.
       const unlocked = state.face.ok;
       $('formFieldset').disabled = !unlocked;
       $('formFieldset').classList.toggle('opacity-60', !unlocked);
@@ -628,7 +669,6 @@
 
     // ---------- PIN ----------
     function generatePin() {
-      // 6-digit PIN
       return String(Math.floor(100000 + Math.random() * 900000));
     }
 
@@ -645,9 +685,18 @@
       return localStorage.getItem(STORAGE_KEY_PIN) || ensurePin();
     }
 
-    function maskPin(pin) {
-      if (!pin) return '••••••';
-      return '•'.repeat(Math.max(4, pin.length));
+    // ---------- Admin Auth ----------
+    function getAdmin() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_ADMIN);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function setAdmin(username, password) {
+      localStorage.setItem(STORAGE_KEY_ADMIN, JSON.stringify({ username, password }));
     }
 
     // ---------- Location ----------
@@ -690,7 +739,6 @@
           state.location.lon = null;
           state.location.accuracy = null;
 
-          // Most common: permission denied
           state.location.denied = (err.code === 1);
           $('locStatus').textContent = state.location.denied ? 'Permission denied' : 'Location error';
 
@@ -723,7 +771,6 @@
       }
 
       try {
-        // Prefer front camera if available
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false,
@@ -761,7 +808,6 @@
     }
 
     function estimateQuality(w, h) {
-      // Simple heuristic: larger captured size => better
       const pixels = w * h;
       if (pixels >= 500_000) return 'High';
       if (pixels >= 250_000) return 'Medium';
@@ -788,7 +834,6 @@
         return;
       }
 
-      // Scale down to reduce storage size (important for localStorage)
       const MAX_W = 720;
       const scale = Math.min(1, MAX_W / vw);
       const w = Math.round(vw * scale);
@@ -799,7 +844,6 @@
       const ctx = canvas.getContext('2d', { willReadFrequently: false });
       ctx.drawImage(video, 0, 0, w, h);
 
-      // JPEG for compactness
       const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
 
       state.face.ok = true;
@@ -807,7 +851,6 @@
       state.face.w = w;
       state.face.h = h;
 
-      // Update UI
       $('facePreview').src = dataUrl;
       $('facePreview').classList.remove('hidden');
       $('faceEmpty').classList.add('hidden');
@@ -816,7 +859,6 @@
       $('faceQuality').textContent = `${estimateQuality(w,h)} (${w}×${h})`;
       $('btnRetake').disabled = false;
 
-      // After capture, stop camera for privacy and battery saving
       stopCamera();
 
       showToast('Face captured', 'Form unlocked. Complete the fields and submit.');
@@ -844,7 +886,6 @@
     function submitAttendance(e) {
       e.preventDefault();
 
-      // Defensive checks
       if (!state.face.ok) {
         showToast('Face required', 'Capture your face before submitting.');
         return;
@@ -876,27 +917,22 @@
         userAgent: navigator.userAgent,
       };
 
-      // Save locally
       const records = loadRecords();
-      records.unshift(record); // newest first
+      records.unshift(record);
       try {
         saveRecords(records);
       } catch (err) {
-        // localStorage can fail when too large (images). Give a clear message.
         showToast('Storage limit reached', 'Unable to save. Try retaking a smaller image or clear old records in Admin.');
         return;
       }
 
-      // Confirmation & reset
       showToast('Attendance submitted successfully', `${record.name} • ${record.course} • ${record.date} ${record.time}`);
 
-      // Keep location (optional), reset face to enforce fresh capture next time.
       retakeFace();
       $('attendanceForm').reset();
       updateDateTimePreview();
       updateSubmitState();
 
-      // If admin is unlocked, refresh table immediately
       if (state.admin.unlocked) renderAdmin();
     }
 
@@ -918,20 +954,113 @@
         ? 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-slate-400'
         : 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400';
 
-      // Stop camera if switching away
       if (!isStudent) stopCamera();
-
-      // Auto-reveal PIN when switching to Admin
-      if (!isStudent) {
-        revealPin();
-      }
-
-      // Update admin view if switching to admin
+      
+      // Refresh admin view if switching to admin and unlocked
       if (!isStudent && state.admin.unlocked) renderAdmin();
     }
 
-    // ---------- Admin ----------
-    function unlockAdmin() {
+    // ---------- Admin Sub-Tabs ----------
+    function showAdminSubTab(which) {
+      const isLogin = which === 'login';
+
+      $('panelLecturerLogin').classList.toggle('hidden', !isLogin);
+      $('panelAdminAuth').classList.toggle('hidden', isLogin);
+
+      $('tabLecturerLogin').setAttribute('aria-selected', String(isLogin));
+      $('tabAdminAuth').setAttribute('aria-selected', String(!isLogin));
+
+      $('tabLecturerLogin').className = isLogin
+        ? 'flex-1 rounded-xl px-3 py-2 text-xs font-semibold ring-1 ring-slate-200 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-slate-400'
+        : 'flex-1 rounded-xl px-3 py-2 text-xs font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400';
+
+      $('tabAdminAuth').className = !isLogin
+        ? 'flex-1 rounded-xl px-3 py-2 text-xs font-semibold ring-1 ring-slate-200 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-slate-400'
+        : 'flex-1 rounded-xl px-3 py-2 text-xs font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400';
+
+      // Update Admin Auth UI state
+      updateAdminAuthUI();
+    }
+
+    function updateAdminAuthUI() {
+      const admin = getAdmin();
+      const tools = $('adminTools');
+      const loginForm = $('authLogin');
+      const signupForm = $('authSignup');
+
+      if (state.admin.isAuthenticated) {
+        // Logged in
+        tools.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+        signupForm.classList.add('hidden');
+        
+        // Auto reveal PIN
+        revealPin();
+      } else {
+        // Not logged in
+        tools.classList.add('hidden');
+        if (admin) {
+          // Exists -> Show Login
+          loginForm.classList.remove('hidden');
+          signupForm.classList.add('hidden');
+        } else {
+          // No Admin -> Show Signup
+          loginForm.classList.add('hidden');
+          signupForm.classList.remove('hidden');
+        }
+      }
+    }
+
+    // ---------- Admin Actions ----------
+    function adminSignup() {
+      const u = $('newUser').value.trim();
+      const p = $('newPass').value.trim();
+      if (!u || !p) {
+        $('signupMsg').textContent = 'Please enter username and password.';
+        return;
+      }
+      setAdmin(u, p);
+      $('signupMsg').textContent = 'Account created! Please login.';
+      $('newUser').value = '';
+      $('newPass').value = '';
+      updateAdminAuthUI();
+      showToast('Admin Created', 'Please login with your credentials.');
+    }
+
+    function adminLogin() {
+      const u = $('adminUser').value.trim();
+      const p = $('adminPass').value.trim();
+      const admin = getAdmin();
+      
+      if (!admin) {
+        $('authMsg').textContent = 'No admin account found. Please sign up first.';
+        return;
+      }
+      
+      if (admin.username === u && admin.password === p) {
+        state.admin.isAuthenticated = true;
+        $('authMsg').textContent = 'Login successful.';
+        showToast('Welcome Admin', 'Access granted to PIN tools.');
+        updateAdminAuthUI();
+      } else {
+        $('authMsg').textContent = 'Invalid username or password.';
+      }
+    }
+
+    function adminLogout() {
+      state.admin.isAuthenticated = false;
+      state.admin.unlocked = false;
+      $('adminDashboard').classList.add('hidden');
+      $('adminLocked').classList.remove('hidden');
+      $('authMsg').textContent = '';
+      $('adminUser').value = '';
+      $('adminPass').value = '';
+      updateAdminAuthUI();
+      showToast('Logged Out', 'Admin session ended.');
+    }
+
+    // --- Lecturer Unlock (PIN Entry) ---
+    function unlockLecturerDashboard() {
       const pin = $('pinInput').value.trim();
       const real = getPin();
       if (!pin) {
@@ -947,13 +1076,13 @@
       }
 
       state.admin.unlocked = true;
-      $('pinMsg').textContent = 'Access granted. Dashboard unlocked.';
+      $('pinMsg').textContent = 'Access granted.';
       $('pinMsg').className = 'mt-2 text-xs text-emerald-700 font-semibold';
 
       $('adminLocked').classList.add('hidden');
       $('adminDashboard').classList.remove('hidden');
       renderAdmin();
-      showToast('Dashboard unlocked', 'You can now view and export records.');
+      showToast('Dashboard unlocked', 'Viewing attendance records.');
     }
 
     function lockAdmin() {
@@ -962,9 +1091,38 @@
       $('pinMsg').textContent = '';
       $('adminLocked').classList.remove('hidden');
       $('adminDashboard').classList.add('hidden');
-      showToast('Dashboard locked', 'PIN required for access.');
+      showToast('Dashboard locked', 'Access required.');
     }
 
+    // --- Admin Tools (PIN Management) ---
+    function revealPin() {
+      const pin = getPin();
+      $('pinDisplay').textContent = pin;
+      $('btnCopyPin').disabled = false;
+    }
+
+    async function copyPin() {
+      try {
+        const pin = getPin();
+        await navigator.clipboard.writeText(pin);
+        showToast('PIN copied', 'Share this with Lecturers.');
+      } catch {
+        showToast('Copy failed', 'Your browser blocked clipboard access.');
+      }
+    }
+
+    function resetPin() {
+      const ok = confirm('Reset PIN? This will invalidate the old PIN and generate a new one.');
+      if (!ok) return;
+      localStorage.removeItem(STORAGE_KEY_PIN);
+      ensurePin();
+      $('pinDisplay').textContent = getPin();
+      $('btnCopyPin').disabled = false;
+      lockAdmin();
+      showToast('PIN Reset', 'New PIN generated.');
+    }
+
+    // ---------- Admin Dashboard Rendering ----------
     function renderAdmin() {
       const tbody = $('recordsTbody');
       const empty = $('emptyAdmin');
@@ -1015,7 +1173,6 @@
         tbody.appendChild(tr);
       }
 
-      // Wire up view buttons (event delegation is fine, but small table so direct binding is ok)
       tbody.querySelectorAll('[data-view-face]').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.getAttribute('data-view-face');
@@ -1064,7 +1221,6 @@
       const generated = `${formatDate(now())} ${formatTime(now())}`;
       doc.text(`Attendance Export • Generated: ${generated}`, margin, 86);
 
-      // Table data
       const head = [['Name', 'Matric No.', 'Course Code', 'Date', 'Time', 'Latitude', 'Longitude']];
       const body = records.map(r => [
         String(r.name || ''),
@@ -1122,46 +1278,14 @@
       $('faceModalImg').src = '';
     }
 
-    // ---------- Lecturer tools ----------
-    function revealPin() {
-      const pin = getPin();
-      $('pinDisplay').textContent = pin;
-      $('btnCopyPin').disabled = false;
-      // Removed toast to avoid annoyance on auto-reveal
-    }
-
-    async function copyPin() {
-      try {
-        const pin = getPin();
-        await navigator.clipboard.writeText(pin);
-        showToast('PIN copied', 'Copied to clipboard.');
-      } catch {
-        showToast('Copy failed', 'Your browser blocked clipboard access.');
-      }
-    }
-
-    function resetPin() {
-      const ok = confirm('Reset admin PIN? This will lock the dashboard and generate a new PIN on this device.');
-      if (!ok) return;
-      localStorage.removeItem(STORAGE_KEY_PIN);
-      ensurePin();
-      $('pinDisplay').textContent = getPin(); // Show the new PIN immediately
-      $('btnCopyPin').disabled = false;
-      lockAdmin();
-      showToast('PIN reset', 'New system PIN generated and revealed.');
-    }
-
     // ---------- Init ----------
     function init() {
-      // Year
       $('year').textContent = String(new Date().getFullYear());
 
       // Ensure PIN exists (generated by system)
       ensurePin();
-      // Do NOT auto-reveal on load to keep initial UI clean, but ensure display is ready
       $('pinDisplay').textContent = maskPin(getPin());
 
-      // Default date/time preview
       updateDateTimePreview();
       setInterval(updateDateTimePreview, 1000);
 
@@ -1171,37 +1295,43 @@
       $('btnCaptureFace').addEventListener('click', captureFace);
       $('btnRetake').addEventListener('click', () => {
         retakeFace();
-        // Optionally start camera again for convenience
         startCamera();
       });
       $('attendanceForm').addEventListener('submit', submitAttendance);
 
-      // Validate required fields live
       ['studentName', 'matricNo', 'courseCode'].forEach(id => {
         $(id).addEventListener('input', updateSubmitState);
         $(id).addEventListener('blur', updateSubmitState);
       });
 
-      // Wire tabs
+      // Main Tabs
       $('tabStudent').addEventListener('click', () => showPanel('student'));
       $('tabAdmin').addEventListener('click', () => showPanel('admin'));
 
-      // Wire admin gate
-      $('btnUnlock').addEventListener('click', unlockAdmin);
+      // Admin Sub-Tabs
+      $('tabLecturerLogin').addEventListener('click', () => showAdminSubTab('login'));
+      $('tabAdminAuth').addEventListener('click', () => showAdminSubTab('admin'));
+
+      // Lecturer Unlock
+      $('btnUnlock').addEventListener('click', unlockLecturerDashboard);
       $('pinInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') unlockAdmin();
+        if (e.key === 'Enter') unlockLecturerDashboard();
       });
 
-      // Admin actions
+      // Admin Auth
+      $('btnAdminSignup').addEventListener('click', adminSignup);
+      $('btnAdminLogin').addEventListener('click', adminLogin);
+      $('btnAdminLogout').addEventListener('click', adminLogout);
+
+      // Admin Tools
+      $('btnCopyPin').addEventListener('click', copyPin);
+      $('btnResetPin').addEventListener('click', resetPin);
+
+      // Dashboard Controls
       $('btnLock').addEventListener('click', lockAdmin);
       $('btnClear').addEventListener('click', clearRecords);
       $('btnDownloadPdf').addEventListener('click', downloadPdf);
       $('searchInput').addEventListener('input', () => state.admin.unlocked && renderAdmin());
-
-      // Lecturer tools
-      // Note: Reveal button removed, auto-reveal happens in showPanel('admin')
-      $('btnCopyPin').addEventListener('click', copyPin);
-      $('btnResetPin').addEventListener('click', resetPin);
 
       // Modals
       $('btnOpenHelp').addEventListener('click', openHelp);
@@ -1217,13 +1347,12 @@
 
       // Initial UI state
       updateSubmitState();
+      updateAdminAuthUI();
 
-      // Inform if running in insecure context
       if (!window.isSecureContext) {
         showToast('Limited permissions', 'This page is not in a secure context (HTTPS). Location/camera may not work.');
       }
 
-      // Prevent leaving camera running if user navigates away
       window.addEventListener('pagehide', stopCamera);
       window.addEventListener('beforeunload', stopCamera);
     }
