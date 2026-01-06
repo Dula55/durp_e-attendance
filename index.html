@@ -14,9 +14,11 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>
 
   <style>
+    /* Small, accessible baseline enhancements (kept minimal; Tailwind does most styling) */
     :root { color-scheme: light; }
     html { scroll-behavior: smooth; }
 
+    /* Subtle animated accent */
     .shimmer {
       background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.18), rgba(255,255,255,0.05));
       background-size: 200% 100%;
@@ -24,10 +26,12 @@
     }
     @keyframes shimmer { 0% { background-position: 0% 0; } 100% { background-position: 200% 0; } }
 
+    /* Hide number input spinners (PIN can be numeric) */
     input[type=number]::-webkit-outer-spin-button,
     input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
 
+    /* Print-friendly */
     @media print {
       .no-print { display: none !important; }
       body { background: #fff !important; }
@@ -42,6 +46,7 @@
       <div class="mx-auto max-w-6xl px-4 py-5 sm:py-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-start gap-3">
+            <!-- Simple academic crest-style mark (inline SVG) -->
             <div class="shimmer mt-0.5 h-10 w-10 rounded-xl bg-white/10 ring-1 ring-white/15 flex items-center justify-center" aria-hidden="true">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2l9 4.5-9 4.5L3 6.5 12 2Z" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linejoin="round"/>
@@ -94,7 +99,6 @@
   <main class="mx-auto max-w-6xl px-4 py-6 sm:py-8">
     <!-- Student Panel -->
     <section id="panelStudent" role="tabpanel" aria-labelledby="tabStudent">
-      <!-- ... (unchanged student section omitted for brevity) ... -->
       <div class="grid gap-4 lg:grid-cols-12">
         <!-- Left: Steps -->
         <div class="lg:col-span-8">
@@ -104,6 +108,7 @@
               <p class="mt-1 text-sm text-slate-600">
                 To submit attendance, you must <span class="font-semibold">capture your location</span> and <span class="font-semibold">capture your face</span> using your device camera.
               </p>
+             
             </div>
 
             <div class="px-5 py-5 sm:px-6">
@@ -330,12 +335,11 @@
                 <p id="pinMsg" class="mt-2 text-xs text-slate-600"></p>
               </div>
 
-              <!-- Lecturer tools – only visible on the device that owns the PIN -->
-              <details id="lecturerTools" class="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+              <details class="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
                 <summary class="cursor-pointer text-sm font-semibold text-slate-800">Lecturer tools (Reveal / Reset PIN)</summary>
                 <div class="mt-3 space-y-3">
                   <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                    This device owns the master PIN. Use these tools only on the primary lecturer device.
+                    This is a client-only application. The PIN is stored on this device/browser. Anyone with access to this device can potentially reveal it.
                   </div>
                   <div class="flex flex-col gap-2 sm:flex-row">
                     <button id="btnRevealPin" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400">Reveal PIN</button>
@@ -343,7 +347,7 @@
                     <button id="btnResetPin" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300">Reset PIN</button>
                   </div>
                   <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3">
-                    <p class="text-xs text-slate-500">Current PIN</p>
+                    <p class="text-xs text-slate-500">System PIN</p>
                     <p id="pinDisplay" class="mt-1 text-base font-bold tracking-widest">••••••</p>
                   </div>
                 </div>
@@ -357,7 +361,6 @@
           </div>
         </div>
 
-        <!-- Dashboard (locked / unlocked) -->
         <div class="lg:col-span-8">
           <div id="adminLocked" class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
             <div class="px-5 py-10 sm:px-6 text-center">
@@ -373,7 +376,6 @@
           </div>
 
           <div id="adminDashboard" class="hidden rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
-            <!-- dashboard content unchanged -->
             <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
               <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -431,7 +433,7 @@
     </section>
   </main>
 
-  <!-- Footer, Modals, Toast, Canvas (unchanged) -->
+  <!-- Footer -->
   <footer class="no-print border-t border-slate-200 bg-white">
     <div class="mx-auto max-w-6xl px-4 py-6">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -441,14 +443,55 @@
     </div>
   </footer>
 
-  <!-- Help Modal (unchanged) -->
+  <!-- Modal: Help -->
   <div id="helpModal" class="hidden fixed inset-0 z-50">
-    <!-- ... unchanged ... -->
+    <div class="absolute inset-0 bg-slate-900/50"></div>
+    <div class="relative mx-auto max-w-2xl p-4 sm:p-6">
+      <div class="rounded-2xl bg-white shadow-xl ring-1 ring-slate-200">
+        <div class="border-b border-slate-200 px-5 py-4 sm:px-6 flex items-start justify-between gap-3">
+          <div>
+            <h3 class="text-base font-semibold">How to Mark Attendance</h3>
+            <p class="mt-1 text-sm text-slate-600">Follow these steps carefully on your smartphone.</p>
+          </div>
+          <button id="btnCloseHelp" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400">Close</button>
+        </div>
+        <div class="px-5 py-5 sm:px-6">
+          <ol class="list-decimal pl-5 space-y-2 text-sm text-slate-700">
+            <li>Tap <span class="font-semibold">Capture Location</span> and allow location permission.</li>
+            <li>Tap <span class="font-semibold">Start Camera</span> and allow camera permission.</li>
+            <li>Tap <span class="font-semibold">Capture</span> to take a still image of your face.</li>
+            <li>Fill <span class="font-semibold">Name</span>, <span class="font-semibold">Matric Number</span>, and <span class="font-semibold">Course Code</span>.</li>
+            <li>Tap <span class="font-semibold">Submit Attendance</span> and wait for confirmation.</li>
+          </ol>
+          <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            If permissions are denied, enable them in your browser settings and reload the page.
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Face Viewer Modal (unchanged) -->
+  <!-- Modal: Face Viewer -->
   <div id="faceModal" class="hidden fixed inset-0 z-50">
-    <!-- ... unchanged ... -->
+    <div class="absolute inset-0 bg-slate-900/55"></div>
+    <div class="relative mx-auto max-w-3xl p-4 sm:p-6">
+      <div class="rounded-2xl bg-white shadow-xl ring-1 ring-slate-200 overflow-hidden">
+        <div class="border-b border-slate-200 px-5 py-4 sm:px-6 flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <h3 class="text-base font-semibold">Captured Face</h3>
+            <p id="faceModalMeta" class="mt-1 text-sm text-slate-600 truncate">—</p>
+          </div>
+          <button id="btnCloseFace" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400">Close</button>
+        </div>
+        <div class="p-4 sm:p-6">
+          <img id="faceModalImg" alt="Face image" class="w-full rounded-2xl ring-1 ring-slate-200" />
+          <div class="mt-4 flex flex-wrap gap-2">
+            <a id="mapLink" href="#" target="_blank" rel="noopener" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Open Location on Map</a>
+          </div>
+          <p class="mt-3 text-xs text-slate-500">Image and coordinates are stored locally in the browser.</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Toast -->
@@ -459,19 +502,25 @@
     </div>
   </div>
 
+  <!-- Hidden canvas for capture -->
   <canvas id="captureCanvas" class="hidden"></canvas>
 
   <script>
     /*********************
-     * NSUK URP E-Attendance – Updated PIN logic
+     * NSUK URP E-Attendance (Single-file, client-only)
+     * - Student: Geolocation + Camera capture gates attendance submission
+     * - Admin: PIN-gated dashboard, localStorage records, PDF export
      *********************/
 
+    // ---------- DOM helpers ----------
     const $ = (id) => document.getElementById(id);
     const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+    // ---------- Storage keys ----------
     const STORAGE_KEY_RECORDS = 'nsuk_urp_attendance_records_v1';
     const STORAGE_KEY_PIN = 'nsuk_urp_admin_pin_v1';
 
+    // ---------- State ----------
     const state = {
       location: { ok: false, lat: null, lon: null, accuracy: null, denied: false },
       face: { ok: false, dataUrl: null, w: null, h: null },
@@ -479,8 +528,108 @@
       admin: { unlocked: false },
     };
 
-    /* ---------- PIN Management ---------- */
+    // ---------- Utilities ----------
+    function now() {
+      return new Date();
+    }
+
+    function pad2(n) { return String(n).padStart(2, '0'); }
+
+    function formatDate(d) {
+      // e.g., 06 Jan 2026
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return `${pad2(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    function formatTime(d) {
+      // 24-hour time: HH:MM:SS
+      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+    }
+
+    function makeId() {
+      return `att_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    }
+
+    function showToast(title, sub = '') {
+      $('toastText').textContent = title;
+      $('toastSub').textContent = sub;
+      $('toast').classList.remove('hidden');
+      window.clearTimeout(showToast._t);
+      showToast._t = window.setTimeout(() => $('toast').classList.add('hidden'), 3200);
+    }
+
+    function setStatusSummary() {
+      const pieces = [];
+      pieces.push(state.location.ok ? 'Location ✓' : (state.location.denied ? 'Location denied' : 'Location …'));
+      pieces.push(state.face.ok ? 'Face ✓' : 'Face …');
+      $('statusSummary').textContent = pieces.join(' • ');
+    }
+
+    function setChecklist() {
+      const mark = (ok) => ok ? '✓' : '—';
+      const cls = (ok) => ok ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-slate-100 text-slate-700 ring-slate-200';
+
+      $('checkLoc').textContent = mark(state.location.ok);
+      $('checkLoc').className = `mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg ring-1 ${cls(state.location.ok)}`;
+
+      $('checkFace').textContent = mark(state.face.ok);
+      $('checkFace').className = `mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg ring-1 ${cls(state.face.ok)}`;
+
+      const fieldsOk = requiredFieldsFilled();
+      $('checkFields').textContent = mark(fieldsOk);
+      $('checkFields').className = `mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg ring-1 ${cls(fieldsOk)}`;
+
+      // Verification text inside the form
+      const ver = (state.location.ok && state.face.ok && fieldsOk) ? 'Ready to submit' : 'Pending';
+      $('verifyText').textContent = ver;
+
+      setStatusSummary();
+    }
+
+    function requiredFieldsFilled() {
+      const name = $('studentName').value.trim();
+      const matric = $('matricNo').value.trim();
+      const course = $('courseCode').value.trim();
+      return Boolean(name && matric && course);
+    }
+
+    function updateDateTimePreview() {
+      const d = now();
+      $('dateText').textContent = formatDate(d);
+      $('timeText').textContent = formatTime(d);
+    }
+
+    function updateSubmitState() {
+      // Form unlocking rule: remains disabled until face capture is successful.
+      const unlocked = state.face.ok;
+      $('formFieldset').disabled = !unlocked;
+      $('formFieldset').classList.toggle('opacity-60', !unlocked);
+      $('formLockedNote').classList.toggle('hidden', unlocked);
+
+      const canSubmit = state.location.ok && state.face.ok && requiredFieldsFilled();
+      $('btnSubmit').disabled = !canSubmit;
+
+      setChecklist();
+    }
+
+    // ---------- Records ----------
+    function loadRecords() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_RECORDS);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveRecords(records) {
+      localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(records));
+    }
+
+    // ---------- PIN ----------
     function generatePin() {
+      // 6-digit PIN
       return String(Math.floor(100000 + Math.random() * 900000));
     }
 
@@ -498,22 +647,478 @@
     }
 
     function maskPin(pin) {
-      return pin ? '•'.repeat(Math.max(4, pin.length)) : '••••••';
+      if (!pin) return '••••••';
+      return '•'.repeat(Math.max(4, pin.length));
     }
 
-    /* Show / hide lecturer tools only on the device that owns the PIN */
-    function toggleLecturerToolsVisibility() {
-      const tools = $('lecturerTools');
-      // If a PIN already exists in localStorage → this device is the "owner"
-      const isOwner = !!localStorage.getItem(STORAGE_KEY_PIN);
-      if (isOwner) {
-        tools.removeAttribute('open'); // keep collapsed by default
-        tools.style.display = 'block';
-      } else {
-        tools.style.display = 'none';
+    // ---------- Location ----------
+    async function captureLocation() {
+      $('locError').classList.add('hidden');
+      $('locError').textContent = '';
+
+      if (!('geolocation' in navigator)) {
+        state.location.ok = false;
+        state.location.denied = true;
+        $('locStatus').textContent = 'Geolocation not supported';
+        $('locError').textContent = 'Your browser does not support the Geolocation API.';
+        $('locError').classList.remove('hidden');
+        updateSubmitState();
+        return;
+      }
+
+      $('locStatus').textContent = 'Requesting permission…';
+
+      const opts = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude, accuracy } = pos.coords;
+          state.location.ok = true;
+          state.location.denied = false;
+          state.location.lat = latitude;
+          state.location.lon = longitude;
+          state.location.accuracy = accuracy;
+
+          $('locStatus').textContent = `Captured (±${Math.round(accuracy)}m)`;
+          $('latText').textContent = latitude.toFixed(6);
+          $('lonText').textContent = longitude.toFixed(6);
+
+          showToast('Location captured', `Accuracy ±${Math.round(accuracy)}m`);
+          updateSubmitState();
+        },
+        (err) => {
+          state.location.ok = false;
+          state.location.lat = null;
+          state.location.lon = null;
+          state.location.accuracy = null;
+
+          // Most common: permission denied
+          state.location.denied = (err.code === 1);
+          $('locStatus').textContent = state.location.denied ? 'Permission denied' : 'Location error';
+
+          let msg = err.message || 'Unable to capture location.';
+          if (err.code === 1) {
+            msg = 'Location permission was denied. Enable location permission in your browser settings and try again.';
+          } else if (err.code === 2) {
+            msg = 'Location unavailable. Try moving to an open area or enabling GPS.';
+          } else if (err.code === 3) {
+            msg = 'Location request timed out. Try again.';
+          }
+          $('locError').textContent = msg;
+          $('locError').classList.remove('hidden');
+          showToast('Location not captured', msg);
+          updateSubmitState();
+        },
+        opts
+      );
+    }
+
+    // ---------- Camera / Face capture ----------
+    async function startCamera() {
+      $('camError').classList.add('hidden');
+      $('camError').textContent = '';
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        $('camError').textContent = 'Camera not supported in this browser.';
+        $('camError').classList.remove('hidden');
+        return;
+      }
+
+      try {
+        // Prefer front camera if available
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+
+        state.camera.stream = stream;
+        state.camera.started = true;
+        $('video').srcObject = stream;
+        $('btnCaptureFace').disabled = false;
+
+        showToast('Camera started', 'Position your face and tap Capture.');
+      } catch (err) {
+        state.camera.stream = null;
+        state.camera.started = false;
+        $('btnCaptureFace').disabled = true;
+
+        const msg = (err && err.name === 'NotAllowedError')
+          ? 'Camera permission was denied. Enable camera permission in your browser settings and try again.'
+          : (err?.message || 'Unable to access camera.');
+
+        $('camError').textContent = msg;
+        $('camError').classList.remove('hidden');
+        showToast('Camera error', msg);
       }
     }
 
+    function stopCamera() {
+      if (state.camera.stream) {
+        state.camera.stream.getTracks().forEach(t => t.stop());
+      }
+      state.camera.stream = null;
+      state.camera.started = false;
+      $('video').srcObject = null;
+      $('btnCaptureFace').disabled = true;
+    }
+
+    function estimateQuality(w, h) {
+      // Simple heuristic: larger captured size => better
+      const pixels = w * h;
+      if (pixels >= 500_000) return 'High';
+      if (pixels >= 250_000) return 'Medium';
+      return 'Low';
+    }
+
+    function captureFace() {
+      $('camError').classList.add('hidden');
+      $('camError').textContent = '';
+
+      const video = $('video');
+      if (!video || !state.camera.started) {
+        $('camError').textContent = 'Camera is not started. Tap “Start Camera” first.';
+        $('camError').classList.remove('hidden');
+        return;
+      }
+
+      const canvas = $('captureCanvas');
+      const vw = video.videoWidth || 0;
+      const vh = video.videoHeight || 0;
+      if (!vw || !vh) {
+        $('camError').textContent = 'Unable to read camera frame. Please try again.';
+        $('camError').classList.remove('hidden');
+        return;
+      }
+
+      // Scale down to reduce storage size (important for localStorage)
+      const MAX_W = 720;
+      const scale = Math.min(1, MAX_W / vw);
+      const w = Math.round(vw * scale);
+      const h = Math.round(vh * scale);
+
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d', { willReadFrequently: false });
+      ctx.drawImage(video, 0, 0, w, h);
+
+      // JPEG for compactness
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+
+      state.face.ok = true;
+      state.face.dataUrl = dataUrl;
+      state.face.w = w;
+      state.face.h = h;
+
+      // Update UI
+      $('facePreview').src = dataUrl;
+      $('facePreview').classList.remove('hidden');
+      $('faceEmpty').classList.add('hidden');
+      $('faceStatus').textContent = 'Captured';
+      $('faceStatus').className = 'mt-1 text-sm font-semibold text-emerald-700';
+      $('faceQuality').textContent = `${estimateQuality(w,h)} (${w}×${h})`;
+      $('btnRetake').disabled = false;
+
+      // After capture, stop camera for privacy and battery saving
+      stopCamera();
+
+      showToast('Face captured', 'Form unlocked. Complete the fields and submit.');
+      updateSubmitState();
+    }
+
+    function retakeFace() {
+      state.face.ok = false;
+      state.face.dataUrl = null;
+      state.face.w = null;
+      state.face.h = null;
+
+      $('facePreview').src = '';
+      $('facePreview').classList.add('hidden');
+      $('faceEmpty').classList.remove('hidden');
+      $('faceStatus').textContent = 'Not captured';
+      $('faceStatus').className = 'mt-1 text-sm font-semibold text-slate-800';
+      $('faceQuality').textContent = '—';
+      $('btnRetake').disabled = true;
+
+      updateSubmitState();
+    }
+
+    // ---------- Student submit ----------
+    function submitAttendance(e) {
+      e.preventDefault();
+
+      // Defensive checks
+      if (!state.face.ok) {
+        showToast('Face required', 'Capture your face before submitting.');
+        return;
+      }
+      if (!state.location.ok) {
+        showToast('Location required', 'Capture your location before submitting.');
+        return;
+      }
+      if (!requiredFieldsFilled()) {
+        showToast('Complete required fields', 'Name, Matric Number, and Course Code are required.');
+        return;
+      }
+
+      const d = now();
+      const record = {
+        id: makeId(),
+        name: $('studentName').value.trim(),
+        matric: $('matricNo').value.trim(),
+        course: $('courseCode').value.trim(),
+        date: formatDate(d),
+        time: formatTime(d),
+        iso: d.toISOString(),
+        lat: Number(state.location.lat),
+        lon: Number(state.location.lon),
+        accuracy: state.location.accuracy != null ? Number(state.location.accuracy) : null,
+        faceDataUrl: state.face.dataUrl,
+        faceW: state.face.w,
+        faceH: state.face.h,
+        userAgent: navigator.userAgent,
+      };
+
+      // Save locally
+      const records = loadRecords();
+      records.unshift(record); // newest first
+      try {
+        saveRecords(records);
+      } catch (err) {
+        // localStorage can fail when too large (images). Give a clear message.
+        showToast('Storage limit reached', 'Unable to save. Try retaking a smaller image or clear old records in Admin.');
+        return;
+      }
+
+      // Confirmation & reset
+      showToast('Attendance submitted successfully', `${record.name} • ${record.course} • ${record.date} ${record.time}`);
+
+      // Keep location (optional), reset face to enforce fresh capture next time.
+      retakeFace();
+      $('attendanceForm').reset();
+      updateDateTimePreview();
+      updateSubmitState();
+
+      // If admin is unlocked, refresh table immediately
+      if (state.admin.unlocked) renderAdmin();
+    }
+
+    // ---------- Tabs ----------
+    function showPanel(which) {
+      const isStudent = which === 'student';
+
+      $('panelStudent').classList.toggle('hidden', !isStudent);
+      $('panelAdmin').classList.toggle('hidden', isStudent);
+
+      $('tabStudent').setAttribute('aria-selected', String(isStudent));
+      $('tabAdmin').setAttribute('aria-selected', String(!isStudent));
+
+      $('tabStudent').className = isStudent
+        ? 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-slate-400'
+        : 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400';
+
+      $('tabAdmin').className = !isStudent
+        ? 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-slate-400'
+        : 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400';
+
+      // Stop camera if switching away
+      if (!isStudent) stopCamera();
+
+      // Update admin view if switching to admin
+      if (!isStudent && state.admin.unlocked) renderAdmin();
+    }
+
+    // ---------- Admin ----------
+    function unlockAdmin() {
+      const pin = $('pinInput').value.trim();
+      const real = getPin();
+      if (!pin) {
+        $('pinMsg').textContent = 'Enter the PIN.';
+        $('pinMsg').className = 'mt-2 text-xs text-slate-600';
+        return;
+      }
+      if (pin !== real) {
+        $('pinMsg').textContent = 'Incorrect PIN. Access denied.';
+        $('pinMsg').className = 'mt-2 text-xs text-rose-700 font-semibold';
+        showToast('Access denied', 'Incorrect PIN');
+        return;
+      }
+
+      state.admin.unlocked = true;
+      $('pinMsg').textContent = 'Access granted. Dashboard unlocked.';
+      $('pinMsg').className = 'mt-2 text-xs text-emerald-700 font-semibold';
+
+      $('adminLocked').classList.add('hidden');
+      $('adminDashboard').classList.remove('hidden');
+      renderAdmin();
+      showToast('Dashboard unlocked', 'You can now view and export records.');
+    }
+
+    function lockAdmin() {
+      state.admin.unlocked = false;
+      $('pinInput').value = '';
+      $('pinMsg').textContent = '';
+      $('adminLocked').classList.remove('hidden');
+      $('adminDashboard').classList.add('hidden');
+      showToast('Dashboard locked', 'PIN required for access.');
+    }
+
+    function renderAdmin() {
+      const tbody = $('recordsTbody');
+      const empty = $('emptyAdmin');
+
+      const q = $('searchInput').value.trim().toLowerCase();
+      const records = loadRecords();
+      const filtered = q
+        ? records.filter(r =>
+            String(r.name).toLowerCase().includes(q) ||
+            String(r.matric).toLowerCase().includes(q) ||
+            String(r.course).toLowerCase().includes(q)
+          )
+        : records;
+
+      $('statTotal').textContent = String(records.length);
+      $('statRecent').textContent = records[0] ? `${records[0].date} ${records[0].time}` : '—';
+
+      tbody.innerHTML = '';
+
+      if (!filtered.length) {
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      for (const r of filtered) {
+        const tr = document.createElement('tr');
+        tr.className = 'align-top';
+
+        const dt = `${escapeHtml(r.date)} ${escapeHtml(r.time)}`;
+        const lat = (typeof r.lat === 'number') ? r.lat.toFixed(6) : '—';
+        const lon = (typeof r.lon === 'number') ? r.lon.toFixed(6) : '—';
+
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-semibold text-slate-900">${escapeHtml(r.name)}</td>
+          <td class="px-4 py-3 text-slate-700">${escapeHtml(r.matric)}</td>
+          <td class="px-4 py-3 text-slate-700">${escapeHtml(r.course)}</td>
+          <td class="px-4 py-3 text-slate-700 whitespace-nowrap">${dt}</td>
+          <td class="px-4 py-3 text-slate-700 tabular-nums whitespace-nowrap">${lat}</td>
+          <td class="px-4 py-3 text-slate-700 tabular-nums whitespace-nowrap">${lon}</td>
+          <td class="px-4 py-3">
+            <button data-view-face="${escapeHtml(r.id)}" class="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400">
+              View
+            </button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      }
+
+      // Wire up view buttons (event delegation is fine, but small table so direct binding is ok)
+      tbody.querySelectorAll('[data-view-face]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-view-face');
+          const rec = loadRecords().find(x => x.id === id);
+          if (!rec) return;
+          openFaceModal(rec);
+        });
+      });
+    }
+
+    function clearRecords() {
+      const count = loadRecords().length;
+      if (!count) {
+        showToast('Nothing to clear', 'No records found.');
+        return;
+      }
+      const ok = confirm(`This will permanently remove ${count} attendance record(s) from this browser. Continue?`);
+      if (!ok) return;
+      saveRecords([]);
+      renderAdmin();
+      showToast('Records cleared', 'Local storage attendance data removed.');
+    }
+
+    function downloadPdf() {
+      const records = loadRecords();
+      if (!records.length) {
+        showToast('No records', 'There are no attendance records to export.');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 40;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('Department of Urban and Regional Planning', margin, 50);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(11);
+      doc.text('Nasarawa State University, Keffi (NSUK)', margin, 68);
+
+      doc.setFontSize(10);
+      const generated = `${formatDate(now())} ${formatTime(now())}`;
+      doc.text(`Attendance Export • Generated: ${generated}`, margin, 86);
+
+      // Table data
+      const head = [['Name', 'Matric No.', 'Course Code', 'Date', 'Time', 'Latitude', 'Longitude']];
+      const body = records.map(r => [
+        String(r.name || ''),
+        String(r.matric || ''),
+        String(r.course || ''),
+        String(r.date || ''),
+        String(r.time || ''),
+        (typeof r.lat === 'number') ? r.lat.toFixed(6) : '',
+        (typeof r.lon === 'number') ? r.lon.toFixed(6) : '',
+      ]);
+
+      doc.autoTable({
+        head,
+        body,
+        startY: 110,
+        styles: { font: 'helvetica', fontSize: 9, cellPadding: 4, overflow: 'linebreak' },
+        headStyles: { fillColor: [15, 27, 61], textColor: [255, 255, 255] },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
+        margin: { left: margin, right: margin },
+        tableWidth: pageWidth - margin * 2,
+      });
+
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.text('Note: Face images are not included in the PDF export.', margin, doc.lastAutoTable.finalY + 18);
+
+      const fileName = `NSUK_URP_Attendance_${now().toISOString().slice(0,10)}.pdf`;
+      doc.save(fileName);
+      showToast('PDF downloaded', fileName);
+    }
+
+    // ---------- Modals ----------
+    function openHelp() {
+      $('helpModal').classList.remove('hidden');
+    }
+    function closeHelp() {
+      $('helpModal').classList.add('hidden');
+    }
+
+    function openFaceModal(rec) {
+      $('faceModalImg').src = rec.faceDataUrl || '';
+      $('faceModalMeta').textContent = `${rec.name} • ${rec.matric} • ${rec.course} • ${rec.date} ${rec.time}`;
+      const lat = (typeof rec.lat === 'number') ? rec.lat : null;
+      const lon = (typeof rec.lon === 'number') ? rec.lon : null;
+      const href = (lat != null && lon != null)
+        ? `https://www.google.com/maps?q=${encodeURIComponent(lat + ',' + lon)}`
+        : '#';
+      $('mapLink').href = href;
+      $('mapLink').classList.toggle('pointer-events-none', href === '#');
+      $('mapLink').classList.toggle('opacity-50', href === '#');
+      $('faceModal').classList.remove('hidden');
+    }
+    function closeFaceModal() {
+      $('faceModal').classList.add('hidden');
+      $('faceModalImg').src = '';
+    }
+
+    // ---------- Lecturer tools ----------
     function revealPin() {
       const pin = getPin();
       $('pinDisplay').textContent = pin;
@@ -523,110 +1128,101 @@
 
     async function copyPin() {
       try {
-        await navigator.clipboard.writeText(getPin());
+        const pin = getPin();
+        await navigator.clipboard.writeText(pin);
         showToast('PIN copied', 'Copied to clipboard.');
       } catch {
-        showToast('Copy failed', 'Clipboard access blocked.');
+        showToast('Copy failed', 'Your browser blocked clipboard access.');
       }
     }
 
     function resetPin() {
-      if (!confirm('Reset admin PIN? This will generate a new PIN and lock the dashboard.')) return;
+      const ok = confirm('Reset admin PIN? This will lock the dashboard and generate a new PIN on this device.');
+      if (!ok) return;
       localStorage.removeItem(STORAGE_KEY_PIN);
-      ensurePin(); // creates a new one
+      ensurePin();
       $('pinDisplay').textContent = maskPin(getPin());
       $('btnCopyPin').disabled = true;
       lockAdmin();
-      showToast('PIN reset', 'New PIN generated.');
+      showToast('PIN reset', 'New system PIN generated. Use “Reveal PIN”.');
     }
 
-    /* ---------- UI Helpers ---------- */
-    function showToast(title, sub = '') {
-      $('toastText').textContent = title;
-      $('toastSub').textContent = sub;
-      $('toast').classList.remove('hidden');
-      clearTimeout(showToast._t);
-      showToast._t = setTimeout(() => $('toast').classList.add('hidden'), 3200);
-    }
-
-    /* ---------- Admin Unlock ---------- */
-    function unlockAdmin() {
-      const entered = $('pinInput').value.trim();
-      const real = getPin();
-      if (!entered) {
-        $('pinMsg').textContent = 'Enter the PIN.';
-        $('pinMsg').className = 'mt-2 text-xs text-slate-600';
-        return;
-      }
-      if (entered !== real) {
-        $('pinMsg').textContent = 'Incorrect PIN.';
-        $('pinMsg').className = 'mt-2 text-xs text-rose-700 font-semibold';
-        showToast('Access denied', 'Incorrect PIN');
-        return;
-      }
-
-      state.admin.unlocked = true;
-      $('pinMsg').textContent = 'Access granted.';
-      $('pinMsg').className = 'mt-2 text-xs text-emerald-700 font-semibold';
-      $('adminLocked').classList.add('hidden');
-      $('adminDashboard').classList.remove('hidden');
-      renderAdmin();
-      showToast('Dashboard unlocked');
-    }
-
-    function lockAdmin() {
-      state.admin.unlocked = false;
-      $('pinInput').value = '';
-      $('pinMsg').textContent = '';
-      $('adminLocked').classList.remove('hidden');
-      $('adminDashboard').classList.add('hidden');
-    }
-
-    /* ---------- Init ---------- */
+    // ---------- Init ----------
     function init() {
-      $('year').textContent = new Date().getFullYear();
+      // Year
+      $('year').textContent = String(new Date().getFullYear());
 
-      // Ensure a PIN exists (first device that loads the page becomes the owner)
+      // Ensure PIN exists (generated by system)
       ensurePin();
       $('pinDisplay').textContent = maskPin(getPin());
 
-      // Show lecturer tools only on the owning device
-      toggleLecturerToolsVisibility();
+      // Default date/time preview
+      updateDateTimePreview();
+      setInterval(updateDateTimePreview, 1000);
 
-      // Wire events (unchanged except lecturer tools)
+      // Wire student
       $('btnGetLocation').addEventListener('click', captureLocation);
       $('btnStartCamera').addEventListener('click', startCamera);
       $('btnCaptureFace').addEventListener('click', captureFace);
-      $('btnRetake').addEventListener('click', () => { retakeFace(); startCamera(); });
+      $('btnRetake').addEventListener('click', () => {
+        retakeFace();
+        // Optionally start camera again for convenience
+        startCamera();
+      });
       $('attendanceForm').addEventListener('submit', submitAttendance);
 
+      // Validate required fields live
+      ['studentName', 'matricNo', 'courseCode'].forEach(id => {
+        $(id).addEventListener('input', updateSubmitState);
+        $(id).addEventListener('blur', updateSubmitState);
+      });
+
+      // Wire tabs
       $('tabStudent').addEventListener('click', () => showPanel('student'));
       $('tabAdmin').addEventListener('click', () => showPanel('admin'));
 
+      // Wire admin gate
       $('btnUnlock').addEventListener('click', unlockAdmin);
-      $('pinInput').addEventListener('keydown', e => e.key === 'Enter' && unlockAdmin());
+      $('pinInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') unlockAdmin();
+      });
 
+      // Admin actions
       $('btnLock').addEventListener('click', lockAdmin);
       $('btnClear').addEventListener('click', clearRecords);
       $('btnDownloadPdf').addEventListener('click', downloadPdf);
       $('searchInput').addEventListener('input', () => state.admin.unlocked && renderAdmin());
 
-      // Lecturer tools (only visible on owner device)
+      // Lecturer tools
       $('btnRevealPin').addEventListener('click', revealPin);
       $('btnCopyPin').addEventListener('click', copyPin);
       $('btnResetPin').addEventListener('click', resetPin);
 
-      // Modals & other unchanged wiring...
-      $('btnOpenHelp').addEventListener('click', () => $('helpModal').classList.remove('hidden'));
-      $('btnCloseHelp').addEventListener('click', () => $('helpModal').classList.add('hidden'));
-      $('btnCloseFace').addEventListener('click', () => $('faceModal').classList.add('hidden'));
+      // Modals
+      $('btnOpenHelp').addEventListener('click', openHelp);
+      $('btnCloseHelp').addEventListener('click', closeHelp);
+      $('helpModal').addEventListener('click', (e) => {
+        if (e.target === $('helpModal').firstElementChild) closeHelp();
+      });
 
-      updateDateTimePreview();
-      setInterval(updateDateTimePreview, 1000);
+      $('btnCloseFace').addEventListener('click', closeFaceModal);
+      $('faceModal').addEventListener('click', (e) => {
+        if (e.target === $('faceModal').firstElementChild) closeFaceModal();
+      });
+
+      // Initial UI state
       updateSubmitState();
+
+      // Inform if running in insecure context
+      if (!window.isSecureContext) {
+        showToast('Limited permissions', 'This page is not in a secure context (HTTPS). Location/camera may not work.');
+      }
+
+      // Prevent leaving camera running if user navigates away
+      window.addEventListener('pagehide', stopCamera);
+      window.addEventListener('beforeunload', stopCamera);
     }
 
-    /* ---------- Run ---------- */
     init();
   </script>
 </body>
