@@ -59,6 +59,33 @@
           }
         }
       }
+    },
+
+    "students": {
+      // Students can only read their own data
+      "$studentId": {
+        ".read": "auth != null && auth.uid === $studentId",
+        ".write": "auth != null && auth.uid === $studentId",
+        ".validate": "newData.hasChildren(['name','matric','createdAt']) &&
+                      newData.child('name').isString() &&
+                      newData.child('matric').isString() &&
+                      newData.child('createdAt').isNumber()"
+      }
+    },
+
+    "lecturer_pin": {
+      // Current lecturer PIN (single record)
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.admin === true",
+      ".validate": "newData.hasChildren(['pin','updatedAt']) &&
+                    newData.child('pin').isString() &&
+                    newData.child('updatedAt').isNumber()"
+    },
+
+    "records": {
+      // Legacy structure for backward compatibility
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.admin === true"
     }
   }
 }
