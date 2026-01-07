@@ -80,229 +80,289 @@
     <section id="panelStudent" role="tabpanel">
       <div class="grid gap-4 lg:grid-cols-12">
         <div class="lg:col-span-8">
-          <div class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
+          <!-- Student Login/Signup Section -->
+          <div id="studentLoginSection" class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm mb-4">
             <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
-              <h2 class="text-lg font-semibold">Student Attendance</h2>
-              <p class="mt-1 text-sm text-slate-600">
-                Capture location + face (or upload image) then fill the form. If you configure Firebase below, records and PIN sync across devices automatically.
-              </p>
+              <h2 class="text-lg font-semibold">Student Login / Signup</h2>
+              <p class="mt-1 text-sm text-slate-600">Login or create an account to submit attendance. Your credentials are stored locally on this device.</p>
             </div>
-
-            <div class="px-5 py-5 sm:px-6">
-              <!-- Step 1: Location -->
-              <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-2">
-                      <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f1b3d] text-white text-sm font-bold">1</span>
-                      <h3 class="text-base font-semibold">Enable Location</h3>
+            <div class="p-5">
+              <div class="grid gap-4 sm:grid-cols-2">
+                <!-- Login Form -->
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <h3 class="text-base font-semibold mb-3">Login</h3>
+                  <div class="space-y-3">
+                    <div>
+                      <label class="block text-sm font-semibold text-slate-800">Matric Number</label>
+                      <input id="studentLoginMatric" type="text" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" placeholder="e.g., FT26URP1234" />
                     </div>
-                    <p class="mt-1 text-sm text-slate-600">We capture latitude and longitude for verification.</p>
-                  </div>
-                  <div class="flex gap-2 items-center">
-                    <button id="btnGetLocation" class="shrink-0 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-                      Capture Location
-                    </button>
-                    <button id="btnToggleManualCoords" class="shrink-0 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">
-                      Manual coords
-                    </button>
+                    <div>
+                      <label class="block text-sm font-semibold text-slate-800">Password</label>
+                      <input id="studentLoginPassword" type="password" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+                    </div>
+                    <button id="btnStudentLogin" class="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Login</button>
+                    <p id="studentLoginMsg" class="text-xs text-center mt-2"></p>
                   </div>
                 </div>
-
-                <div id="manualCoordsPanel" class="mt-3 hidden grid gap-2 sm:grid-cols-3">
-                  <div>
-                    <label class="text-xs text-slate-500">Latitude (manual)</label>
-                    <input id="manualLat" type="text" inputmode="decimal" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm tabular-nums" placeholder="e.g., 8.524139" />
-                  </div>
-                  <div>
-                    <label class="text-xs text-slate-500">Longitude (manual)</label>
-                    <input id="manualLon" type="text" inputmode="decimal" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm tabular-nums" placeholder="e.g., 7.123456" />
-                  </div>
-                  <div class="flex items-end">
-                    <button id="btnApplyManualCoords" class="w-full rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Apply</button>
-                  </div>
-                </div>
-
-                <div class="mt-3 grid gap-2 sm:grid-cols-3">
-                  <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200">
-                    <p class="text-xs text-slate-500">Location Status</p>
-                    <p id="locStatus" class="mt-1 text-sm font-semibold text-slate-800">Not captured</p>
-                  </div>
-                  <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200">
-                    <p class="text-xs text-slate-500">Latitude</p>
-                    <p id="latText" class="mt-1 text-sm font-semibold tabular-nums">—</p>
-                  </div>
-                  <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200">
-                    <p class="text-xs text-slate-500">Longitude</p>
-                    <p id="lonText" class="mt-1 text-sm font-semibold tabular-nums">—</p>
-                  </div>
-                </div>
-
-                <div id="locError" class="mt-3 hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"></div>
-                <div class="mt-3 small-muted">If geolocation is not available, use manual coords or Export/Import JSON to move the draft.</div>
-              </div>
-
-              <!-- Step 2: Face Capture -->
-              <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-2">
-                      <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f1b3d] text-white text-sm font-bold">2</span>
-                      <h3 class="text-base font-semibold">Capture Face</h3>
+                
+                <!-- Signup Form -->
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <h3 class="text-base font-semibold mb-3">Signup (First Time)</h3>
+                  <div class="space-y-3">
+                    <div>
+                      <label class="block text-sm font-semibold text-slate-800">Full Name</label>
+                      <input id="studentSignupName" type="text" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" placeholder="e.g., Abdullahi Suleiman" />
                     </div>
-                    <p class="mt-1 text-sm text-slate-600">Use your front camera and capture a clear image. If camera isn't present you may upload a file.</p>
-                  </div>
-                  <div class="flex gap-2">
-                    <button id="btnStartCamera" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">
-                      Start Camera
-                    </button>
-                    <button id="btnCaptureFace" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                      Capture
-                    </button>
-                    <label for="faceFile" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer">Upload</label>
-                    <input id="faceFile" type="file" accept="image/*" class="hidden" />
-                  </div>
-                </div>
-
-                <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div class="rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
-                    <div class="border-b border-slate-200 px-3 py-2">
-                      <p class="text-xs font-semibold text-slate-600">Live Camera</p>
+                    <div>
+                      <label class="block text-sm font-semibold text-slate-800">Matric Number</label>
+                      <input id="studentSignupMatric" type="text" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" placeholder="e.g., FT26URP1234" />
                     </div>
-                    <div class="p-3">
-                      <video id="video" class="w-full rounded-xl bg-slate-900/5" autoplay muted playsinline></video>
-                      <p id="camHint" class="mt-2 text-xs text-slate-500">Tip: Ensure your face is well-lit and centered.</p>
-                      <div id="camError" class="mt-2 hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"></div>
+                    <div>
+                      <label class="block text-sm font-semibold text-slate-800">Password</label>
+                      <input id="studentSignupPassword" type="password" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
                     </div>
-                  </div>
-
-                  <div class="rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
-                    <div class="border-b border-slate-200 px-3 py-2 flex items-center justify-between">
-                      <p class="text-xs font-semibold text-slate-600">Captured Image</p>
-                      <button id="btnRetake" class="text-xs font-semibold text-slate-700 hover:text-slate-900 disabled:opacity-50" disabled>Retake</button>
-                    </div>
-                    <div class="p-3">
-                      <div class="aspect-video w-full rounded-xl bg-slate-900/5 flex items-center justify-center overflow-hidden">
-                        <img id="facePreview" alt="Captured face preview" class="hidden h-full w-full object-cover" />
-                        <div id="faceEmpty" class="text-sm text-slate-500">No image captured yet</div>
-                      </div>
-                      <div class="mt-2 grid gap-2 sm:grid-cols-2">
-                        <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3">
-                          <p class="text-xs text-slate-500">Face Status</p>
-                          <p id="faceStatus" class="mt-1 text-sm font-semibold">Not captured</p>
-                        </div>
-                        <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3">
-                          <p class="text-xs text-slate-500">Image Quality</p>
-                          <p id="faceQuality" class="mt-1 text-sm font-semibold">—</p>
-                        </div>
-                      </div>
-                      <div class="mt-3 small-muted">You may upload an image or import a draft from another device to complete and submit.</div>
-                    </div>
+                    <button id="btnStudentSignup" class="w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Create Account</button>
+                    <p id="studentSignupMsg" class="text-xs text-center mt-2"></p>
                   </div>
                 </div>
               </div>
-
-              <!-- Step 3: Attendance Form -->
-              <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                <div class="flex items-start gap-3">
-                  <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f1b3d] text-white text-sm font-bold">3</span>
-                  <div>
-                    <h3 class="text-base font-semibold">Attendance Form</h3>
-                    <p class="mt-1 text-sm text-slate-600">The form unlocks after face capture. Submission requires location + face + fields.</p>
-                  </div>
-                </div>
-
-                <form id="attendanceForm" class="mt-4" autocomplete="on" novalidate>
-                  <fieldset id="formFieldset" disabled class="opacity-60">
-                    <div class="grid gap-3 sm:grid-cols-2">
-                      <div>
-                        <label for="studentName" class="block text-sm font-semibold text-slate-800">Name <span class="text-rose-600">*</span></label>
-                        <input id="studentName" name="name" type="text" required class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" placeholder="e.g., Abdullahi Suleiman" />
-                      </div>
-                      <div>
-                        <label for="matricNo" class="block text-sm font-semibold text-slate-800">Matric Number <span class="text-rose-600">*</span></label>
-                        <input id="matricNo" name="matric" type="text" required class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" placeholder="e.g., FT26URP1234" />
-                      </div>
-                      <div class="sm:col-span-2">
-                        <label for="courseCode" class="block text-sm font-semibold text-slate-800">Course Code <span class="text-rose-600">*</span></label>
-                        <input id="courseCode" name="course" type="text" required class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" placeholder="e.g., URP 111" />
-                      </div>
-                    </div>
-
-                    <div class="mt-4 grid gap-2 sm:grid-cols-3">
-                      <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200">
-                        <p class="text-xs text-slate-500">Date</p>
-                        <p id="dateText" class="mt-1 text-sm font-semibold">—</p>
-                      </div>
-                      <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200">
-                        <p class="text-xs text-slate-500">Time</p>
-                        <p id="timeText" class="mt-1 text-sm font-semibold">—</p>
-                      </div>
-                      <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200">
-                        <p class="text-xs text-slate-500">Verification</p>
-                        <p id="verifyText" class="mt-1 text-sm font-semibold">Pending</p>
-                      </div>
-                    </div>
-
-                    <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div class="text-xs text-slate-600">
-                        <span class="font-semibold">Auto-captured:</span> Date/Time, Latitude/Longitude, Face image.
-                      </div>
-                      <div class="flex gap-2">
-                        <button id="btnExportDraft" type="button" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Export Draft (JSON)</button>
-                        <button id="btnGenerateQr" type="button" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Generate QR</button>
-                        <button id="btnShareDraft" type="button" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Share Draft</button>
-                        <button id="btnSubmit" type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                          Submit Attendance
-                        </button>
-                      </div>
-                    </div>
-                  </fieldset>
-
-                  <div id="formLockedNote" class="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                    <span class="font-semibold">Locked:</span> Start camera and capture face to unlock attendance form.
-                  </div>
-
-                  <div class="mt-3 flex gap-2 items-center">
-                    <label class="small-muted">Import draft (JSON):</label>
-                    <input id="importDraftFile" type="file" accept="application/json" class="ml-2" />
-                  </div>
-
-                  <div id="qrPanel" class="mt-3 hidden">
-                    <div class="flex gap-3 items-start">
-                      <div>
-                        <img id="qrImage" alt="QR code" class="rounded-lg ring-1 ring-slate-200" />
-                      </div>
-                      <div class="flex-1">
-                        <p class="text-sm font-semibold">Scan this QR from another device to prefill the attendance form.</p>
-                        <p class="small-muted mt-1">If QR fails use JSON export instead.</p>
-                        <div id="qrLinkBox" class="mt-2 word-break-all"></div>
-                      </div>
-                    </div>
-                  </div>
-
-                </form>
+              
+              <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">
+                <p><strong>Note:</strong> Student accounts are stored locally on this device. If you clear browser data, you'll need to create a new account.</p>
               </div>
             </div>
           </div>
 
-          <!-- Student attendance table (local view) -->
-          <div class="mt-4 rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
-            <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
-              <h3 class="text-base font-semibold">Student Attendance (local)</h3>
-              <p class="mt-1 text-sm text-slate-600">This table shows the attendance records stored on this device. If Firebase is configured, records from other devices will appear automatically.</p>
+          <!-- Student Dashboard (hidden until login) -->
+          <div id="studentDashboard" class="hidden">
+            <div class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
+              <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h2 class="text-lg font-semibold">Student Attendance</h2>
+                    <p class="mt-1 text-sm text-slate-600">
+                      Welcome, <span id="loggedInStudentName" class="font-semibold"></span> (<span id="loggedInStudentMatric" class="font-semibold"></span>)
+                    </p>
+                  </div>
+                  <button id="btnStudentLogout" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Logout</button>
+                </div>
+              </div>
+
+              <div class="px-5 py-5 sm:px-6">
+                <!-- Step 1: Location -->
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f1b3d] text-white text-sm font-bold">1</span>
+                        <h3 class="text-base font-semibold">Enable Location</h3>
+                      </div>
+                      <p class="mt-1 text-sm text-slate-600">We capture latitude and longitude for verification.</p>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                      <button id="btnGetLocation" class="shrink-0 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                        Capture Location
+                      </button>
+                      <button id="btnToggleManualCoords" class="shrink-0 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">
+                        Manual coords
+                      </button>
+                    </div>
+                  </div>
+
+                  <div id="manualCoordsPanel" class="mt-3 hidden grid gap-2 sm:grid-cols-3">
+                    <div>
+                      <label class="text-xs text-slate-500">Latitude (manual)</label>
+                      <input id="manualLat" type="text" inputmode="decimal" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm tabular-nums" placeholder="e.g., 8.524139" />
+                    </div>
+                    <div>
+                      <label class="text-xs text-slate-500">Longitude (manual)</label>
+                      <input id="manualLon" type="text" inputmode="decimal" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm tabular-nums" placeholder="e.g., 7.123456" />
+                    </div>
+                    <div class="flex items-end">
+                      <button id="btnApplyManualCoords" class="w-full rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Apply</button>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 grid gap-2 sm:grid-cols-3">
+                    <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200">
+                      <p class="text-xs text-slate-500">Location Status</p>
+                      <p id="locStatus" class="mt-1 text-sm font-semibold text-slate-800">Not captured</p>
+                    </div>
+                    <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200">
+                      <p class="text-xs text-slate-500">Latitude</p>
+                      <p id="latText" class="mt-1 text-sm font-semibold tabular-nums">—</p>
+                    </div>
+                    <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200">
+                      <p class="text-xs text-slate-500">Longitude</p>
+                      <p id="lonText" class="mt-1 text-sm font-semibold tabular-nums">—</p>
+                    </div>
+                  </div>
+
+                  <div id="locError" class="mt-3 hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"></div>
+                  <div class="mt-3 small-muted">If geolocation is not available, use manual coords or Export/Import JSON to move the draft.</div>
+                </div>
+
+                <!-- Step 2: Face Capture -->
+                <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f1b3d] text-white text-sm font-bold">2</span>
+                        <h3 class="text-base font-semibold">Capture Face</h3>
+                      </div>
+                      <p class="mt-1 text-sm text-slate-600">Use your front camera and capture a clear image. If camera isn't present you may upload a file.</p>
+                    </div>
+                    <div class="flex gap-2">
+                      <button id="btnStartCamera" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">
+                        Start Camera
+                      </button>
+                      <button id="btnCaptureFace" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Capture
+                      </button>
+                      <label for="faceFile" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer">Upload</label>
+                      <input id="faceFile" type="file" accept="image/*" class="hidden" />
+                    </div>
+                  </div>
+
+                  <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div class="rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
+                      <div class="border-b border-slate-200 px-3 py-2">
+                        <p class="text-xs font-semibold text-slate-600">Live Camera</p>
+                      </div>
+                      <div class="p-3">
+                        <video id="video" class="w-full rounded-xl bg-slate-900/5" autoplay muted playsinline></video>
+                        <p id="camHint" class="mt-2 text-xs text-slate-500">Tip: Ensure your face is well-lit and centered.</p>
+                        <div id="camError" class="mt-2 hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"></div>
+                      </div>
+                    </div>
+
+                    <div class="rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
+                      <div class="border-b border-slate-200 px-3 py-2 flex items-center justify-between">
+                        <p class="text-xs font-semibold text-slate-600">Captured Image</p>
+                        <button id="btnRetake" class="text-xs font-semibold text-slate-700 hover:text-slate-900 disabled:opacity-50" disabled>Retake</button>
+                      </div>
+                      <div class="p-3">
+                        <div class="aspect-video w-full rounded-xl bg-slate-900/5 flex items-center justify-center overflow-hidden">
+                          <img id="facePreview" alt="Captured face preview" class="hidden h-full w-full object-cover" />
+                          <div id="faceEmpty" class="text-sm text-slate-500">No image captured yet</div>
+                        </div>
+                        <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                          <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3">
+                            <p class="text-xs text-slate-500">Face Status</p>
+                            <p id="faceStatus" class="mt-1 text-sm font-semibold">Not captured</p>
+                          </div>
+                          <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3">
+                            <p class="text-xs text-slate-500">Image Quality</p>
+                            <p id="faceQuality" class="mt-1 text-sm font-semibold">—</p>
+                          </div>
+                        </div>
+                        <div class="mt-3 small-muted">You may upload an image or import a draft from another device to complete and submit.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Step 3: Attendance Form -->
+                <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                  <div class="flex items-start gap-3">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f1b3d] text-white text-sm font-bold">3</span>
+                    <div>
+                      <h3 class="text-base font-semibold">Attendance Form</h3>
+                      <p class="mt-1 text-sm text-slate-600">The form unlocks after face capture. Submission requires location + face + course code.</p>
+                    </div>
+                  </div>
+
+                  <form id="attendanceForm" class="mt-4" autocomplete="on" novalidate>
+                    <fieldset id="formFieldset" disabled class="opacity-60">
+                      <div class="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <label class="block text-sm font-semibold text-slate-800">Name</label>
+                          <input id="studentName" name="name" type="text" readonly class="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                          <label class="block text-sm font-semibold text-slate-800">Matric Number</label>
+                          <input id="matricNo" name="matric" type="text" readonly class="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm" />
+                        </div>
+                        <div class="sm:col-span-2">
+                          <label for="courseCode" class="block text-sm font-semibold text-slate-800">Course Code <span class="text-rose-600">*</span></label>
+                          <input id="courseCode" name="course" type="text" required class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" placeholder="e.g., URP 111" />
+                        </div>
+                      </div>
+
+                      <div class="mt-4 grid gap-2 sm:grid-cols-3">
+                        <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200">
+                          <p class="text-xs text-slate-500">Date</p>
+                          <p id="dateText" class="mt-1 text-sm font-semibold">—</p>
+                        </div>
+                        <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200">
+                          <p class="text-xs text-slate-500">Time</p>
+                          <p id="timeText" class="mt-1 text-sm font-semibold">—</p>
+                        </div>
+                        <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200">
+                          <p class="text-xs text-slate-500">Verification</p>
+                          <p id="verifyText" class="mt-1 text-sm font-semibold">Pending</p>
+                        </div>
+                      </div>
+
+                      <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="text-xs text-slate-600">
+                          <span class="font-semibold">Auto-captured:</span> Date/Time, Latitude/Longitude, Face image.
+                        </div>
+                        <div class="flex gap-2">
+                          <button id="btnExportDraft" type="button" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Export Draft (JSON)</button>
+                          <button id="btnGenerateQr" type="button" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Generate QR</button>
+                          <button id="btnShareDraft" type="button" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Share Draft</button>
+                          <button id="btnSubmit" type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            Submit Attendance
+                          </button>
+                        </div>
+                      </div>
+                    </fieldset>
+
+                    <div id="formLockedNote" class="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
+                      <span class="font-semibold">Locked:</span> Start camera and capture face to unlock attendance form.
+                    </div>
+
+                    <div class="mt-3 flex gap-2 items-center">
+                      <label class="small-muted">Import draft (JSON):</label>
+                      <input id="importDraftFile" type="file" accept="application/json" class="ml-2" />
+                    </div>
+
+                    <div id="qrPanel" class="mt-3 hidden">
+                      <div class="flex gap-3 items-start">
+                        <div>
+                          <img id="qrImage" alt="QR code" class="rounded-lg ring-1 ring-slate-200" />
+                        </div>
+                        <div class="flex-1">
+                          <p class="text-sm font-semibold">Scan this QR from another device to prefill the attendance form.</p>
+                          <p class="small-muted mt-1">If QR fails use JSON export instead.</p>
+                          <div id="qrLinkBox" class="mt-2 word-break-all"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </form>
+                </div>
+              </div>
             </div>
-            <div class="p-4 overflow-x-auto">
-              <table class="min-w-full bg-white">
-                <thead class="bg-slate-50"><tr class="text-left text-xs font-semibold text-slate-600">
-                  <th class="px-4 py-3">Name</th><th class="px-4 py-3">Matric</th><th class="px-4 py-3">Course</th>
-                  <th class="px-4 py-3">Date & Time</th><th class="px-4 py-3">Lat</th><th class="px-4 py-3">Lon</th>
-                </tr></thead>
-                <tbody id="localRecordsTbody"></tbody>
-              </table>
+
+            <!-- Student attendance table (local view) -->
+            <div class="mt-4 rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
+              <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
+                <h3 class="text-base font-semibold">Your Attendance Records</h3>
+                <p class="mt-1 text-sm text-slate-600">This table shows your attendance records stored on this device.</p>
+              </div>
+              <div class="p-4 overflow-x-auto">
+                <table class="min-w-full bg-white">
+                  <thead class="bg-slate-50"><tr class="text-left text-xs font-semibold text-slate-600">
+                    <th class="px-4 py-3">Course</th>
+                    <th class="px-4 py-3">Date & Time</th><th class="px-4 py-3">Lat</th><th class="px-4 py-3">Lon</th>
+                  </tr></thead>
+                  <tbody id="localRecordsTbody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
-
         </div>
 
         <!-- Right: Quick Info -->
@@ -314,6 +374,13 @@
             </div>
             <div class="px-5 py-5 sm:px-6">
               <ul class="space-y-3">
+                <li class="flex items-start gap-3">
+                  <span id="checkLogin" class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 text-slate-700 ring-1 ring-slate-200" aria-hidden="true">—</span>
+                  <div>
+                    <p class="text-sm font-semibold">Logged In</p>
+                    <p class="text-xs text-slate-600">Login or create an account first.</p>
+                  </div>
+                </li>
                 <li class="flex items-start gap-3">
                   <span id="checkLoc" class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 text-slate-700 ring-1 ring-slate-200" aria-hidden="true">—</span>
                   <div>
@@ -331,8 +398,8 @@
                 <li class="flex items-start gap-3">
                   <span id="checkFields" class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 text-slate-700 ring-1 ring-slate-200" aria-hidden="true">—</span>
                   <div>
-                    <p class="text-sm font-semibold">Required fields filled</p>
-                    <p class="text-xs text-slate-600">Name, matric number, course code.</p>
+                    <p class="text-sm font-semibold">Course code filled</p>
+                    <p class="text-xs text-slate-600">Enter the course code for the attendance.</p>
                   </div>
                 </li>
               </ul>
@@ -527,6 +594,8 @@
     const STORAGE_KEY_RECORDS = 'nsuk_urp_attendance_records_v1';
     const STORAGE_KEY_PIN = 'nsuk_urp_lecturer_pin_v1';
     const STORAGE_KEY_ADMIN = 'nsuk_urp_admin_creds_v1';
+    const STORAGE_KEY_STUDENTS = 'nsuk_urp_student_accounts_v1';
+    const STORAGE_KEY_CURRENT_STUDENT = 'nsuk_urp_current_student_v1';
 
     let firebaseEnabled = false;
     let firebaseDbRef = null;
@@ -539,6 +608,7 @@
       camera: { stream: null, started: false },
       admin: { loggedIn: false },
       lecturer: { unlocked: false },
+      student: { loggedIn: false, name: null, matric: null },
       syncing: { connected: false }
     };
 
@@ -556,6 +626,32 @@
       try { return JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDS) || '[]'); } catch { return []; }
     }
     function setStoredRecords(arr) { localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(arr || [])); }
+    
+    function getStudentAccounts() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY_STUDENTS) || '{}'); } catch { return {}; }
+    }
+    function saveStudentAccount(matric, name, password) {
+      const accounts = getStudentAccounts();
+      accounts[matric] = { name, password, createdAt: nowIso() };
+      localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(accounts));
+    }
+    function getCurrentStudent() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY_CURRENT_STUDENT)); } catch { return null; }
+    }
+    function setCurrentStudent(student) {
+      if (student) {
+        localStorage.setItem(STORAGE_KEY_CURRENT_STUDENT, JSON.stringify(student));
+        state.student.loggedIn = true;
+        state.student.name = student.name;
+        state.student.matric = student.matric;
+      } else {
+        localStorage.removeItem(STORAGE_KEY_CURRENT_STUDENT);
+        state.student.loggedIn = false;
+        state.student.name = null;
+        state.student.matric = null;
+      }
+    }
+    
     function getAdminCreds() { const d = localStorage.getItem(STORAGE_KEY_ADMIN); return d ? JSON.parse(d) : null; }
     function saveAdminCreds(u,p) { localStorage.setItem(STORAGE_KEY_ADMIN, JSON.stringify({ username: u, password: p })); }
     function ensurePinLocal() { if (!localStorage.getItem(STORAGE_KEY_PIN)) localStorage.setItem(STORAGE_KEY_PIN, String(Math.floor(100000 + Math.random()*900000))); }
@@ -574,32 +670,37 @@
 
     function setStatusSummary() {
       const pieces = [];
+      pieces.push(state.student.loggedIn ? 'Logged in ✓' : 'Not logged in');
       pieces.push(state.location.ok ? 'Location ✓' : (state.location.denied ? 'Location denied' : 'Location …'));
       pieces.push(state.face.ok ? 'Face ✓' : 'Face …');
-      // if firebase enabled show indicator
       $('statusSummary') && ($('statusSummary').textContent = pieces.join(' • '));
     }
 
     function setChecklist() {
       const mark = (ok) => ok ? '✓' : '—';
       const cls = (ok) => ok ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-slate-100 text-slate-700 ring-slate-200';
+      
+      $('checkLogin').textContent = mark(state.student.loggedIn);
+      $('checkLogin').className = `mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg ring-1 ${cls(state.student.loggedIn)}`;
+      
       $('checkLoc').textContent = mark(state.location.ok);
       $('checkLoc').className = `mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg ring-1 ${cls(state.location.ok)}`;
+      
       $('checkFace').textContent = mark(state.face.ok);
       $('checkFace').className = `mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg ring-1 ${cls(state.face.ok)}`;
+      
       const fieldsOk = requiredFieldsFilled();
       $('checkFields').textContent = mark(fieldsOk);
       $('checkFields').className = `mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg ring-1 ${cls(fieldsOk)}`;
-      const ver = (state.location.ok && state.face.ok && fieldsOk) ? 'Ready to submit' : 'Pending';
+      
+      const ver = (state.student.loggedIn && state.location.ok && state.face.ok && fieldsOk) ? 'Ready to submit' : 'Pending';
       $('verifyText') && ($('verifyText').textContent = ver);
       setStatusSummary();
     }
 
     function requiredFieldsFilled() {
-      const name = $('studentName').value.trim();
-      const matric = $('matricNo').value.trim();
       const course = $('courseCode').value.trim();
-      return Boolean(name && matric && course);
+      return Boolean(course);
     }
 
     function updateDateTimePreview() {
@@ -611,13 +712,156 @@
     }
 
     function updateSubmitState() {
+      if (!state.student.loggedIn) {
+        $('formFieldset').disabled = true;
+        $('formFieldset').classList.add('opacity-60');
+        $('formLockedNote').classList.remove('hidden');
+        $('formLockedNote').innerHTML = '<span class="font-semibold">Locked:</span> Login or create an account first.';
+        $('btnSubmit').disabled = true;
+        return;
+      }
+      
       const unlocked = state.face.ok;
       $('formFieldset').disabled = !unlocked;
       $('formFieldset').classList.toggle('opacity-60', !unlocked);
       $('formLockedNote').classList.toggle('hidden', unlocked);
+      $('formLockedNote').innerHTML = '<span class="font-semibold">Locked:</span> Start camera and capture face to unlock attendance form.';
       const canSubmit = state.location.ok && state.face.ok && requiredFieldsFilled();
       $('btnSubmit').disabled = !canSubmit;
       setChecklist();
+    }
+
+    // ========== STUDENT LOGIN/SIGNUP ==========
+    function initStudentAuth() {
+      const currentStudent = getCurrentStudent();
+      if (currentStudent) {
+        state.student.loggedIn = true;
+        state.student.name = currentStudent.name;
+        state.student.matric = currentStudent.matric;
+        showStudentDashboard();
+      } else {
+        showStudentLogin();
+      }
+    }
+
+    function showStudentLogin() {
+      $('studentLoginSection').classList.remove('hidden');
+      $('studentDashboard').classList.add('hidden');
+      $('studentLoginMsg').textContent = '';
+      $('studentSignupMsg').textContent = '';
+    }
+
+    function showStudentDashboard() {
+      $('studentLoginSection').classList.add('hidden');
+      $('studentDashboard').classList.remove('hidden');
+      $('loggedInStudentName').textContent = state.student.name;
+      $('loggedInStudentMatric').textContent = state.student.matric;
+      $('studentName').value = state.student.name;
+      $('matricNo').value = state.student.matric;
+      updateSubmitState();
+      renderStudentRecords();
+    }
+
+    // Student login
+    $('btnStudentLogin').addEventListener('click', () => {
+      const matric = $('studentLoginMatric').value.trim();
+      const password = $('studentLoginPassword').value;
+      
+      if (!matric || !password) {
+        $('studentLoginMsg').textContent = 'Please enter matric number and password';
+        $('studentLoginMsg').className = 'text-xs text-rose-700 font-semibold text-center mt-2';
+        return;
+      }
+      
+      const accounts = getStudentAccounts();
+      const account = accounts[matric];
+      
+      if (!account) {
+        $('studentLoginMsg').textContent = 'Account not found. Please sign up first.';
+        $('studentLoginMsg').className = 'text-xs text-rose-700 font-semibold text-center mt-2';
+        return;
+      }
+      
+      if (account.password !== password) {
+        $('studentLoginMsg').textContent = 'Incorrect password';
+        $('studentLoginMsg').className = 'text-xs text-rose-700 font-semibold text-center mt-2';
+        return;
+      }
+      
+      setCurrentStudent({ name: account.name, matric });
+      showStudentDashboard();
+      showToast(`Welcome back, ${account.name}!`);
+    });
+
+    // Student signup
+    $('btnStudentSignup').addEventListener('click', () => {
+      const name = $('studentSignupName').value.trim();
+      const matric = $('studentSignupMatric').value.trim();
+      const password = $('studentSignupPassword').value;
+      
+      if (!name || !matric || !password) {
+        $('studentSignupMsg').textContent = 'Please fill all fields';
+        $('studentSignupMsg').className = 'text-xs text-rose-700 font-semibold text-center mt-2';
+        return;
+      }
+      
+      if (password.length < 4) {
+        $('studentSignupMsg').textContent = 'Password must be at least 4 characters';
+        $('studentSignupMsg').className = 'text-xs text-rose-700 font-semibold text-center mt-2';
+        return;
+      }
+      
+      const accounts = getStudentAccounts();
+      if (accounts[matric]) {
+        $('studentSignupMsg').textContent = 'Account already exists. Please login instead.';
+        $('studentSignupMsg').className = 'text-xs text-rose-700 font-semibold text-center mt-2';
+        return;
+      }
+      
+      saveStudentAccount(matric, name, password);
+      setCurrentStudent({ name, matric });
+      showStudentDashboard();
+      showToast(`Account created successfully, ${name}!`);
+    });
+
+    // Student logout
+    $('btnStudentLogout').addEventListener('click', () => {
+      setCurrentStudent(null);
+      showStudentLogin();
+      // Clear form fields
+      $('studentLoginMatric').value = '';
+      $('studentLoginPassword').value = '';
+      $('studentSignupName').value = '';
+      $('studentSignupMatric').value = '';
+      $('studentSignupPassword').value = '';
+      showToast('Logged out successfully');
+    });
+
+    // Render student's own records
+    function renderStudentRecords() {
+      if (!state.student.loggedIn) return;
+      
+      const records = getStoredRecords();
+      const studentRecords = records.filter(r => r.matric === state.student.matric);
+      const tbody = $('localRecordsTbody');
+      tbody.innerHTML = '';
+      
+      if (!studentRecords.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">No attendance records yet</td></tr>';
+        return;
+      }
+      
+      studentRecords.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-100';
+        tr.innerHTML = `
+          <td class="px-4 py-3">${r.course || ''}</td>
+          <td class="px-4 py-3 text-sm">${r.date} ${r.time}</td>
+          <td class="px-4 py-3 text-xs">${r.lat?.toFixed?.(6) || ''}</td>
+          <td class="px-4 py-3 text-xs">${r.lon?.toFixed?.(6) || ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
     // ========== FIREBASE INIT (optional) ==========
@@ -671,6 +915,7 @@
           existing.unshift(r);
           setStoredRecords(existing);
           renderDashboard();
+          renderStudentRecords();
         }
       });
 
@@ -724,6 +969,7 @@
       });
       setStoredRecords(merged);
       renderDashboard();
+      renderStudentRecords();
     }
 
     // ========== UI and App logic (location/camera/submit/export/import) ==========
@@ -794,11 +1040,12 @@
     // submit attendance (sends to firebase if enabled, otherwise local only)
     $('attendanceForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (!state.student.loggedIn) { showToast('Please login first'); return; }
       if (!state.location.ok || !state.face.ok || !requiredFieldsFilled()) { showToast('Complete all steps first'); return; }
       const d = new Date(); const pad = n => String(n).padStart(2,'0'); const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const baseRecord = {
-        name: $('studentName').value.trim(),
-        matric: $('matricNo').value.trim(),
+        name: state.student.name,
+        matric: state.student.matric,
         course: $('courseCode').value.trim(),
         date: `${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()}`,
         time: `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`,
@@ -838,11 +1085,11 @@
         showToast('Attendance submitted (local)');
       }
 
-      // reset form fields (keep location)
-      $('studentName').value=''; $('matricNo').value=''; $('courseCode').value='';
+      // reset form fields (keep location and student info)
+      $('courseCode').value='';
       state.face.ok=false; state.face.dataUrl=null; state.face.w=null; state.face.h=null; state.face.fromUpload=false;
       $('facePreview').classList.add('hidden'); $('faceEmpty').classList.remove('hidden'); $('faceStatus').textContent='Not captured'; $('faceQuality').textContent='—'; $('btnRetake').disabled=true;
-      updateSubmitState(); renderDashboard(); renderLocalTable();
+      updateSubmitState(); renderDashboard(); renderStudentRecords();
     });
 
     // ========== Clear Data Functionality ==========
@@ -874,7 +1121,7 @@
       
       // Update UI
       renderDashboard();
-      renderLocalTable();
+      renderStudentRecords();
     });
 
     // ========== Draft export/import/QR/share (fallback/manual cross-device) ==========
@@ -882,8 +1129,8 @@
       const d = new Date(); const pad = n => String(n).padStart(2,'0'); const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       return {
         t: nowIso(),
-        name: $('studentName').value.trim(),
-        matric: $('matricNo').value.trim(),
+        name: state.student.name || '',
+        matric: state.student.matric || '',
         course: $('courseCode').value.trim(),
         date: `${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()}`,
         time: `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`,
@@ -896,6 +1143,7 @@
     }
 
     $('btnExportDraft').addEventListener('click', () => {
+      if (!state.student.loggedIn) { showToast('Please login first'); return; }
       const draft = createDraftObject();
       const blob = new Blob([JSON.stringify(draft)], { type:'application/json' });
       const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `nsuk_urp_draft_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); showToast('Draft exported (JSON)');
@@ -906,8 +1154,6 @@
       const reader = new FileReader(); reader.onload = () => {
         try {
           const data = JSON.parse(reader.result);
-          if (data.name) $('studentName').value = data.name;
-          if (data.matric) $('matricNo').value = data.matric;
           if (data.course) $('courseCode').value = data.course;
           if (!isNaN(parseFloat(data.lat))) {
             state.location.ok = true; state.location.lat = parseFloat(data.lat); state.location.lon = parseFloat(data.lon); state.location.accuracy = data.accuracy || null;
@@ -922,6 +1168,7 @@
     });
 
     $('btnGenerateQr').addEventListener('click', () => {
+      if (!state.student.loggedIn) { showToast('Please login first'); return; }
       const draft = createDraftObject(); const json = JSON.stringify(draft);
       if (json.length > 1800) { showToast('Draft too large for QR — use JSON export'); $('qrPanel').classList.add('hidden'); return; }
       const qrData = encodeURIComponent(json); const qrUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${qrData}&chld=L|1`;
@@ -929,6 +1176,7 @@
     });
 
     $('btnShareDraft').addEventListener('click', async () => {
+      if (!state.student.loggedIn) { showToast('Please login first'); return; }
       const draft = createDraftObject(); const text = JSON.stringify(draft);
       if (navigator.canShare && navigator.canShare({ files: [] })) {
         try { const file = new File([text], `nsuk_urp_draft_${new Date().toISOString().slice(0,10)}.json`, { type:'application/json' }); await navigator.share({ files:[file], title:'Attendance draft', text:'NSUK URP attendance draft' }); showToast('Draft shared'); return; } catch{} }
@@ -1060,18 +1308,6 @@
       });
     }
 
-    function renderLocalTable() {
-      const records = getStoredRecords();
-      const tbody = $('localRecordsTbody');
-      tbody.innerHTML = '';
-      if (!records.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-500">No local records</td></tr>'; return; }
-      records.forEach(r => {
-        const tr = document.createElement('tr'); tr.className='border-b border-slate-100';
-        tr.innerHTML = `<td class="px-4 py-3 font-medium">${r.name || ''}</td><td class="px-4 py-3">${r.matric || ''}</td><td class="px-4 py-3">${r.course || ''}</td><td class="px-4 py-3 text-sm">${r.date} ${r.time}</td><td class="px-4 py-3 text-xs">${r.lat?.toFixed?.(6) || ''}</td><td class="px-4 py-3 text-xs">${r.lon?.toFixed?.(6) || ''}</td>`;
-        tbody.appendChild(tr);
-      });
-    }
-
     // preview face
     function previewFace(id) {
       const records = getStoredRecords();
@@ -1114,10 +1350,11 @@
     // help button
     $('btnOpenHelp').addEventListener('click', () => {
       alert(`Instructions:
-1) Capture location (or use manual coords).
-2) Start camera and capture face (or upload an image).
-3) Fill Name, Matric No, Course Code.
-4) Submit attendance.
+1) Login or create a student account.
+2) Capture location (or use manual coords).
+3) Start camera and capture face (or upload an image).
+4) Fill Course Code.
+5) Submit attendance.
 
 Cross-device sync:
 - To enable automatic syncing across devices, replace FIREBASE_CONFIG in the script with your Firebase config object (Realtime Database).
@@ -1131,13 +1368,16 @@ Cross-device sync:
       // local initializations
       ensurePinLocal(); revealAdminPin();
       updateDateTimePreview(); setInterval(updateDateTimePreview, 1000);
+      
+      // Initialize student auth
+      initStudentAuth();
 
-      ['studentName','matricNo','courseCode'].forEach(id => $(id).addEventListener('input', updateSubmitState));
+      $('courseCode').addEventListener('input', updateSubmitState);
       // init firebase if config provided
       initFirebaseIfConfigured();
 
       // initial render
-      renderDashboard(); renderLocalTable();
+      renderDashboard();
       showPanel('student');
       updateSubmitState();
     });
