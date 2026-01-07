@@ -30,6 +30,7 @@
     /* small helpers for new UI */
     .small-muted { font-size: .78rem; color: #6b7280; }
     .note-box { font-size: .82rem; color: #374151; background: #f8fafc; border: 1px solid #e6eef6; padding: .6rem; border-radius: .75rem; }
+    .word-break-all { word-break: break-all; }
   </style>
 </head>
 
@@ -78,7 +79,7 @@
 
   <main class="mx-auto max-w-6xl px-4 py-6 sm:py-8">
 
-    <!-- Student Panel (Updated to match original template) -->
+    <!-- Student Panel -->
     <section id="panelStudent" role="tabpanel">
       <div class="grid gap-4 lg:grid-cols-12">
         <div class="lg:col-span-8">
@@ -86,7 +87,7 @@
             <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
               <h2 class="text-lg font-semibold">Student Attendance</h2>
               <p class="mt-1 text-sm text-slate-600">
-                To submit attendance, you must <span class="font-semibold">capture your location</span> and <span class="font-semibold">capture your face</span> using your device camera.
+                Capture location + face (or upload image) then fill the form. Use "Export Draft" / "Generate QR" to move work between devices.
               </p>
             </div>
 
@@ -141,7 +142,7 @@
                 </div>
 
                 <div id="locError" class="mt-3 hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"></div>
-                <div class="mt-3 small-muted">If you cannot use geolocation, use <strong>Manual coords</strong> or export a draft to submit from another device (QR / JSON).</div>
+                <div class="mt-3 small-muted">If geolocation isn't available, use Manual coords or Export Draft / Generate QR to finish on another device.</div>
               </div>
 
               <!-- Step 2: Face Capture -->
@@ -152,7 +153,7 @@
                       <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f1b3d] text-white text-sm font-bold">2</span>
                       <h3 class="text-base font-semibold">Capture Face</h3>
                     </div>
-                    <p class="mt-1 text-sm text-slate-600">Use your front camera and capture a clear image. If camera is not available you can upload an image from this device.</p>
+                    <p class="mt-1 text-sm text-slate-600">Use your front camera and capture a clear image. If camera isn't available, upload an image file.</p>
                   </div>
                   <div class="flex gap-2">
                     <button id="btnStartCamera" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">
@@ -198,7 +199,7 @@
                           <p id="faceQuality" class="mt-1 text-sm font-semibold">—</p>
                         </div>
                       </div>
-                      <div class="mt-3 small-muted">You may upload from another device by exporting a draft (QR / JSON) and scanning/importing here to complete and submit.</div>
+                      <div class="mt-3 small-muted">You may upload an image or import a draft from another device to finish and submit.</div>
                     </div>
                   </div>
                 </div>
@@ -279,7 +280,7 @@
                       </div>
                       <div class="flex-1">
                         <p class="text-sm font-semibold">Scan this QR from another device to prefill the attendance form.</p>
-                        <p class="small-muted mt-1">Note: very large images may produce long data; if QR fails use the JSON export instead.</p>
+                        <p class="small-muted mt-1">If QR fails use JSON export instead.</p>
                         <div id="qrLinkBox" class="mt-2 word-break-all"></div>
                       </div>
                     </div>
@@ -327,7 +328,7 @@
                 <p class="text-xs font-semibold text-slate-700">Privacy (Local Device Only)</p>
                 <p class="mt-1 text-xs text-slate-600">
                   Attendance records (including the captured image) are stored in your browser's local storage on this device.
-                  No data is uploaded to any server unless you manually share or export them.
+                  No data is uploaded to any server unless you manually share or import them.
                 </p>
               </div>
 
@@ -350,7 +351,7 @@
           <div class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
             <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
               <h2 class="text-lg font-semibold">Lecturer Access</h2>
-              <p class="mt-1 text-sm text-slate-600">Enter the PIN shared by Admin</p>
+              <p class="mt-1 text-sm text-slate-600">Enter the PIN shared by Admin (or import PIN file / paste PIN to accept an externally generated PIN)</p>
             </div>
             <div class="p-5 space-y-4">
               <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -358,6 +359,14 @@
                 <input id="lecturerPinInput" type="text" inputmode="numeric" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-lg tracking-widest text-center" placeholder="••••••" maxlength="6" />
                 <button id="btnLecturerUnlock" class="mt-3 w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Unlock Dashboard</button>
                 <p id="lecturerPinMsg" class="mt-2 text-xs text-center"></p>
+
+                <div class="mt-3 grid grid-cols-2 gap-2">
+                  <label for="importPinFile" class="rounded-xl bg-white px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer text-center">Import PIN (file)</label>
+                  <button id="btnPastePin" class="rounded-xl bg-white px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Paste PIN</button>
+                  <input id="importPinFile" type="file" accept="application/json" class="hidden" />
+                  <input id="pastePinInput" type="text" placeholder="Paste PIN here" class="hidden rounded-xl border border-slate-300 px-2 py-2" />
+                </div>
+
               </div>
             </div>
           </div>
@@ -377,11 +386,14 @@
               <div class="flex items-center justify-between">
                 <div>
                   <h2 class="text-lg font-semibold">Attendance Dashboard</h2>
-                  <p class="text-sm text-slate-600">View and export records</p>
+                  <p class="text-sm text-slate-600">View and export records. Use Import to merge records received from other devices.</p>
                 </div>
                 <div class="flex gap-2">
                   <button id="btnDownloadPdf" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Download PDF</button>
+                  <button id="btnExportRecords" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200">Export Records (JSON)</button>
+                  <label for="importRecordsFile" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer">Import Records</label>
                   <button id="btnLecturerLock" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200">Lock</button>
+                  <input id="importRecordsFile" type="file" accept="application/json" class="hidden" />
                 </div>
               </div>
             </div>
@@ -434,7 +446,7 @@
               </div>
 
               <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm">
-                <p><strong>Admin Tools:</strong> Generate and manage the PIN that lecturers will use.</p>
+                <p><strong>Admin Tools:</strong> Generate, export and manage the PIN that lecturers will use. To share the PIN across devices use Export PIN (JSON) or Generate PIN QR.</p>
               </div>
 
               <div class="space-y-3">
@@ -446,6 +458,21 @@
                   <button id="btnCopyAdminPin" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Copy PIN</button>
                   <button id="btnResetAdminPin" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white">Reset PIN</button>
                 </div>
+
+                <div class="grid grid-cols-2 gap-3 mt-2">
+                  <button id="btnExportPin" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200">Export PIN (JSON)</button>
+                  <button id="btnGeneratePinQr" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200">Generate PIN QR</button>
+                </div>
+
+                <div class="mt-2">
+                  <label for="importPinAdminFile" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer">Import PIN (file)</label>
+                  <input id="importPinAdminFile" type="file" accept="application/json" class="hidden" />
+                </div>
+
+                <div id="adminPinQrPanel" class="mt-3 hidden">
+                  <img id="adminPinQrImage" alt="PIN QR" class="rounded-lg ring-1 ring-slate-200" />
+                  <div id="adminPinQrLink" class="mt-2 word-break-all small-muted"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -454,7 +481,7 @@
     </section>
   </main>
 
-  <!-- Footer (same as original) -->
+  <!-- Footer -->
   <footer class="no-print border-t border-slate-200 bg-white">
     <div class="mx-auto max-w-6xl px-4 py-6">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -488,7 +515,7 @@
       lecturer: { unlocked: false }
     };
 
-    // ========== STUDENT ATTENDANCE FUNCTIONALITIES (Original + cross-device updates) ==========
+    // ========== UTILITIES ==========
     function showToast(msg) {
       $('toastText').textContent = msg;
       $('toast').classList.remove('hidden');
@@ -496,6 +523,13 @@
       showToast.t = setTimeout(() => $('toast').classList.add('hidden'), 3000);
     }
 
+    function safeParseJSON(s) {
+      try { return JSON.parse(s); } catch { return null; }
+    }
+
+    function nowIso() { return new Date().toISOString(); }
+
+    // ========== UI state helpers ==========
     function setStatusSummary() {
       const pieces = [];
       pieces.push(state.location.ok ? 'Location ✓' : (state.location.denied ? 'Location denied' : 'Location …'));
@@ -550,7 +584,36 @@
       setChecklist();
     }
 
-    // Location capture
+    // ========== Local storage helpers ==========
+    function getStoredRecords() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDS) || '[]');
+    }
+    function setStoredRecords(arr) {
+      localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(arr || []));
+    }
+    function getAdminCreds() {
+      const data = localStorage.getItem(STORAGE_KEY_ADMIN);
+      return data ? JSON.parse(data) : null;
+    }
+    function saveAdminCreds(username, password) {
+      localStorage.setItem(STORAGE_KEY_ADMIN, JSON.stringify({ username, password }));
+    }
+    function ensurePin() {
+      if (!localStorage.getItem(STORAGE_KEY_PIN)) {
+        localStorage.setItem(STORAGE_KEY_PIN, String(Math.floor(100000 + Math.random() * 900000)));
+      }
+    }
+    function getPin() {
+      ensurePin();
+      return localStorage.getItem(STORAGE_KEY_PIN);
+    }
+    function setPin(pin) {
+      if (!pin || String(pin).trim().length < 6) return false;
+      localStorage.setItem(STORAGE_KEY_PIN, String(pin).trim());
+      return true;
+    }
+
+    // ========== LOCATION ==========
     $('btnGetLocation').addEventListener('click', () => {
       if (!navigator.geolocation) {
         showToast('Geolocation not supported');
@@ -583,7 +646,6 @@
       );
     });
 
-    // Manual coords support
     $('btnToggleManualCoords').addEventListener('click', () => {
       $('manualCoordsPanel').classList.toggle('hidden');
     });
@@ -606,7 +668,7 @@
       }
     });
 
-    // Camera capture
+    // ========== CAMERA / UPLOAD ==========
     $('btnStartCamera').addEventListener('click', async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -674,7 +736,7 @@
       updateSubmitState();
     });
 
-    // Support uploading face image (for devices without camera or for cross-device submit)
+    // Upload image (file input)
     $('faceFile').addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];
       if (!f) return;
@@ -707,7 +769,7 @@
       reader.readAsDataURL(f);
     });
 
-    // Submit attendance
+    // ========== SUBMIT ==========
     $('attendanceForm').addEventListener('submit', e => {
       e.preventDefault();
       if (!state.location.ok || !state.face.ok || !requiredFieldsFilled()) {
@@ -720,7 +782,7 @@
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
       const record = {
-        id: Date.now(),
+        id: Date.now() + Math.floor(Math.random()*999),
         name: $('studentName').value.trim(),
         matric: $('matricNo').value.trim(),
         course: $('courseCode').value.trim(),
@@ -730,13 +792,14 @@
         lon: state.location.lon,
         accuracy: state.location.accuracy,
         faceDataUrl: state.face.dataUrl,
-        faceFromUpload: !!state.face.fromUpload
+        faceFromUpload: !!state.face.fromUpload,
+        createdAt: nowIso()
       };
 
       // Save to localStorage
-      const records = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDS) || '[]');
+      const records = getStoredRecords();
       records.unshift(record);
-      localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(records));
+      setStoredRecords(records);
 
       showToast('Attendance submitted: ' + record.name);
 
@@ -761,13 +824,13 @@
       renderDashboard();
     });
 
-    // ========== DRAFT EXPORT/IMPORT / QR / SHARE (cross-device helpers) ==========
+    // ========== DRAFT EXPORT / IMPORT / QR ==========
     function createDraftObject() {
       const d = new Date();
       const pad = n => String(n).padStart(2, '0');
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       return {
-        t: new Date().toISOString(),
+        t: nowIso(),
         name: $('studentName').value.trim(),
         matric: $('matricNo').value.trim(),
         course: $('courseCode').value.trim(),
@@ -781,7 +844,6 @@
       };
     }
 
-    // Export JSON draft
     $('btnExportDraft').addEventListener('click', () => {
       const draft = createDraftObject();
       const blob = new Blob([JSON.stringify(draft)], { type: 'application/json' });
@@ -796,7 +858,6 @@
       showToast('Draft exported (JSON)');
     });
 
-    // Import JSON draft (prefill form & optionally accept pre-captured face)
     $('importDraftFile').addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];
       if (!f) return;
@@ -807,7 +868,7 @@
           if (data.name) $('studentName').value = data.name;
           if (data.matric) $('matricNo').value = data.matric;
           if (data.course) $('courseCode').value = data.course;
-          if (Number.isFinite(parseFloat(data.lat))) {
+          if (!isNaN(parseFloat(data.lat))) {
             state.location.ok = true;
             state.location.lat = parseFloat(data.lat);
             state.location.lon = parseFloat(data.lon);
@@ -819,7 +880,6 @@
           if (data.faceDataUrl) {
             state.face.ok = true;
             state.face.dataUrl = data.faceDataUrl;
-            // approximate size (not available), set placeholders
             $('facePreview').src = data.faceDataUrl;
             $('facePreview').classList.remove('hidden');
             $('faceEmpty').classList.add('hidden');
@@ -835,22 +895,18 @@
         }
       };
       reader.readAsText(f);
-      // clear input
       e.target.value = '';
     });
 
-    // Generate a QR code for the draft (uses Google Charts API)
     $('btnGenerateQr').addEventListener('click', () => {
       const draft = createDraftObject();
       const json = JSON.stringify(draft);
-      // If payload is too big for QR, warn and provide JSON download instead
       if (json.length > 1800) {
         showToast('Draft too large for QR — use JSON export instead');
         $('qrPanel').classList.add('hidden');
         return;
       }
       const qrData = encodeURIComponent(json);
-      // using Google chart QR API for simplicity
       const qrUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${qrData}&chld=L|1`;
       $('qrImage').src = qrUrl;
       $('qrPanel').classList.remove('hidden');
@@ -858,20 +914,16 @@
       showToast('QR generated — scan from another device');
     });
 
-    // Share draft using Web Share API (if available)
     $('btnShareDraft').addEventListener('click', async () => {
       const draft = createDraftObject();
       const text = JSON.stringify(draft);
       if (navigator.canShare && navigator.canShare({ files: [] })) {
-        // prefer to share file
         try {
           const file = new File([text], `nsuk_urp_attendance_draft_${new Date().toISOString().slice(0,10)}.json`, { type: 'application/json' });
           await navigator.share({ files: [file], title: 'Attendance draft', text: 'NSUK URP attendance draft' });
           showToast('Draft shared');
           return;
-        } catch (err) {
-          // fallback
-        }
+        } catch (err) {}
       }
       if (navigator.share) {
         try {
@@ -881,7 +933,6 @@
           showToast('Share cancelled or failed');
         }
       } else {
-        // fallback: copy draft JSON to clipboard
         try {
           await navigator.clipboard.writeText(text);
           showToast('Draft JSON copied to clipboard — paste on other device');
@@ -891,16 +942,7 @@
       }
     });
 
-    // ========== ADMIN AUTH ==========
-    function getAdminCreds() {
-      const data = localStorage.getItem(STORAGE_KEY_ADMIN);
-      return data ? JSON.parse(data) : null;
-    }
-
-    function saveAdminCreds(username, password) {
-      localStorage.setItem(STORAGE_KEY_ADMIN, JSON.stringify({ username, password }));
-    }
-
+    // ========== ADMIN: Login + PIN export/import/QR ==========
     $('btnAdminSignup').addEventListener('click', () => {
       const u = $('adminUsername').value.trim();
       const p = $('adminPassword').value;
@@ -937,18 +979,6 @@
       showToast('Logged out');
     });
 
-    // ========== PIN MANAGEMENT (Admin only) ==========
-    function ensurePin() {
-      if (!localStorage.getItem(STORAGE_KEY_PIN)) {
-        localStorage.setItem(STORAGE_KEY_PIN, String(Math.floor(100000 + Math.random() * 900000)));
-      }
-    }
-
-    function getPin() {
-      ensurePin();
-      return localStorage.getItem(STORAGE_KEY_PIN);
-    }
-
     function revealAdminPin() {
       $('adminPinDisplay').textContent = getPin();
     }
@@ -963,14 +993,150 @@
     $('btnResetAdminPin').addEventListener('click', () => {
       if (confirm('Reset PIN? All lecturers will need the new one.')) {
         localStorage.removeItem(STORAGE_KEY_PIN);
+        ensurePin();
         revealAdminPin();
         showToast('New PIN generated');
       }
     });
 
+    // Export PIN (JSON)
+    $('btnExportPin').addEventListener('click', () => {
+      const payload = { pin: getPin(), t: nowIso() };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nsuk_urp_pin_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast('PIN exported (JSON)');
+    });
+
+    // Generate PIN QR
+    $('btnGeneratePinQr').addEventListener('click', () => {
+      const payload = { pin: getPin(), t: nowIso() };
+      const json = JSON.stringify(payload);
+      if (json.length > 1800) {
+        showToast('PIN data too large for QR (unexpected)');
+        return;
+      }
+      const qrData = encodeURIComponent(json);
+      const qrUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${qrData}&chld=L|1`;
+      $('adminPinQrImage').src = qrUrl;
+      $('adminPinQrLink').innerHTML = `<a target="_blank" rel="noopener" class="text-xs underline" href="${qrUrl}">Open PIN QR image</a>`;
+      $('adminPinQrPanel').classList.remove('hidden');
+      showToast('PIN QR generated — share/scan on other device');
+    });
+
+    // Import PIN file (admin)
+    $('importPinAdminFile').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          if (data.pin) {
+            setPin(data.pin);
+            revealAdminPin();
+            showToast('PIN imported');
+          } else {
+            showToast('Invalid PIN file');
+          }
+        } catch {
+          showToast('Invalid PIN file');
+        }
+      };
+      reader.readAsText(f);
+      e.target.value = '';
+    });
+
+    // ========== LECTURER: Import PIN file or paste ==========
+    $('importPinFile').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          if (data.pin) {
+            setPin(data.pin);
+            showToast('PIN imported to this device — lecturers can now use it');
+            // optional: prefill lecturer input
+            $('lecturerPinInput').value = data.pin;
+          } else if (typeof data === 'string' && data.length === 6) {
+            setPin(data);
+            showToast('PIN imported to this device');
+            $('lecturerPinInput').value = data;
+          } else {
+            showToast('Invalid PIN file');
+          }
+        } catch {
+          showToast('Invalid PIN file');
+        }
+      };
+      reader.readAsText(f);
+      e.target.value = '';
+    });
+
+    // Paste PIN fallback
+    $('btnPastePin').addEventListener('click', async () => {
+      try {
+        const txt = await navigator.clipboard.readText();
+        const maybe = txt.trim();
+        if (maybe && maybe.length >= 6) {
+          if (setPin(maybe)) {
+            showToast('PIN pasted and saved to this device');
+            $('lecturerPinInput').value = maybe;
+            return;
+          }
+        }
+        showToast('Clipboard does not contain a valid PIN');
+      } catch {
+        // fallback: prompt
+        const manual = prompt('Paste PIN here:');
+        if (manual && manual.trim().length >= 6) {
+          if (setPin(manual.trim())) {
+            showToast('PIN saved to this device');
+            $('lecturerPinInput').value = manual.trim();
+          } else showToast('Invalid PIN');
+        } else showToast('No PIN provided');
+      }
+    });
+
+    // admin and lecturer import file handlers use same IDs but we added separate inputs to UI
+    // To keep code robust, attach handlers if elements present:
+    if ($('importPinFile')) {
+      $('importPinFile').addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            if (data.pin) {
+              setPin(data.pin);
+              showToast('PIN imported to this device');
+              $('lecturerPinInput').value = data.pin;
+            } else {
+              showToast('Invalid PIN file');
+            }
+          } catch {
+            showToast('Invalid PIN file');
+          }
+        };
+        reader.readAsText(f);
+        e.target.value = '';
+      });
+    }
+
     // ========== LECTURER PIN ACCESS ==========
     $('btnLecturerUnlock').addEventListener('click', () => {
       const entered = $('lecturerPinInput').value.trim();
+      if (!entered) return showToast('Enter PIN');
+      // Accept when entered equals local stored PIN
       if (entered === getPin()) {
         state.lecturer.unlocked = true;
         $('lecturerLocked').classList.add('hidden');
@@ -991,35 +1157,68 @@
       showToast('Dashboard locked');
     });
 
-    // ========== TAB SWITCHING ==========
-    function showPanel(panel) {
-      $('panelStudent').classList.add('hidden');
-      $('panelLecturer').classList.add('hidden');
-      $('panelAdmin').classList.add('hidden');
-
-      $('tabStudent').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50';
-      $('tabLecturer').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50';
-      $('tabAdminLogin').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50 ml-auto';
-
-      if (panel === 'student') {
-        $('panelStudent').classList.remove('hidden');
-        $('tabStudent').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white';
-      } else if (panel === 'lecturer') {
-        $('panelLecturer').classList.remove('hidden');
-        $('tabLecturer').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white';
-      } else if (panel === 'admin') {
-        $('panelAdmin').classList.remove('hidden');
-        $('tabAdminLogin').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white ml-auto';
+    // ========== RECORDS EXPORT / IMPORT / MERGE ==========
+    // Export records (download JSON)
+    $('btnExportRecords')?.addEventListener('click', () => {
+      const records = getStoredRecords();
+      if (!records.length) {
+        showToast('No records to export');
+        return;
       }
-    }
+      const payload = { exportedAt: nowIso(), records };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nsuk_urp_attendance_records_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast('Records exported (JSON)');
+    });
 
-    $('tabStudent').addEventListener('click', () => showPanel('student'));
-    $('tabLecturer').addEventListener('click', () => showPanel('lecturer'));
-    $('tabAdminLogin').addEventListener('click', () => showPanel('admin'));
+    // Import records (merge into local storage)
+    $('importRecordsFile')?.addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          let incoming = [];
+          if (Array.isArray(parsed)) incoming = parsed;
+          else if (parsed && Array.isArray(parsed.records)) incoming = parsed.records;
+          else if (parsed && parsed.matric) incoming = [parsed];
+          else { showToast('Invalid records file'); return; }
 
-    // ========== DASHBOARD RENDER (shared) ==========
+          // merge and dedupe
+          const existing = getStoredRecords();
+          const map = new Map();
+          existing.forEach(r => map.set(r.id, r));
+          incoming.forEach(r => {
+            if (!r.id) r.id = Date.now() + Math.floor(Math.random()*999);
+            if (!map.has(r.id)) {
+              // fallback dedupe by (matric + date + time)
+              const duplicate = Array.from(map.values()).some(ex => ex.matric === r.matric && ex.date === r.date && ex.time === r.time);
+              if (!duplicate) map.set(r.id, r);
+            }
+          });
+          const merged = Array.from(map.values()).sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
+          setStoredRecords(merged);
+          renderDashboard();
+          showToast('Records imported and merged');
+        } catch (err) {
+          showToast('Invalid records file');
+        }
+      };
+      reader.readAsText(f);
+      e.target.value = '';
+    });
+
+    // ========== RENDER / PREVIEW ==========
     function renderDashboard() {
-      const records = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDS) || '[]');
+      const records = getStoredRecords();
       const tbody = $('recordsTbody');
       tbody.innerHTML = '';
       if (!records.length) {
@@ -1034,25 +1233,24 @@
           <td class="px-4 py-3">${r.matric || ''}</td>
           <td class="px-4 py-3">${r.course || ''}</td>
           <td class="px-4 py-3 text-sm">${r.date} ${r.time}</td>
-          <td class="px-4 py-3 text-xs">${r.lat?.toFixed(6) || ''}</td>
-          <td class="px-4 py-3 text-xs">${r.lon?.toFixed(6) || ''}</td>
+          <td class="px-4 py-3 text-xs">${r.lat?.toFixed?.(6) || ''}</td>
+          <td class="px-4 py-3 text-xs">${r.lon?.toFixed?.(6) || ''}</td>
           <td class="px-4 py-3"><button class="text-xs underline text-blue-600" onclick="previewFace(${r.id})">View</button></td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    // Face preview for lecturer dashboard
+    // Preview face in new window
     function previewFace(id) {
-      const records = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDS) || '[]');
+      const records = getStoredRecords();
       const r = records.find(x => x.id === id);
       if (!r) return alert('Record not found');
-      // open simple popup with image and details
       const win = window.open('', '_blank', 'width=520,height=640,scrollbars=yes');
       win.document.write(`<title>Face preview</title><div style="font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; padding:12px;">
         <h3>${r.name || ''} — ${r.matric || ''}</h3>
         <p style="color:#555">${r.course || ''} — ${r.date} ${r.time}</p>
-        <p style="margin-top:8px;color:#555">Lat: ${r.lat?.toFixed(6) || ''} Lon: ${r.lon?.toFixed(6) || ''}</p>
+        <p style="margin-top:8px;color:#555">Lat: ${r.lat?.toFixed?.(6) || ''} Lon: ${r.lon?.toFixed?.(6) || ''}</p>
         <div style="margin-top:12px;border:1px solid #eee;padding:8px;background:#fafafa">
           ${r.faceDataUrl ? `<img src="${r.faceDataUrl}" style="max-width:100%;height:auto;border-radius:8px" />` : '<div style="color:#666">No image</div>'}
         </div>
@@ -1061,7 +1259,7 @@
 
     // PDF Download
     $('btnDownloadPdf').addEventListener('click', () => {
-      const records = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDS) || '[]');
+      const records = getStoredRecords();
       if (!records.length) {
         showToast('No records to export');
         return;
@@ -1096,47 +1294,61 @@
       showToast('PDF downloaded');
     });
 
+    // ========== TAB SWITCH ==========
+    function showPanel(panel) {
+      $('panelStudent').classList.add('hidden');
+      $('panelLecturer').classList.add('hidden');
+      $('panelAdmin').classList.add('hidden');
+
+      $('tabStudent').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50';
+      $('tabLecturer').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50';
+      $('tabAdminLogin').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50 ml-auto';
+
+      if (panel === 'student') {
+        $('panelStudent').classList.remove('hidden');
+        $('tabStudent').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white';
+      } else if (panel === 'lecturer') {
+        $('panelLecturer').classList.remove('hidden');
+        $('tabLecturer').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white';
+      } else if (panel === 'admin') {
+        $('panelAdmin').classList.remove('hidden');
+        $('tabAdminLogin').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white ml-auto';
+      }
+    }
+
+    $('tabStudent').addEventListener('click', () => showPanel('student'));
+    $('tabLecturer').addEventListener('click', () => showPanel('lecturer'));
+    $('tabAdminLogin').addEventListener('click', () => showPanel('admin'));
+
     // ========== INIT ==========
     document.addEventListener('DOMContentLoaded', () => {
-      // Set year
       $('year').textContent = new Date().getFullYear();
-
-      // Ensure PIN exists
       ensurePin();
-
-      // Setup date/time updates
       updateDateTimePreview();
       setInterval(updateDateTimePreview, 1000);
 
-      // Setup input listeners
       ['studentName', 'matricNo', 'courseCode'].forEach(id => {
         $(id).addEventListener('input', updateSubmitState);
       });
 
-      // Hook: clicking help shows a simple modal via alert (keep minimal)
+      // help button
       $('btnOpenHelp').addEventListener('click', () => {
         alert(
 `Instructions:
-1) Capture your location (or use manual coords).
+1) Capture location (or use manual coords).
 2) Start camera and capture face (or upload an image).
 3) Fill Name, Matric No, Course Code.
 4) Submit attendance.
 
-Cross-device: use Export Draft (JSON) or Generate QR to move current draft to another device and import/scan to finish submission.`
+To share PIN or records across devices:
+- Admin: Export PIN (JSON) or Generate PIN QR and share it.
+- Lecturer/device: Import the PIN file or paste the PIN to save it locally.
+- For attendance records: Export Records (JSON) from one device and Import Records on another device to merge them into the dashboard.
+- Alternatively use Export Draft / Generate QR to move in-progress student submissions between devices.`
         );
       });
 
-      // Clear QR panel when clicking outside or when generating new
-      document.addEventListener('click', (e) => {
-        // keep as-is; no extra actions
-      });
-
-      // Import file input is set up above; also ensure value clears
-      $('importDraftFile').addEventListener('change', (e) => {
-        // handled in listener earlier
-      });
-
-      // Initial state
+      // admin file inputs already have handlers
       showPanel('student');
       updateSubmitState();
       renderDashboard();
