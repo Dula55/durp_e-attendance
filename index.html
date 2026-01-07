@@ -398,6 +398,7 @@
                   <button id="btnDownloadPdf" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Download PDF</button>
                   <button id="btnExportRecords" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200">Export Records (JSON)</button>
                   <label for="importRecordsFile" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer">Import Records</label>
+                  <button id="btnClearData" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">Clear Data</button>
                   <button id="btnLecturerLock" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200">Lock</button>
                   <input id="importRecordsFile" type="file" accept="application/json" class="hidden" />
                 </div>
@@ -842,6 +843,38 @@
       state.face.ok=false; state.face.dataUrl=null; state.face.w=null; state.face.h=null; state.face.fromUpload=false;
       $('facePreview').classList.add('hidden'); $('faceEmpty').classList.remove('hidden'); $('faceStatus').textContent='Not captured'; $('faceQuality').textContent='—'; $('btnRetake').disabled=true;
       updateSubmitState(); renderDashboard(); renderLocalTable();
+    });
+
+    // ========== Clear Data Functionality ==========
+    $('btnClearData').addEventListener('click', () => {
+      if (!confirm('Are you sure you want to clear ALL attendance data? This action cannot be undone.')) {
+        return;
+      }
+      
+      // Clear local storage
+      localStorage.removeItem(STORAGE_KEY_RECORDS);
+      
+      // If Firebase is enabled, also clear from Firebase
+      if (firebaseEnabled && firebaseRecordsRef) {
+        if (confirm('Do you also want to clear data from Firebase? This will delete all records from the server.')) {
+          firebaseRecordsRef.remove()
+            .then(() => {
+              showToast('All data cleared from local storage and Firebase');
+            })
+            .catch(err => {
+              console.error('Firebase clear error:', err);
+              showToast('Local data cleared, but Firebase clear failed');
+            });
+        } else {
+          showToast('Local data cleared (Firebase data preserved)');
+        }
+      } else {
+        showToast('All local data cleared');
+      }
+      
+      // Update UI
+      renderDashboard();
+      renderLocalTable();
     });
 
     // ========== Draft export/import/QR/share (fallback/manual cross-device) ==========
