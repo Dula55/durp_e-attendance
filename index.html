@@ -9,6 +9,10 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
+  <!-- Firebase (compat) - optional, only used if you provide FIREBASE_CONFIG below -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
   <!-- PDF -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>
@@ -26,11 +30,10 @@
     input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
     @media print { .no-print { display: none !important; } body { background: #fff !important; } }
-
-    /* small helpers for new UI */
     .small-muted { font-size: .78rem; color: #6b7280; }
     .note-box { font-size: .82rem; color: #374151; background: #f8fafc; border: 1px solid #e6eef6; padding: .6rem; border-radius: .75rem; }
     .word-break-all { word-break: break-all; }
+    .sync-badge { display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; }
   </style>
 </head>
 
@@ -42,12 +45,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-start gap-3">
             <div class="shimmer mt-0.5 h-10 w-10 rounded-xl bg-white/10 ring-1 ring-white/15 flex items-center justify-center">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2l9 4.5-9 4.5L3 6.5 12 2Z" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linejoin="round"/>
-                <path d="M6.5 9.2V14c0 2.2 2.5 4 5.5 4s5.5-1.8 5.5-4V9.2" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linecap="round"/>
-                <path d="M21 6.5v6" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linecap="round"/>
-                <circle cx="21" cy="13.5" r="1" fill="rgba(255,255,255,0.95)"/>
-              </svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l9 4.5-9 4.5L3 6.5 12 2Z" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linejoin="round"/><path d="M6.5 9.2V14c0 2.2 2.5 4 5.5 4s5.5-1.8 5.5-4V9.2" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linecap="round"/><path d="M21 6.5v6" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linecap="round"/><circle cx="21" cy="13.5" r="1" fill="rgba(255,255,255,0.95)"/></svg>
             </div>
             <div>
               <h1 class="text-base sm:text-lg font-semibold tracking-tight">Department of Urban and Regional Planning</h1>
@@ -55,9 +53,9 @@
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-            <div class="rounded-xl bg-white/10 ring-1 ring-white/15 px-3 py-2">
-              <p class="text-xs text-white/70">Status</p>
-              <p id="statusSummary" class="text-sm font-medium">Ready</p>
+            <div id="syncStatus" class="rounded-xl bg-white/10 ring-1 ring-white/15 px-3 py-2">
+              <p class="text-xs text-white/70">Sync</p>
+              <p id="syncSummary" class="text-sm font-medium">Local</p>
             </div>
             <button id="btnOpenHelp" class="rounded-xl bg-white text-[#0f1b3d] px-3 py-2 text-sm font-semibold hover:bg-white/95">Instructions</button>
           </div>
@@ -78,7 +76,6 @@
   </header>
 
   <main class="mx-auto max-w-6xl px-4 py-6 sm:py-8">
-
     <!-- Student Panel -->
     <section id="panelStudent" role="tabpanel">
       <div class="grid gap-4 lg:grid-cols-12">
@@ -87,7 +84,7 @@
             <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
               <h2 class="text-lg font-semibold">Student Attendance</h2>
               <p class="mt-1 text-sm text-slate-600">
-                Capture location + face (or upload image) then fill the form. Use "Export Draft" / "Generate QR" to move work between devices.
+                Capture location + face (or upload image) then fill the form. If you configure Firebase below, records and PIN sync across devices automatically.
               </p>
             </div>
 
@@ -100,7 +97,7 @@
                       <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f1b3d] text-white text-sm font-bold">1</span>
                       <h3 class="text-base font-semibold">Enable Location</h3>
                     </div>
-                    <p class="mt-1 text-sm text-slate-600">We capture your latitude and longitude for attendance verification.</p>
+                    <p class="mt-1 text-sm text-slate-600">We capture latitude and longitude for verification.</p>
                   </div>
                   <div class="flex gap-2 items-center">
                     <button id="btnGetLocation" class="shrink-0 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
@@ -142,7 +139,7 @@
                 </div>
 
                 <div id="locError" class="mt-3 hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"></div>
-                <div class="mt-3 small-muted">If geolocation isn't available, use Manual coords or Export Draft / Generate QR to finish on another device.</div>
+                <div class="mt-3 small-muted">If geolocation is not available, use manual coords or Export/Import JSON to move the draft.</div>
               </div>
 
               <!-- Step 2: Face Capture -->
@@ -153,7 +150,7 @@
                       <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f1b3d] text-white text-sm font-bold">2</span>
                       <h3 class="text-base font-semibold">Capture Face</h3>
                     </div>
-                    <p class="mt-1 text-sm text-slate-600">Use your front camera and capture a clear image. If camera isn't available, upload an image file.</p>
+                    <p class="mt-1 text-sm text-slate-600">Use your front camera and capture a clear image. If camera isn't present you may upload a file.</p>
                   </div>
                   <div class="flex gap-2">
                     <button id="btnStartCamera" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">
@@ -199,7 +196,7 @@
                           <p id="faceQuality" class="mt-1 text-sm font-semibold">—</p>
                         </div>
                       </div>
-                      <div class="mt-3 small-muted">You may upload an image or import a draft from another device to finish and submit.</div>
+                      <div class="mt-3 small-muted">You may upload an image or import a draft from another device to complete and submit.</div>
                     </div>
                   </div>
                 </div>
@@ -211,9 +208,7 @@
                   <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f1b3d] text-white text-sm font-bold">3</span>
                   <div>
                     <h3 class="text-base font-semibold">Attendance Form</h3>
-                    <p class="mt-1 text-sm text-slate-600">
-                      The form is unlocked after successful face capture. Submission requires location + face + required fields.
-                    </p>
+                    <p class="mt-1 text-sm text-slate-600">The form unlocks after face capture. Submission requires location + face + fields.</p>
                   </div>
                 </div>
 
@@ -265,7 +260,7 @@
                   </fieldset>
 
                   <div id="formLockedNote" class="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                    <span class="font-semibold">Locked:</span> Start the camera and capture your face to unlock the attendance form.
+                    <span class="font-semibold">Locked:</span> Start camera and capture face to unlock attendance form.
                   </div>
 
                   <div class="mt-3 flex gap-2 items-center">
@@ -290,6 +285,24 @@
               </div>
             </div>
           </div>
+
+          <!-- Student attendance table (local view) -->
+          <div class="mt-4 rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
+            <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
+              <h3 class="text-base font-semibold">Student Attendance (local)</h3>
+              <p class="mt-1 text-sm text-slate-600">This table shows the attendance records stored on this device. If Firebase is configured, records from other devices will appear automatically.</p>
+            </div>
+            <div class="p-4 overflow-x-auto">
+              <table class="min-w-full bg-white">
+                <thead class="bg-slate-50"><tr class="text-left text-xs font-semibold text-slate-600">
+                  <th class="px-4 py-3">Name</th><th class="px-4 py-3">Matric</th><th class="px-4 py-3">Course</th>
+                  <th class="px-4 py-3">Date & Time</th><th class="px-4 py-3">Lat</th><th class="px-4 py-3">Lon</th>
+                </tr></thead>
+                <tbody id="localRecordsTbody"></tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
 
         <!-- Right: Quick Info -->
@@ -325,33 +338,29 @@
               </ul>
 
               <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p class="text-xs font-semibold text-slate-700">Privacy (Local Device Only)</p>
-                <p class="mt-1 text-xs text-slate-600">
-                  Attendance records (including the captured image) are stored in your browser's local storage on this device.
-                  No data is uploaded to any server unless you manually share or import them.
-                </p>
+                <p class="text-xs font-semibold text-slate-700">Privacy</p>
+                <p class="mt-1 text-xs text-slate-600">By default records are local. If you enable Firebase sync records will be shared among devices connected to that Firebase project.</p>
               </div>
 
               <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
                 <p class="text-xs font-semibold text-slate-700">Support</p>
-                <p class="mt-1 text-xs text-slate-600">
-                  If location/camera fails, confirm you are using HTTPS and that permissions are allowed in your browser settings.
-                </p>
+                <p class="mt-1 text-xs text-slate-600">If location/camera fails, confirm you are on HTTPS and permissions are allowed in your browser.</p>
               </div>
             </div>
           </div>
         </aside>
+
       </div>
     </section>
 
-    <!-- Lecturer Panel (PIN Access Only) -->
+    <!-- Lecturer Panel -->
     <section id="panelLecturer" role="tabpanel" class="hidden">
       <div class="grid gap-6 lg:grid-cols-12">
         <div class="lg:col-span-4">
           <div class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
             <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
               <h2 class="text-lg font-semibold">Lecturer Access</h2>
-              <p class="mt-1 text-sm text-slate-600">Enter the PIN shared by Admin (or import PIN file / paste PIN to accept an externally generated PIN)</p>
+              <p class="mt-1 text-sm text-slate-600">Enter the PIN shared by Admin. If Firebase is configured, the PIN will be synchronized across devices.</p>
             </div>
             <div class="p-5 space-y-4">
               <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -359,14 +368,11 @@
                 <input id="lecturerPinInput" type="text" inputmode="numeric" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-lg tracking-widest text-center" placeholder="••••••" maxlength="6" />
                 <button id="btnLecturerUnlock" class="mt-3 w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Unlock Dashboard</button>
                 <p id="lecturerPinMsg" class="mt-2 text-xs text-center"></p>
-
                 <div class="mt-3 grid grid-cols-2 gap-2">
                   <label for="importPinFile" class="rounded-xl bg-white px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer text-center">Import PIN (file)</label>
                   <button id="btnPastePin" class="rounded-xl bg-white px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Paste PIN</button>
                   <input id="importPinFile" type="file" accept="application/json" class="hidden" />
-                  <input id="pastePinInput" type="text" placeholder="Paste PIN here" class="hidden rounded-xl border border-slate-300 px-2 py-2" />
                 </div>
-
               </div>
             </div>
           </div>
@@ -386,7 +392,7 @@
               <div class="flex items-center justify-between">
                 <div>
                   <h2 class="text-lg font-semibold">Attendance Dashboard</h2>
-                  <p class="text-sm text-slate-600">View and export records. Use Import to merge records received from other devices.</p>
+                  <p class="text-sm text-slate-600">View and export records. Use Import to merge records received from other devices (if not using Firebase sync).</p>
                 </div>
                 <div class="flex gap-2">
                   <button id="btnDownloadPdf" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Download PDF</button>
@@ -413,7 +419,7 @@
       </div>
     </section>
 
-    <!-- Admin Panel (Login + PIN Management) -->
+    <!-- Admin Panel -->
     <section id="panelAdmin" role="tabpanel" class="hidden">
       <div class="max-w-md mx-auto">
         <div class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
@@ -421,8 +427,6 @@
             <h2 class="text-lg font-semibold" id="adminTitle">Admin Login</h2>
           </div>
           <div class="p-6 space-y-5">
-
-            <!-- Login Form -->
             <div id="adminLoginForm">
               <div class="space-y-4">
                 <div>
@@ -438,7 +442,6 @@
               </div>
             </div>
 
-            <!-- Admin Dashboard (after login) -->
             <div id="adminDashboardSection" class="hidden space-y-5">
               <div class="text-center">
                 <p class="text-sm text-emerald-700 font-semibold">Admin logged in</p>
@@ -446,7 +449,7 @@
               </div>
 
               <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm">
-                <p><strong>Admin Tools:</strong> Generate, export and manage the PIN that lecturers will use. To share the PIN across devices use Export PIN (JSON) or Generate PIN QR.</p>
+                <p><strong>Admin Tools:</strong> Generate, export and manage the PIN that lecturers will use. If Firebase is enabled, you may set the PIN centrally and it will propagate.</p>
               </div>
 
               <div class="space-y-3">
@@ -473,12 +476,14 @@
                   <img id="adminPinQrImage" alt="PIN QR" class="rounded-lg ring-1 ring-slate-200" />
                   <div id="adminPinQrLink" class="mt-2 word-break-all small-muted"></div>
                 </div>
+
               </div>
             </div>
           </div>
         </div>
       </div>
     </section>
+
   </main>
 
   <!-- Footer -->
@@ -498,21 +503,42 @@
     </div>
   </div>
 
-  <!-- Hidden canvas for capture -->
   <canvas id="captureCanvas" class="hidden"></canvas>
 
   <script>
+    /************************************************************************
+     * IMPORTANT:
+     * To enable automatic cross-device sync you must supply a Firebase config
+     * object below. If you do NOT supply it the app will run local-only and
+     * fallback to Export/Import JSON + QR methods for manual cross-device transfer.
+     *
+     * Replace the null with your Firebase config object, e.g.:
+     * const FIREBASE_CONFIG = {
+     *   apiKey: "...", authDomain: "...", databaseURL: "https://<PROJECT>.firebaseio.com",
+     *   projectId: "...", storageBucket: "...", messagingSenderId: "...", appId: "..."
+     * };
+     *
+     * Also ensure your Realtime Database rules permit the access pattern you want.
+     ************************************************************************/
+    const FIREBASE_CONFIG = null; // <-- REPLACE with your config object to enable realtime sync
+
     const $ = id => document.getElementById(id);
     const STORAGE_KEY_RECORDS = 'nsuk_urp_attendance_records_v1';
     const STORAGE_KEY_PIN = 'nsuk_urp_lecturer_pin_v1';
     const STORAGE_KEY_ADMIN = 'nsuk_urp_admin_creds_v1';
+
+    let firebaseEnabled = false;
+    let firebaseDbRef = null;
+    let firebasePinRef = null;
+    let firebaseRecordsRef = null;
 
     const state = {
       location: { ok: false, lat: null, lon: null, accuracy: null, denied: false },
       face: { ok: false, dataUrl: null, w: null, h: null, fromUpload: false },
       camera: { stream: null, started: false },
       admin: { loggedIn: false },
-      lecturer: { unlocked: false }
+      lecturer: { unlocked: false },
+      syncing: { connected: false }
     };
 
     // ========== UTILITIES ==========
@@ -522,38 +548,49 @@
       clearTimeout(showToast.t);
       showToast.t = setTimeout(() => $('toast').classList.add('hidden'), 3000);
     }
-
-    function safeParseJSON(s) {
-      try { return JSON.parse(s); } catch { return null; }
-    }
-
     function nowIso() { return new Date().toISOString(); }
 
-    // ========== UI state helpers ==========
+    // ========== Local storage helpers ==========
+    function getStoredRecords() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDS) || '[]'); } catch { return []; }
+    }
+    function setStoredRecords(arr) { localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(arr || [])); }
+    function getAdminCreds() { const d = localStorage.getItem(STORAGE_KEY_ADMIN); return d ? JSON.parse(d) : null; }
+    function saveAdminCreds(u,p) { localStorage.setItem(STORAGE_KEY_ADMIN, JSON.stringify({ username: u, password: p })); }
+    function ensurePinLocal() { if (!localStorage.getItem(STORAGE_KEY_PIN)) localStorage.setItem(STORAGE_KEY_PIN, String(Math.floor(100000 + Math.random()*900000))); }
+    function getPinLocal() { ensurePinLocal(); return localStorage.getItem(STORAGE_KEY_PIN); }
+    function setPinLocal(pin) { if (!pin) return false; localStorage.setItem(STORAGE_KEY_PIN, String(pin)); return true; }
+
+    // ========== UI helpers ==========
+    function setSyncSummary(text, ok) {
+      $('syncSummary').textContent = text;
+      const el = $('syncStatus');
+      el.title = text;
+      el.querySelector ? null : null;
+      if (ok) el.style.background = '#064e3bff'; // green tint for sync on
+      else el.style.background = '#11182733';
+    }
+
     function setStatusSummary() {
       const pieces = [];
       pieces.push(state.location.ok ? 'Location ✓' : (state.location.denied ? 'Location denied' : 'Location …'));
       pieces.push(state.face.ok ? 'Face ✓' : 'Face …');
-      $('statusSummary').textContent = pieces.join(' • ');
+      // if firebase enabled show indicator
+      $('statusSummary') && ($('statusSummary').textContent = pieces.join(' • '));
     }
 
     function setChecklist() {
       const mark = (ok) => ok ? '✓' : '—';
       const cls = (ok) => ok ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-slate-100 text-slate-700 ring-slate-200';
-
       $('checkLoc').textContent = mark(state.location.ok);
       $('checkLoc').className = `mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg ring-1 ${cls(state.location.ok)}`;
-
       $('checkFace').textContent = mark(state.face.ok);
       $('checkFace').className = `mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg ring-1 ${cls(state.face.ok)}`;
-
       const fieldsOk = requiredFieldsFilled();
       $('checkFields').textContent = mark(fieldsOk);
       $('checkFields').className = `mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg ring-1 ${cls(fieldsOk)}`;
-
       const ver = (state.location.ok && state.face.ok && fieldsOk) ? 'Ready to submit' : 'Pending';
-      $('verifyText').textContent = ver;
-
+      $('verifyText') && ($('verifyText').textContent = ver);
       setStatusSummary();
     }
 
@@ -577,212 +614,188 @@
       $('formFieldset').disabled = !unlocked;
       $('formFieldset').classList.toggle('opacity-60', !unlocked);
       $('formLockedNote').classList.toggle('hidden', unlocked);
-
       const canSubmit = state.location.ok && state.face.ok && requiredFieldsFilled();
       $('btnSubmit').disabled = !canSubmit;
-
       setChecklist();
     }
 
-    // ========== Local storage helpers ==========
-    function getStoredRecords() {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDS) || '[]');
-    }
-    function setStoredRecords(arr) {
-      localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(arr || []));
-    }
-    function getAdminCreds() {
-      const data = localStorage.getItem(STORAGE_KEY_ADMIN);
-      return data ? JSON.parse(data) : null;
-    }
-    function saveAdminCreds(username, password) {
-      localStorage.setItem(STORAGE_KEY_ADMIN, JSON.stringify({ username, password }));
-    }
-    function ensurePin() {
-      if (!localStorage.getItem(STORAGE_KEY_PIN)) {
-        localStorage.setItem(STORAGE_KEY_PIN, String(Math.floor(100000 + Math.random() * 900000)));
-      }
-    }
-    function getPin() {
-      ensurePin();
-      return localStorage.getItem(STORAGE_KEY_PIN);
-    }
-    function setPin(pin) {
-      if (!pin || String(pin).trim().length < 6) return false;
-      localStorage.setItem(STORAGE_KEY_PIN, String(pin).trim());
-      return true;
-    }
-
-    // ========== LOCATION ==========
-    $('btnGetLocation').addEventListener('click', () => {
-      if (!navigator.geolocation) {
-        showToast('Geolocation not supported');
+    // ========== FIREBASE INIT (optional) ==========
+    function initFirebaseIfConfigured() {
+      if (!FIREBASE_CONFIG) {
+        firebaseEnabled = false;
+        setSyncSummary('Local only', false);
         return;
       }
-      $('locStatus').textContent = 'Requesting...';
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          const { latitude, longitude, accuracy } = pos.coords;
-          state.location.ok = true;
-          state.location.lat = latitude;
-          state.location.lon = longitude;
-          state.location.accuracy = accuracy;
-          $('locStatus').textContent = `Captured (±${Math.round(accuracy)}m)`;
-          $('latText').textContent = latitude.toFixed(6);
-          $('lonText').textContent = longitude.toFixed(6);
-          $('locError').classList.add('hidden');
-          showToast('Location captured');
-          updateSubmitState();
-        },
-        err => {
-          state.location.ok = false;
-          state.location.denied = err.code === err.PERMISSION_DENIED;
-          $('locStatus').textContent = 'Error';
-          $('locError').textContent = err.message;
-          $('locError').classList.remove('hidden');
-          showToast('Location error: ' + err.message);
-          updateSubmitState();
-        }
-      );
-    });
+      try {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        const db = firebase.database();
+        firebaseDbRef = db;
+        firebasePinRef = db.ref('nsuk_urp/pin');
+        firebaseRecordsRef = db.ref('nsuk_urp/records');
+        firebaseEnabled = true;
+        setSyncSummary('Realtime: Firebase', true);
+        setupFirebaseListeners();
+      } catch (err) {
+        console.error('Firebase init error', err);
+        firebaseEnabled = false;
+        setSyncSummary('Local only (firebase init failed)', false);
+      }
+    }
 
-    $('btnToggleManualCoords').addEventListener('click', () => {
-      $('manualCoordsPanel').classList.toggle('hidden');
+    function setupFirebaseListeners() {
+      if (!firebaseEnabled) return;
+
+      // Listen for PIN changes from DB -> update local pin & UI
+      firebasePinRef.on('value', snap => {
+        const val = snap.val();
+        if (val && val.pin) {
+          setPinLocal(String(val.pin));
+          $('adminPinDisplay').textContent = String(val.pin);
+          // reflect to lecturer input only if empty
+          if (!$('lecturerPinInput').value) $('lecturerPinInput').value = String(val.pin);
+          showToast('PIN updated from server');
+        }
+      });
+
+      // listen for records added in DB
+      firebaseRecordsRef.on('child_added', snap => {
+        const r = snap.val();
+        if (!r) return;
+        // ensure id is the push key
+        r.id = r.id || snap.key;
+        const existing = getStoredRecords();
+        // dedupe by id or (matric+date+time)
+        const exists = existing.some(e => e.id === r.id || (e.matric === r.matric && e.date === r.date && e.time === r.time));
+        if (!exists) {
+          existing.unshift(r);
+          setStoredRecords(existing);
+          renderDashboard();
+        }
+      });
+
+      // Keep db -> local initial sync (value)
+      firebaseRecordsRef.once('value').then(snap => {
+        const obj = snap.val();
+        if (!obj) return;
+        const incoming = Object.keys(obj).map(k => {
+          const r = obj[k]; r.id = r.id || k; return r;
+        });
+        if (!incoming.length) return;
+        mergeIncomingRecords(incoming);
+        showToast('Initial remote records loaded');
+      }).catch(err => console.warn('firebase initial load err', err));
+    }
+
+    // push record to firebase (if enabled)
+    function pushRecordToFirebase(record) {
+      if (!firebaseEnabled) return Promise.resolve(null);
+      // push returns a ref
+      return firebaseRecordsRef.push(record).then(ref => {
+        // set id to push key for consistent cross-device reference
+        const key = ref.key;
+        // update the pushed record with an id field to be consistent
+        firebaseRecordsRef.child(key).update({ id: key }).catch(()=>{});
+        return key;
+      }).catch(err => {
+        console.warn('pushRecordToFirebase err', err);
+        return null;
+      });
+    }
+
+    // Admin set PIN in firebase
+    function setFirebasePin(pin) {
+      if (!firebaseEnabled) return Promise.reject('firebase disabled');
+      return firebasePinRef.set({ pin: String(pin), updatedAt: nowIso() });
+    }
+
+    // merge incoming records array into local store, dedupe by id OR matric+date+time
+    function mergeIncomingRecords(incoming) {
+      const existing = getStoredRecords();
+      const map = new Map(existing.map(r => [r.id || (r.matric + '|' + r.date + '|' + r.time), r]));
+      incoming.forEach(r => {
+        const key = r.id || (r.matric + '|' + r.date + '|' + r.time);
+        if (!map.has(key)) map.set(key, r);
+      });
+      const merged = Array.from(map.values()).sort((a,b) => {
+        const ta = a.createdAt || a.t || a._ts || 0;
+        const tb = b.createdAt || b.t || b._ts || 0;
+        return (tb > ta) ? 1 : -1;
+      });
+      setStoredRecords(merged);
+      renderDashboard();
+    }
+
+    // ========== UI and App logic (location/camera/submit/export/import) ==========
+    // location
+    $('btnGetLocation').addEventListener('click', () => {
+      if (!navigator.geolocation) return showToast('Geolocation not supported');
+      $('locStatus').textContent = 'Requesting...';
+      navigator.geolocation.getCurrentPosition(pos => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        state.location.ok = true; state.location.lat = latitude; state.location.lon = longitude; state.location.accuracy = accuracy;
+        $('locStatus').textContent = `Captured (±${Math.round(accuracy)}m)`;
+        $('latText').textContent = latitude.toFixed(6); $('lonText').textContent = longitude.toFixed(6);
+        $('locError').classList.add('hidden'); showToast('Location captured'); updateSubmitState();
+      }, err => {
+        state.location.ok = false; state.location.denied = err.code === err.PERMISSION_DENIED;
+        $('locStatus').textContent = 'Error'; $('locError').textContent = err.message; $('locError').classList.remove('hidden');
+        showToast('Location error: ' + err.message); updateSubmitState();
+      });
     });
+    $('btnToggleManualCoords').addEventListener('click', () => $('manualCoordsPanel').classList.toggle('hidden'));
     $('btnApplyManualCoords').addEventListener('click', () => {
       const lat = parseFloat($('manualLat').value.trim());
       const lon = parseFloat($('manualLon').value.trim());
       if (Number.isFinite(lat) && Number.isFinite(lon)) {
-        state.location.ok = true;
-        state.location.lat = lat;
-        state.location.lon = lon;
-        state.location.accuracy = null;
-        $('locStatus').textContent = 'Manual';
-        $('latText').textContent = lat.toFixed(6);
-        $('lonText').textContent = lon.toFixed(6);
-        $('locError').classList.add('hidden');
-        showToast('Manual coordinates applied');
-        updateSubmitState();
-      } else {
-        showToast('Enter valid numeric coordinates');
-      }
+        state.location.ok = true; state.location.lat = lat; state.location.lon = lon; state.location.accuracy = null;
+        $('locStatus').textContent = 'Manual'; $('latText').textContent = lat.toFixed(6); $('lonText').textContent = lon.toFixed(6);
+        $('locError').classList.add('hidden'); showToast('Manual coordinates applied'); updateSubmitState();
+      } else showToast('Enter valid numeric coordinates');
     });
 
-    // ========== CAMERA / UPLOAD ==========
+    // camera
     $('btnStartCamera').addEventListener('click', async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' }
-        });
-        state.camera.stream = stream;
-        state.camera.started = true;
-        $('video').srcObject = stream;
-        $('btnCaptureFace').disabled = false;
-        showToast('Camera started');
-      } catch (err) {
-        showToast('Camera error: ' + err.message);
-      }
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }});
+        state.camera.stream = stream; state.camera.started = true; $('video').srcObject = stream; $('btnCaptureFace').disabled = false; showToast('Camera started');
+      } catch (err) { showToast('Camera error: ' + err.message); }
     });
-
     $('btnCaptureFace').addEventListener('click', () => {
-      if (!state.camera.started) {
-        showToast('Start camera first');
-        return;
-      }
-      const canvas = $('captureCanvas');
-      const video = $('video');
-      canvas.width = video.videoWidth || 1280;
-      canvas.height = video.videoHeight || 720;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      if (!state.camera.started) return showToast('Start camera first');
+      const canvas = $('captureCanvas'); const video = $('video');
+      canvas.width = video.videoWidth || 1280; canvas.height = video.videoHeight || 720;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-
-      state.face.ok = true;
-      state.face.dataUrl = dataUrl;
-      state.face.w = canvas.width;
-      state.face.h = canvas.height;
-      state.face.fromUpload = false;
-
-      $('facePreview').src = dataUrl;
-      $('facePreview').classList.remove('hidden');
-      $('faceEmpty').classList.add('hidden');
-      $('faceStatus').textContent = 'Captured';
-      $('faceQuality').textContent = `${canvas.width}×${canvas.height}`;
-      $('btnRetake').disabled = false;
-
-      // Stop camera
-      if (state.camera.stream) {
-        state.camera.stream.getTracks().forEach(t => t.stop());
-        state.camera.stream = null;
-        state.camera.started = false;
-        $('video').srcObject = null;
-      }
-
-      showToast('Face captured');
-      updateSubmitState();
+      state.face.ok = true; state.face.dataUrl = dataUrl; state.face.w = canvas.width; state.face.h = canvas.height; state.face.fromUpload = false;
+      $('facePreview').src = dataUrl; $('facePreview').classList.remove('hidden'); $('faceEmpty').classList.add('hidden');
+      $('faceStatus').textContent = 'Captured'; $('faceQuality').textContent = `${canvas.width}×${canvas.height}`; $('btnRetake').disabled = false;
+      if (state.camera.stream) { state.camera.stream.getTracks().forEach(t => t.stop()); state.camera.stream=null; state.camera.started=false; $('video').srcObject=null; }
+      showToast('Face captured'); updateSubmitState();
     });
-
     $('btnRetake').addEventListener('click', () => {
-      state.face.ok = false;
-      state.face.dataUrl = null;
-      state.face.w = null;
-      state.face.h = null;
-      state.face.fromUpload = false;
-      $('facePreview').classList.add('hidden');
-      $('faceEmpty').classList.remove('hidden');
-      $('faceStatus').textContent = 'Not captured';
-      $('faceQuality').textContent = '—';
-      $('btnRetake').disabled = true;
-      updateSubmitState();
+      state.face.ok=false; state.face.dataUrl=null; state.face.w=null; state.face.h=null; state.face.fromUpload=false;
+      $('facePreview').classList.add('hidden'); $('faceEmpty').classList.remove('hidden'); $('faceStatus').textContent='Not captured'; $('faceQuality').textContent='—';
+      $('btnRetake').disabled = true; updateSubmitState();
     });
-
-    // Upload image (file input)
     $('faceFile').addEventListener('change', (e) => {
-      const f = e.target.files && e.target.files[0];
-      if (!f) return;
-      if (!f.type.startsWith('image/')) {
-        showToast('Select an image file');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = reader.result;
-        const img = new Image();
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      if (!f.type.startsWith('image/')) return showToast('Select an image file');
+      const reader = new FileReader(); reader.onload = () => {
+        const dataUrl = reader.result; const img = new Image();
         img.onload = () => {
-          state.face.ok = true;
-          state.face.dataUrl = dataUrl;
-          state.face.w = img.width;
-          state.face.h = img.height;
-          state.face.fromUpload = true;
-
-          $('facePreview').src = dataUrl;
-          $('facePreview').classList.remove('hidden');
-          $('faceEmpty').classList.add('hidden');
-          $('faceStatus').textContent = 'Uploaded';
-          $('faceQuality').textContent = `${img.width}×${img.height}`;
-          $('btnRetake').disabled = false;
-          updateSubmitState();
-          showToast('Image uploaded');
-        };
-        img.src = dataUrl;
-      };
-      reader.readAsDataURL(f);
+          state.face.ok=true; state.face.dataUrl=dataUrl; state.face.w=img.width; state.face.h=img.height; state.face.fromUpload=true;
+          $('facePreview').src=dataUrl; $('facePreview').classList.remove('hidden'); $('faceEmpty').classList.add('hidden');
+          $('faceStatus').textContent='Uploaded'; $('faceQuality').textContent=`${img.width}×${img.height}`; $('btnRetake').disabled=false; updateSubmitState(); showToast('Image uploaded');
+        }; img.src = dataUrl;
+      }; reader.readAsDataURL(f);
     });
 
-    // ========== SUBMIT ==========
-    $('attendanceForm').addEventListener('submit', e => {
+    // submit attendance (sends to firebase if enabled, otherwise local only)
+    $('attendanceForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!state.location.ok || !state.face.ok || !requiredFieldsFilled()) {
-        showToast('Complete all steps first');
-        return;
-      }
-
-      const d = new Date();
-      const pad = n => String(n).padStart(2, '0');
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-      const record = {
-        id: Date.now() + Math.floor(Math.random()*999),
+      if (!state.location.ok || !state.face.ok || !requiredFieldsFilled()) { showToast('Complete all steps first'); return; }
+      const d = new Date(); const pad = n => String(n).padStart(2,'0'); const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const baseRecord = {
         name: $('studentName').value.trim(),
         matric: $('matricNo').value.trim(),
         course: $('courseCode').value.trim(),
@@ -796,39 +809,44 @@
         createdAt: nowIso()
       };
 
-      // Save to localStorage
-      const records = getStoredRecords();
-      records.unshift(record);
-      setStoredRecords(records);
+      // If firebase enabled -> push to DB and use push key as id
+      if (firebaseEnabled) {
+        try {
+          const pushKey = await pushRecordToFirebase(baseRecord);
+          if (pushKey) {
+            baseRecord.id = pushKey;
+            // save locally as well
+            const records = getStoredRecords(); records.unshift(baseRecord); setStoredRecords(records);
+            showToast('Attendance submitted (synced)');
+          } else {
+            // fallback to local only
+            baseRecord.id = Date.now() + Math.floor(Math.random()*999);
+            const records = getStoredRecords(); records.unshift(baseRecord); setStoredRecords(records);
+            showToast('Attendance submitted (local only - sync failed)');
+          }
+        } catch (err) {
+          // fallback
+          baseRecord.id = Date.now() + Math.floor(Math.random()*999);
+          const records = getStoredRecords(); records.unshift(baseRecord); setStoredRecords(records);
+          showToast('Attendance submitted (local fallback)');
+        }
+      } else {
+        // local only: generate id
+        baseRecord.id = Date.now() + Math.floor(Math.random()*999);
+        const records = getStoredRecords(); records.unshift(baseRecord); setStoredRecords(records);
+        showToast('Attendance submitted (local)');
+      }
 
-      showToast('Attendance submitted: ' + record.name);
-
-      // Reset form but keep location
-      $('studentName').value = '';
-      $('matricNo').value = '';
-      $('courseCode').value = '';
-
-      // Reset face
-      state.face.ok = false;
-      state.face.dataUrl = null;
-      state.face.w = null;
-      state.face.h = null;
-      state.face.fromUpload = false;
-      $('facePreview').classList.add('hidden');
-      $('faceEmpty').classList.remove('hidden');
-      $('faceStatus').textContent = 'Not captured';
-      $('faceQuality').textContent = '—';
-      $('btnRetake').disabled = true;
-
-      updateSubmitState();
-      renderDashboard();
+      // reset form fields (keep location)
+      $('studentName').value=''; $('matricNo').value=''; $('courseCode').value='';
+      state.face.ok=false; state.face.dataUrl=null; state.face.w=null; state.face.h=null; state.face.fromUpload=false;
+      $('facePreview').classList.add('hidden'); $('faceEmpty').classList.remove('hidden'); $('faceStatus').textContent='Not captured'; $('faceQuality').textContent='—'; $('btnRetake').disabled=true;
+      updateSubmitState(); renderDashboard(); renderLocalTable();
     });
 
-    // ========== DRAFT EXPORT / IMPORT / QR ==========
+    // ========== Draft export/import/QR/share (fallback/manual cross-device) ==========
     function createDraftObject() {
-      const d = new Date();
-      const pad = n => String(n).padStart(2, '0');
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const d = new Date(); const pad = n => String(n).padStart(2,'0'); const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       return {
         t: nowIso(),
         name: $('studentName').value.trim(),
@@ -846,513 +864,251 @@
 
     $('btnExportDraft').addEventListener('click', () => {
       const draft = createDraftObject();
-      const blob = new Blob([JSON.stringify(draft)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `nsuk_urp_attendance_draft_${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      showToast('Draft exported (JSON)');
+      const blob = new Blob([JSON.stringify(draft)], { type:'application/json' });
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `nsuk_urp_draft_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); showToast('Draft exported (JSON)');
     });
 
     $('importDraftFile').addEventListener('change', (e) => {
-      const f = e.target.files && e.target.files[0];
-      if (!f) return;
-      const reader = new FileReader();
-      reader.onload = () => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      const reader = new FileReader(); reader.onload = () => {
         try {
           const data = JSON.parse(reader.result);
           if (data.name) $('studentName').value = data.name;
           if (data.matric) $('matricNo').value = data.matric;
           if (data.course) $('courseCode').value = data.course;
           if (!isNaN(parseFloat(data.lat))) {
-            state.location.ok = true;
-            state.location.lat = parseFloat(data.lat);
-            state.location.lon = parseFloat(data.lon);
-            state.location.accuracy = data.accuracy || null;
-            $('latText').textContent = state.location.lat?.toFixed(6) || '—';
-            $('lonText').textContent = state.location.lon?.toFixed(6) || '—';
-            $('locStatus').textContent = 'Imported';
+            state.location.ok = true; state.location.lat = parseFloat(data.lat); state.location.lon = parseFloat(data.lon); state.location.accuracy = data.accuracy || null;
+            $('latText').textContent = state.location.lat?.toFixed(6) || '—'; $('lonText').textContent = state.location.lon?.toFixed(6) || '—'; $('locStatus').textContent = 'Imported';
           }
           if (data.faceDataUrl) {
-            state.face.ok = true;
-            state.face.dataUrl = data.faceDataUrl;
-            $('facePreview').src = data.faceDataUrl;
-            $('facePreview').classList.remove('hidden');
-            $('faceEmpty').classList.add('hidden');
-            $('faceStatus').textContent = 'Imported';
-            $('faceQuality').textContent = '—';
-            $('btnRetake').disabled = false;
-            state.face.fromUpload = !!data.faceFromUpload;
+            state.face.ok = true; state.face.dataUrl = data.faceDataUrl; $('facePreview').src = data.faceDataUrl; $('facePreview').classList.remove('hidden'); $('faceEmpty').classList.add('hidden'); $('faceStatus').textContent = 'Imported'; $('faceQuality').textContent = '—'; $('btnRetake').disabled = false;
           }
-          updateSubmitState();
-          showToast('Draft imported');
-        } catch (err) {
-          showToast('Invalid JSON file');
-        }
-      };
-      reader.readAsText(f);
-      e.target.value = '';
+          updateSubmitState(); showToast('Draft imported');
+        } catch (err) { showToast('Invalid JSON'); }
+      }; reader.readAsText(f); e.target.value='';
     });
 
     $('btnGenerateQr').addEventListener('click', () => {
-      const draft = createDraftObject();
-      const json = JSON.stringify(draft);
-      if (json.length > 1800) {
-        showToast('Draft too large for QR — use JSON export instead');
-        $('qrPanel').classList.add('hidden');
-        return;
-      }
-      const qrData = encodeURIComponent(json);
-      const qrUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${qrData}&chld=L|1`;
-      $('qrImage').src = qrUrl;
-      $('qrPanel').classList.remove('hidden');
-      $('qrLinkBox').innerHTML = `<a target="_blank" rel="noopener" class="text-xs underline" href="${qrUrl}">Open QR image (new tab)</a>`;
-      showToast('QR generated — scan from another device');
+      const draft = createDraftObject(); const json = JSON.stringify(draft);
+      if (json.length > 1800) { showToast('Draft too large for QR — use JSON export'); $('qrPanel').classList.add('hidden'); return; }
+      const qrData = encodeURIComponent(json); const qrUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${qrData}&chld=L|1`;
+      $('qrImage').src = qrUrl; $('qrPanel').classList.remove('hidden'); $('qrLinkBox').innerHTML = `<a target="_blank" rel="noopener" class="text-xs underline" href="${qrUrl}">Open QR image (new tab)</a>`; showToast('QR generated — scan from another device');
     });
 
     $('btnShareDraft').addEventListener('click', async () => {
-      const draft = createDraftObject();
-      const text = JSON.stringify(draft);
+      const draft = createDraftObject(); const text = JSON.stringify(draft);
       if (navigator.canShare && navigator.canShare({ files: [] })) {
-        try {
-          const file = new File([text], `nsuk_urp_attendance_draft_${new Date().toISOString().slice(0,10)}.json`, { type: 'application/json' });
-          await navigator.share({ files: [file], title: 'Attendance draft', text: 'NSUK URP attendance draft' });
-          showToast('Draft shared');
-          return;
-        } catch (err) {}
-      }
+        try { const file = new File([text], `nsuk_urp_draft_${new Date().toISOString().slice(0,10)}.json`, { type:'application/json' }); await navigator.share({ files:[file], title:'Attendance draft', text:'NSUK URP attendance draft' }); showToast('Draft shared'); return; } catch{} }
       if (navigator.share) {
-        try {
-          await navigator.share({ title: 'Attendance draft', text });
-          showToast('Draft shared');
-        } catch (err) {
-          showToast('Share cancelled or failed');
-        }
+        try { await navigator.share({ title:'Attendance draft', text }); showToast('Draft shared'); } catch { showToast('Share cancelled'); }
       } else {
-        try {
-          await navigator.clipboard.writeText(text);
-          showToast('Draft JSON copied to clipboard — paste on other device');
-        } catch {
-          showToast('Share unavailable — use Export Draft (JSON)');
-        }
+        try { await navigator.clipboard.writeText(text); showToast('Draft JSON copied to clipboard — paste on other device'); } catch { showToast('Share unavailable — use Export Draft (JSON)'); }
       }
     });
 
-    // ========== ADMIN: Login + PIN export/import/QR ==========
+    // ========== ADMIN: login + PIN management (local + firebase) ==========
     $('btnAdminSignup').addEventListener('click', () => {
-      const u = $('adminUsername').value.trim();
-      const p = $('adminPassword').value;
-      if (!u || !p) return showToast('Fill both fields');
-      if (getAdminCreds()) return showToast('Admin already exists');
-      saveAdminCreds(u, p);
-      showToast('Admin account created');
+      const u = $('adminUsername').value.trim(); const p = $('adminPassword').value;
+      if (!u || !p) return showToast('Fill both fields'); if (getAdminCreds()) return showToast('Admin already exists');
+      saveAdminCreds(u,p); showToast('Admin account created');
     });
 
     $('btnAdminLogin').addEventListener('click', () => {
-      const u = $('adminUsername').value.trim();
-      const p = $('adminPassword').value;
-      const creds = getAdminCreds();
-      if (!creds) return showToast('No admin account. Create one first.');
-      if (creds.username === u && creds.password === p) {
-        state.admin.loggedIn = true;
-        $('adminLoginForm').classList.add('hidden');
-        $('adminDashboardSection').classList.remove('hidden');
-        $('adminTitle').textContent = 'Admin Panel';
-        revealAdminPin();
-        showToast('Admin logged in');
-      } else {
-        showToast('Wrong username or password');
-      }
+      const u = $('adminUsername').value.trim(); const p = $('adminPassword').value;
+      const creds = getAdminCreds(); if (!creds) return showToast('No admin account'); if (creds.username === u && creds.password === p) {
+        state.admin.loggedIn = true; $('adminLoginForm').classList.add('hidden'); $('adminDashboardSection').classList.remove('hidden'); $('adminTitle').textContent='Admin Panel'; revealAdminPin(); showToast('Admin logged in');
+      } else showToast('Wrong username or password');
     });
 
     $('btnAdminLogout').addEventListener('click', () => {
-      state.admin.loggedIn = false;
-      $('adminLoginForm').classList.remove('hidden');
-      $('adminDashboardSection').classList.add('hidden');
-      $('adminTitle').textContent = 'Admin Login';
-      $('adminUsername').value = '';
-      $('adminPassword').value = '';
-      showToast('Logged out');
+      state.admin.loggedIn = false; $('adminLoginForm').classList.remove('hidden'); $('adminDashboardSection').classList.add('hidden'); $('adminTitle').textContent='Admin Login'; $('adminUsername').value=''; $('adminPassword').value=''; showToast('Logged out');
     });
 
-    function revealAdminPin() {
-      $('adminPinDisplay').textContent = getPin();
-    }
+    function revealAdminPin() { const p = getPinLocal(); $('adminPinDisplay').textContent = p || '••••••'; }
 
     $('btnCopyAdminPin').addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(getPin());
-        showToast('PIN copied!');
-      } catch { showToast('Copy failed'); }
+      try { await navigator.clipboard.writeText(getPinLocal()); showToast('PIN copied'); } catch { showToast('Copy failed'); }
     });
 
-    $('btnResetAdminPin').addEventListener('click', () => {
-      if (confirm('Reset PIN? All lecturers will need the new one.')) {
-        localStorage.removeItem(STORAGE_KEY_PIN);
-        ensurePin();
-        revealAdminPin();
-        showToast('New PIN generated');
+    $('btnResetAdminPin').addEventListener('click', async () => {
+      if (!confirm('Reset PIN? All lecturers will need the new one.')) return;
+      const newPin = String(Math.floor(100000 + Math.random()*900000));
+      setPinLocal(newPin); revealAdminPin(); showToast('Local PIN reset');
+      if (firebaseEnabled) {
+        try { await setFirebasePin(newPin); showToast('PIN set on server'); } catch (err) { showToast('PIN local only (server update failed)'); }
       }
     });
 
-    // Export PIN (JSON)
     $('btnExportPin').addEventListener('click', () => {
-      const payload = { pin: getPin(), t: nowIso() };
-      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `nsuk_urp_pin_${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      showToast('PIN exported (JSON)');
+      const payload = { pin: getPinLocal(), t: nowIso() }; const blob = new Blob([JSON.stringify(payload)], { type:'application/json' }); const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `nsuk_urp_pin_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); showToast('PIN exported (JSON)');
     });
 
-    // Generate PIN QR
     $('btnGeneratePinQr').addEventListener('click', () => {
-      const payload = { pin: getPin(), t: nowIso() };
-      const json = JSON.stringify(payload);
-      if (json.length > 1800) {
-        showToast('PIN data too large for QR (unexpected)');
-        return;
-      }
-      const qrData = encodeURIComponent(json);
-      const qrUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${qrData}&chld=L|1`;
-      $('adminPinQrImage').src = qrUrl;
-      $('adminPinQrLink').innerHTML = `<a target="_blank" rel="noopener" class="text-xs underline" href="${qrUrl}">Open PIN QR image</a>`;
-      $('adminPinQrPanel').classList.remove('hidden');
-      showToast('PIN QR generated — share/scan on other device');
+      const payload = { pin: getPinLocal(), t: nowIso() }; const json = JSON.stringify(payload); if (json.length > 1800) return showToast('PIN too large');
+      const qrData = encodeURIComponent(json); const qrUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${qrData}&chld=L|1`;
+      $('adminPinQrImage').src = qrUrl; $('adminPinQrLink').innerHTML = `<a target="_blank" rel="noopener" class="text-xs underline" href="${qrUrl}">Open PIN QR image</a>`; $('adminPinQrPanel').classList.remove('hidden'); showToast('PIN QR generated');
     });
 
-    // Import PIN file (admin)
+    // import pin by admin (file)
     $('importPinAdminFile').addEventListener('change', (e) => {
-      const f = e.target.files && e.target.files[0];
-      if (!f) return;
-      const reader = new FileReader();
-      reader.onload = () => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      const reader = new FileReader(); reader.onload = async () => {
         try {
           const data = JSON.parse(reader.result);
           if (data.pin) {
-            setPin(data.pin);
-            revealAdminPin();
-            showToast('PIN imported');
-          } else {
-            showToast('Invalid PIN file');
-          }
-        } catch {
-          showToast('Invalid PIN file');
-        }
-      };
-      reader.readAsText(f);
-      e.target.value = '';
+            setPinLocal(data.pin); revealAdminPin(); showToast('PIN imported locally'); if (firebaseEnabled) { try { await setFirebasePin(data.pin); showToast('PIN written to server'); } catch{} }
+          } else showToast('Invalid PIN file');
+        } catch { showToast('Invalid PIN file'); }
+      }; reader.readAsText(f); e.target.value='';
     });
 
-    // ========== LECTURER: Import PIN file or paste ==========
+    // lecturer import pin (file) or paste
     $('importPinFile').addEventListener('change', (e) => {
-      const f = e.target.files && e.target.files[0];
-      if (!f) return;
-      const reader = new FileReader();
-      reader.onload = () => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      const reader = new FileReader(); reader.onload = () => {
         try {
           const data = JSON.parse(reader.result);
-          if (data.pin) {
-            setPin(data.pin);
-            showToast('PIN imported to this device — lecturers can now use it');
-            // optional: prefill lecturer input
-            $('lecturerPinInput').value = data.pin;
-          } else if (typeof data === 'string' && data.length === 6) {
-            setPin(data);
-            showToast('PIN imported to this device');
-            $('lecturerPinInput').value = data;
-          } else {
-            showToast('Invalid PIN file');
-          }
-        } catch {
-          showToast('Invalid PIN file');
-        }
-      };
-      reader.readAsText(f);
-      e.target.value = '';
+          if (data.pin) { setPinLocal(data.pin); showToast('PIN imported to this device'); $('lecturerPinInput').value = data.pin; } else showToast('Invalid PIN file');
+        } catch { showToast('Invalid PIN file'); }
+      }; reader.readAsText(f); e.target.value='';
     });
-
-    // Paste PIN fallback
     $('btnPastePin').addEventListener('click', async () => {
       try {
-        const txt = await navigator.clipboard.readText();
-        const maybe = txt.trim();
-        if (maybe && maybe.length >= 6) {
-          if (setPin(maybe)) {
-            showToast('PIN pasted and saved to this device');
-            $('lecturerPinInput').value = maybe;
-            return;
-          }
-        }
-        showToast('Clipboard does not contain a valid PIN');
+        const txt = await navigator.clipboard.readText(); const maybe = txt.trim();
+        if (maybe && maybe.length >= 6) { setPinLocal(maybe); showToast('PIN pasted & saved'); $('lecturerPinInput').value = maybe; } else showToast('Clipboard does not contain a valid PIN');
       } catch {
-        // fallback: prompt
-        const manual = prompt('Paste PIN here:');
-        if (manual && manual.trim().length >= 6) {
-          if (setPin(manual.trim())) {
-            showToast('PIN saved to this device');
-            $('lecturerPinInput').value = manual.trim();
-          } else showToast('Invalid PIN');
-        } else showToast('No PIN provided');
+        const manual = prompt('Paste PIN here:'); if (manual && manual.trim().length >= 6) { setPinLocal(manual.trim()); showToast('PIN saved'); $('lecturerPinInput').value = manual.trim(); } else showToast('No PIN provided');
       }
     });
 
-    // admin and lecturer import file handlers use same IDs but we added separate inputs to UI
-    // To keep code robust, attach handlers if elements present:
-    if ($('importPinFile')) {
-      $('importPinFile').addEventListener('change', (e) => {
-        const f = e.target.files && e.target.files[0];
-        if (!f) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          try {
-            const data = JSON.parse(reader.result);
-            if (data.pin) {
-              setPin(data.pin);
-              showToast('PIN imported to this device');
-              $('lecturerPinInput').value = data.pin;
-            } else {
-              showToast('Invalid PIN file');
-            }
-          } catch {
-            showToast('Invalid PIN file');
-          }
-        };
-        reader.readAsText(f);
-        e.target.value = '';
-      });
-    }
-
-    // ========== LECTURER PIN ACCESS ==========
+    // lecturer unlock: now checks against local pin (which may have been updated by firebase listeners)
     $('btnLecturerUnlock').addEventListener('click', () => {
-      const entered = $('lecturerPinInput').value.trim();
-      if (!entered) return showToast('Enter PIN');
-      // Accept when entered equals local stored PIN
-      if (entered === getPin()) {
-        state.lecturer.unlocked = true;
-        $('lecturerLocked').classList.add('hidden');
-        $('lecturerDashboard').classList.remove('hidden');
-        renderDashboard();
-        showToast('Dashboard unlocked');
-      } else {
-        $('lecturerPinMsg').textContent = 'Incorrect PIN';
-        $('lecturerPinMsg').className = 'mt-2 text-xs text-rose-700 font-semibold text-center';
-      }
+      const entered = $('lecturerPinInput').value.trim(); if (!entered) return showToast('Enter PIN');
+      if (entered === getPinLocal()) { state.lecturer.unlocked = true; $('lecturerLocked').classList.add('hidden'); $('lecturerDashboard').classList.remove('hidden'); renderDashboard(); showToast('Dashboard unlocked'); } else { $('lecturerPinMsg').textContent='Incorrect PIN'; $('lecturerPinMsg').className='mt-2 text-xs text-rose-700 font-semibold text-center'; }
     });
+    $('btnLecturerLock').addEventListener('click', () => { state.lecturer.unlocked = false; $('lecturerLocked').classList.remove('hidden'); $('lecturerDashboard').classList.add('hidden'); $('lecturerPinInput').value=''; showToast('Dashboard locked'); });
 
-    $('btnLecturerLock').addEventListener('click', () => {
-      state.lecturer.unlocked = false;
-      $('lecturerLocked').classList.remove('hidden');
-      $('lecturerDashboard').classList.add('hidden');
-      $('lecturerPinInput').value = '';
-      showToast('Dashboard locked');
-    });
-
-    // ========== RECORDS EXPORT / IMPORT / MERGE ==========
-    // Export records (download JSON)
+    // ========== Records export/import/merge for manual sharing (fallback) ==========
     $('btnExportRecords')?.addEventListener('click', () => {
-      const records = getStoredRecords();
-      if (!records.length) {
-        showToast('No records to export');
-        return;
-      }
-      const payload = { exportedAt: nowIso(), records };
-      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `nsuk_urp_attendance_records_${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      showToast('Records exported (JSON)');
+      const records = getStoredRecords(); if (!records.length) return showToast('No records to export');
+      const payload = { exportedAt: nowIso(), records }; const blob = new Blob([JSON.stringify(payload)], { type:'application/json' }); const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `nsuk_urp_records_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); showToast('Records exported (JSON)');
     });
 
-    // Import records (merge into local storage)
     $('importRecordsFile')?.addEventListener('change', (e) => {
-      const f = e.target.files && e.target.files[0];
-      if (!f) return;
-      const reader = new FileReader();
-      reader.onload = () => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      const reader = new FileReader(); reader.onload = () => {
         try {
-          const parsed = JSON.parse(reader.result);
-          let incoming = [];
-          if (Array.isArray(parsed)) incoming = parsed;
-          else if (parsed && Array.isArray(parsed.records)) incoming = parsed.records;
-          else if (parsed && parsed.matric) incoming = [parsed];
-          else { showToast('Invalid records file'); return; }
-
-          // merge and dedupe
-          const existing = getStoredRecords();
-          const map = new Map();
-          existing.forEach(r => map.set(r.id, r));
-          incoming.forEach(r => {
-            if (!r.id) r.id = Date.now() + Math.floor(Math.random()*999);
-            if (!map.has(r.id)) {
-              // fallback dedupe by (matric + date + time)
-              const duplicate = Array.from(map.values()).some(ex => ex.matric === r.matric && ex.date === r.date && ex.time === r.time);
-              if (!duplicate) map.set(r.id, r);
-            }
-          });
-          const merged = Array.from(map.values()).sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
-          setStoredRecords(merged);
-          renderDashboard();
-          showToast('Records imported and merged');
-        } catch (err) {
-          showToast('Invalid records file');
-        }
-      };
-      reader.readAsText(f);
-      e.target.value = '';
+          const parsed = JSON.parse(reader.result); let incoming = [];
+          if (Array.isArray(parsed)) incoming = parsed; else if (parsed && Array.isArray(parsed.records)) incoming = parsed.records; else if (parsed && parsed.matric) incoming=[parsed]; else { showToast('Invalid records file'); return; }
+          mergeIncomingRecords(incoming); showToast('Records imported and merged');
+        } catch { showToast('Invalid records file'); }
+      }; reader.readAsText(f); e.target.value='';
     });
 
-    // ========== RENDER / PREVIEW ==========
+    // render functions
     function renderDashboard() {
       const records = getStoredRecords();
       const tbody = $('recordsTbody');
+      if (!tbody) return;
       tbody.innerHTML = '';
-      if (!records.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-500">No records yet</td></tr>';
-        return;
-      }
+      if (!records.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-500">No records yet</td></tr>'; return; }
       records.forEach(r => {
-        const tr = document.createElement('tr');
-        tr.className = 'border-b border-slate-100';
-        tr.innerHTML = `
-          <td class="px-4 py-3 font-medium">${r.name || ''}</td>
+        const tr = document.createElement('tr'); tr.className='border-b border-slate-100';
+        tr.innerHTML = `<td class="px-4 py-3 font-medium">${r.name || ''}</td>
           <td class="px-4 py-3">${r.matric || ''}</td>
           <td class="px-4 py-3">${r.course || ''}</td>
           <td class="px-4 py-3 text-sm">${r.date} ${r.time}</td>
           <td class="px-4 py-3 text-xs">${r.lat?.toFixed?.(6) || ''}</td>
           <td class="px-4 py-3 text-xs">${r.lon?.toFixed?.(6) || ''}</td>
-          <td class="px-4 py-3"><button class="text-xs underline text-blue-600" onclick="previewFace(${r.id})">View</button></td>
-        `;
+          <td class="px-4 py-3"><button class="text-xs underline text-blue-600" onclick="previewFace('${r.id}')">View</button></td>`;
         tbody.appendChild(tr);
       });
     }
 
-    // Preview face in new window
+    function renderLocalTable() {
+      const records = getStoredRecords();
+      const tbody = $('localRecordsTbody');
+      tbody.innerHTML = '';
+      if (!records.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-500">No local records</td></tr>'; return; }
+      records.forEach(r => {
+        const tr = document.createElement('tr'); tr.className='border-b border-slate-100';
+        tr.innerHTML = `<td class="px-4 py-3 font-medium">${r.name || ''}</td><td class="px-4 py-3">${r.matric || ''}</td><td class="px-4 py-3">${r.course || ''}</td><td class="px-4 py-3 text-sm">${r.date} ${r.time}</td><td class="px-4 py-3 text-xs">${r.lat?.toFixed?.(6) || ''}</td><td class="px-4 py-3 text-xs">${r.lon?.toFixed?.(6) || ''}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // preview face
     function previewFace(id) {
       const records = getStoredRecords();
-      const r = records.find(x => x.id === id);
+      const r = records.find(x => String(x.id) === String(id));
       if (!r) return alert('Record not found');
       const win = window.open('', '_blank', 'width=520,height=640,scrollbars=yes');
       win.document.write(`<title>Face preview</title><div style="font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; padding:12px;">
         <h3>${r.name || ''} — ${r.matric || ''}</h3>
         <p style="color:#555">${r.course || ''} — ${r.date} ${r.time}</p>
         <p style="margin-top:8px;color:#555">Lat: ${r.lat?.toFixed?.(6) || ''} Lon: ${r.lon?.toFixed?.(6) || ''}</p>
-        <div style="margin-top:12px;border:1px solid #eee;padding:8px;background:#fafafa">
-          ${r.faceDataUrl ? `<img src="${r.faceDataUrl}" style="max-width:100%;height:auto;border-radius:8px" />` : '<div style="color:#666">No image</div>'}
-        </div>
+        <div style="margin-top:12px;border:1px solid #eee;padding:8px;background:#fafafa">${r.faceDataUrl ? `<img src="${r.faceDataUrl}" style="max-width:100%;height:auto;border-radius:8px" />` : '<div style="color:#666">No image</div>'}</div>
       </div>`);
     }
+    window.previewFace = previewFace; // expose for onclick inline handlers
 
-    // PDF Download
+    // PDF export
     $('btnDownloadPdf').addEventListener('click', () => {
-      const records = getStoredRecords();
-      if (!records.length) {
-        showToast('No records to export');
-        return;
-      }
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-
-      doc.setFontSize(16);
-      doc.text('NSUK URP Attendance Records', 14, 20);
-      doc.setFontSize(10);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
-
-      const headers = [['Name', 'Matric', 'Course', 'Date', 'Time', 'Latitude', 'Longitude']];
-      const data = records.map(r => [
-        r.name || '',
-        r.matric || '',
-        r.course || '',
-        r.date || '',
-        r.time || '',
-        r.lat?.toFixed(6) || '',
-        r.lon?.toFixed(6) || ''
-      ]);
-
-      doc.autoTable({
-        head: headers,
-        body: data,
-        startY: 40,
-      });
-
-      doc.save(`NSUK_URP_Attendance_${new Date().toISOString().slice(0,10)}.pdf`);
-      showToast('PDF downloaded');
+      const records = getStoredRecords(); if (!records.length) return showToast('No records to export');
+      const { jsPDF } = window.jspdf; const doc = new jsPDF();
+      doc.setFontSize(16); doc.text('NSUK URP Attendance Records', 14, 20); doc.setFontSize(10); doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
+      const headers = [['Name','Matric','Course','Date','Time','Latitude','Longitude']];
+      const data = records.map(r => [r.name||'', r.matric||'', r.course||'', r.date||'', r.time||'', r.lat?.toFixed(6)||'', r.lon?.toFixed(6)||'']);
+      doc.autoTable({ head: headers, body: data, startY: 40 }); doc.save(`NSUK_URP_Attendance_${new Date().toISOString().slice(0,10)}.pdf`); showToast('PDF downloaded');
     });
 
-    // ========== TAB SWITCH ==========
+    // tabs
     function showPanel(panel) {
-      $('panelStudent').classList.add('hidden');
-      $('panelLecturer').classList.add('hidden');
-      $('panelAdmin').classList.add('hidden');
-
+      $('panelStudent').classList.add('hidden'); $('panelLecturer').classList.add('hidden'); $('panelAdmin').classList.add('hidden');
       $('tabStudent').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50';
       $('tabLecturer').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50';
       $('tabAdminLogin').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-white text-slate-800 hover:bg-slate-50 ml-auto';
-
-      if (panel === 'student') {
-        $('panelStudent').classList.remove('hidden');
-        $('tabStudent').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white';
-      } else if (panel === 'lecturer') {
-        $('panelLecturer').classList.remove('hidden');
-        $('tabLecturer').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white';
-      } else if (panel === 'admin') {
-        $('panelAdmin').classList.remove('hidden');
-        $('tabAdminLogin').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white ml-auto';
-      }
+      if (panel === 'student') { $('panelStudent').classList.remove('hidden'); $('tabStudent').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white'; }
+      else if (panel === 'lecturer') { $('panelLecturer').classList.remove('hidden'); $('tabLecturer').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white'; }
+      else if (panel === 'admin') { $('panelAdmin').classList.remove('hidden'); $('tabAdminLogin').className = 'rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-slate-200 bg-slate-900 text-white ml-auto'; }
     }
+    $('tabStudent').addEventListener('click', ()=>showPanel('student'));
+    $('tabLecturer').addEventListener('click', ()=>showPanel('lecturer'));
+    $('tabAdminLogin').addEventListener('click', ()=>showPanel('admin'));
 
-    $('tabStudent').addEventListener('click', () => showPanel('student'));
-    $('tabLecturer').addEventListener('click', () => showPanel('lecturer'));
-    $('tabAdminLogin').addEventListener('click', () => showPanel('admin'));
-
-    // ========== INIT ==========
-    document.addEventListener('DOMContentLoaded', () => {
-      $('year').textContent = new Date().getFullYear();
-      ensurePin();
-      updateDateTimePreview();
-      setInterval(updateDateTimePreview, 1000);
-
-      ['studentName', 'matricNo', 'courseCode'].forEach(id => {
-        $(id).addEventListener('input', updateSubmitState);
-      });
-
-      // help button
-      $('btnOpenHelp').addEventListener('click', () => {
-        alert(
-`Instructions:
+    // help button
+    $('btnOpenHelp').addEventListener('click', () => {
+      alert(`Instructions:
 1) Capture location (or use manual coords).
 2) Start camera and capture face (or upload an image).
 3) Fill Name, Matric No, Course Code.
 4) Submit attendance.
 
-To share PIN or records across devices:
-- Admin: Export PIN (JSON) or Generate PIN QR and share it.
-- Lecturer/device: Import the PIN file or paste the PIN to save it locally.
-- For attendance records: Export Records (JSON) from one device and Import Records on another device to merge them into the dashboard.
-- Alternatively use Export Draft / Generate QR to move in-progress student submissions between devices.`
-        );
-      });
+Cross-device sync:
+- To enable automatic syncing across devices, replace FIREBASE_CONFIG in the script with your Firebase config object (Realtime Database).
+- When Firebase is active, records and PIN are shared in real-time between devices connected to the same Firebase project.
+- If you don't use Firebase, use Export Draft / Generate QR / Export Records and Import on the other device.`);
+    });
 
-      // admin file inputs already have handlers
+    // init
+    document.addEventListener('DOMContentLoaded', () => {
+      $('year').textContent = new Date().getFullYear();
+      // local initializations
+      ensurePinLocal(); revealAdminPin();
+      updateDateTimePreview(); setInterval(updateDateTimePreview, 1000);
+
+      ['studentName','matricNo','courseCode'].forEach(id => $(id).addEventListener('input', updateSubmitState));
+      // init firebase if config provided
+      initFirebaseIfConfigured();
+
+      // initial render
+      renderDashboard(); renderLocalTable();
       showPanel('student');
       updateSubmitState();
-      renderDashboard();
     });
+
   </script>
 </body>
 </html>
