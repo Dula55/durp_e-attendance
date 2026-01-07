@@ -34,7 +34,6 @@
     .note-box { font-size: .82rem; color: #374151; background: #f8fafc; border: 1px solid #e6eef6; padding: .6rem; border-radius: .75rem; }
     .word-break-all { word-break: break-all; }
     .sync-badge { display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; }
-    .cross-device-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
   </style>
 </head>
 
@@ -59,7 +58,6 @@
               <p id="syncSummary" class="text-sm font-medium">Local</p>
             </div>
             <button id="btnOpenHelp" class="rounded-xl bg-white text-[#0f1b3d] px-3 py-2 text-sm font-semibold hover:bg-white/95">Instructions</button>
-            <button id="btnShareAll" class="rounded-xl bg-emerald-500 text-white px-3 py-2 text-sm font-semibold hover:bg-emerald-600">Share All Data</button>
           </div>
         </div>
       </div>
@@ -78,19 +76,6 @@
   </header>
 
   <main class="mx-auto max-w-6xl px-4 py-6 sm:py-8">
-    <!-- Cross-Device Notice -->
-    <div class="mb-6 rounded-2xl cross-device-box p-4 shadow-sm">
-      <div class="flex items-center gap-3">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-        </svg>
-        <div>
-          <h3 class="font-semibold">Cross-Device Support Enabled</h3>
-          <p class="text-sm text-white/90">PINs and user accounts can be used across devices. Use "Share All Data" button to export/import everything.</p>
-        </div>
-      </div>
-    </div>
-
     <!-- Student Panel -->
     <section id="panelStudent" role="tabpanel">
       <div class="grid gap-4 lg:grid-cols-12">
@@ -99,7 +84,7 @@
           <div id="studentLoginSection" class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm mb-4">
             <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
               <h2 class="text-lg font-semibold">Student Login / Signup</h2>
-              <p class="mt-1 text-sm text-slate-600">Login or create an account to submit attendance. Accounts work across devices when shared.</p>
+              <p class="mt-1 text-sm text-slate-600">Login or create an account to submit attendance. <strong>If Firebase sync is enabled, your credentials will work across all devices.</strong></p>
             </div>
             <div class="p-5">
               <div class="grid gap-4 sm:grid-cols-2">
@@ -143,18 +128,7 @@
               </div>
 
               <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">
-                <p><strong>Cross-Device Note:</strong> Student accounts created on one device can be used on another device by exporting/importing all data using the "Share All Data" button in the header.</p>
-              </div>
-
-              <!-- Student Accounts Transfer -->
-              <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-                <h4 class="text-sm font-semibold mb-2">Transfer Student Accounts to Another Device</h4>
-                <div class="flex gap-2">
-                  <button id="btnExportStudents" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Export Student Accounts</button>
-                  <button id="btnImportStudents" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Import Student Accounts</button>
-                  <button id="btnShareStudentsQr" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Share as QR</button>
-                </div>
-                <input id="importStudentsFile" type="file" accept="application/json" class="hidden" />
+                <p><strong>Cross-Device Note:</strong> When Firebase sync is enabled, student accounts and admin credentials will be automatically shared across all devices. If Firebase is not enabled, accounts remain local to this device.</p>
               </div>
             </div>
           </div>
@@ -431,8 +405,8 @@
               </ul>
 
               <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p class="text-xs font-semibold text-slate-700">Cross-Device Support</p>
-                <p class="mt-1 text-xs text-slate-600">Use "Share All Data" to export PIN, admin credentials, student accounts, and attendance records for use on another device.</p>
+                <p class="text-xs font-semibold text-slate-700">Cross-Device Usage</p>
+                <p class="mt-1 text-xs text-slate-600">To use the same PIN, Admin credentials, and Student accounts across devices: Enable Firebase sync by setting your <code>FIREBASE_CONFIG</code> in the script. Without Firebase, use manual export/import.</p>
               </div>
 
               <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
@@ -453,7 +427,7 @@
           <div class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
             <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
               <h2 class="text-lg font-semibold">Lecturer Access</h2>
-              <p class="mt-1 text-sm text-slate-600">Enter the PIN shared by Admin. PIN works across devices when shared.</p>
+              <p class="mt-1 text-sm text-slate-600">Enter the PIN shared by Admin. <strong>If Firebase is enabled, the PIN will automatically sync across all devices.</strong></p>
             </div>
             <div class="p-5 space-y-4">
               <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -466,20 +440,6 @@
                   <button id="btnPastePin" class="rounded-xl bg-white px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Paste PIN</button>
                   <input id="importPinFile" type="file" accept="application/json" class="hidden" />
                 </div>
-                <div class="mt-3 text-center">
-                  <button id="btnScanPinQr" class="rounded-xl bg-white px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Scan PIN QR</button>
-                </div>
-              </div>
-
-              <!-- QR Scanner for PIN -->
-              <div id="qrScannerPanel" class="hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <h4 class="text-sm font-semibold mb-2">Scan PIN QR Code</h4>
-                <video id="qrScanner" class="w-full rounded-xl" autoplay playsinline></video>
-                <div class="mt-2 flex gap-2">
-                  <button id="btnStartScanner" class="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white">Start Scanner</button>
-                  <button id="btnStopScanner" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200">Stop</button>
-                </div>
-                <p id="qrScanResult" class="mt-2 text-xs"></p>
               </div>
             </div>
           </div>
@@ -492,9 +452,6 @@
             </div>
             <h3 class="text-lg font-semibold">Dashboard Locked</h3>
             <p class="text-sm text-slate-600 mt-1">Enter the 6-digit PIN to view attendance records.</p>
-            <div class="mt-4 text-sm text-slate-500">
-              <p>Need the PIN? Ask the Admin to share it via QR code or export file.</p>
-            </div>
           </div>
 
           <div id="lecturerDashboard" class="hidden rounded-2xl bg-white ring-1 ring-slate-200 shadow-sm">
@@ -502,7 +459,7 @@
               <div class="flex items-center justify-between">
                 <div>
                   <h2 class="text-lg font-semibold">Attendance Dashboard</h2>
-                  <p class="text-sm text-slate-600">View and export records. Records work across devices when shared.</p>
+                  <p class="text-sm text-slate-600">View and export records. Use Import to merge records received from other devices (if not using Firebase sync).</p>
                 </div>
                 <div class="flex gap-2">
                   <button id="btnDownloadPdf" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Download PDF</button>
@@ -560,12 +517,12 @@
               </div>
 
               <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm">
-                <p><strong>Cross-Device Admin Tools:</strong> Generate and share PIN/credentials that work across all devices. Export everything using "Share All Data" button.</p>
+                <p><strong>Admin Tools:</strong> Generate, export and manage the PIN that lecturers will use. <strong>If Firebase is enabled, the PIN will be stored centrally and work across all devices.</strong></p>
               </div>
 
               <div class="space-y-3">
                 <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-4 text-center">
-                  <p class="text-xs text-slate-600">Current Lecturer PIN (Works on all devices)</p>
+                  <p class="text-xs text-slate-600">Current Lecturer PIN</p>
                   <p id="adminPinDisplay" class="text-3xl font-bold tracking-widest mt-2">••••••</p>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -578,9 +535,8 @@
                   <button id="btnGeneratePinQr" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200">Generate PIN QR</button>
                 </div>
 
-                <div class="mt-2 grid grid-cols-2 gap-3">
-                  <label for="importPinAdminFile" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer text-center">Import PIN (file)</label>
-                  <button id="btnShareAdminCreds" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200">Share Admin Creds</button>
+                <div class="mt-2">
+                  <label for="importPinAdminFile" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer">Import PIN (file)</label>
                   <input id="importPinAdminFile" type="file" accept="application/json" class="hidden" />
                 </div>
 
@@ -619,11 +575,29 @@
 
   <script>
     /************************************************************************
-     * CROSS-DEVICE SUPPORT ENABLED
-     * This version allows PINs and user credentials to work across devices
-     * through export/import functionality and QR code sharing.
+     * IMPORTANT:
+     * Cross-device PIN + Admin credentials + Student credentials require a
+     * shared backend. This file supports Firebase Realtime Database for that.
+     *
+     * Replace the null with your Firebase config object, e.g.:
+     * const FIREBASE_CONFIG = {
+     *   apiKey: "...", authDomain: "...", databaseURL: "https://<PROJECT>.firebaseio.com",
+     *   projectId: "...", storageBucket: "...", messagingSenderId: "...", appId: "..."
+     * };
+     *
+     * Also ensure your Realtime Database rules permit the access pattern you want.
+     *
+     * WITH FIREBASE:
+     *   - Admin username/password will work across all devices
+     *   - Lecturer PIN will be synchronized across devices
+     *   - Student accounts will be available on any device
+     *   - Attendance records will sync in real-time
+     *
+     * WITHOUT FIREBASE:
+     *   - All data is local to device
+     *   - Use Export/Import JSON or QR codes to move data between devices
      ************************************************************************/
-    const FIREBASE_CONFIG = null; // <-- Set to null for cross-device without Firebase
+    const FIREBASE_CONFIG = null; // <-- REPLACE with your config object to enable realtime sync
 
     const $ = id => document.getElementById(id);
 
@@ -639,7 +613,6 @@
     let firebaseRecordsRef = null;
     let firebaseAdminRef = null;
     let firebaseStudentsRef = null;
-    let qrScanner = null;
 
     const state = {
       location: { ok: false, lat: null, lon: null, accuracy: null, denied: false },
@@ -659,8 +632,10 @@
     }
     function nowIso() { return new Date().toISOString(); }
 
-    // Basic hash for passwords (for consistency across devices)
+    // Basic, non-crypto hash (NOT secure). Used only to avoid storing raw passwords in Firebase.
+    // For real security you should use Firebase Auth / a server.
     function weakHash(str) {
+      // FNV-1a 32-bit
       let h = 0x811c9dc5;
       for (let i = 0; i < str.length; i++) {
         h ^= str.charCodeAt(i);
@@ -671,6 +646,7 @@
 
     function normalizeMatric(m) { return (m || '').trim(); }
     function matricToKey(m) {
+      // Firebase RTDB keys cannot contain: . # $ [ ]
       return normalizeMatric(m).replace(/[.#$\[\]\/]/g, '_');
     }
 
@@ -685,7 +661,7 @@
     }
     function saveStudentAccountLocal(matric, name, password) {
       const accounts = getStudentAccounts();
-      accounts[matric] = { name, password, passwordHash: weakHash(password), createdAt: nowIso() };
+      accounts[matric] = { name, password, createdAt: nowIso() };
       localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(accounts));
     }
 
@@ -710,145 +686,15 @@
       const d = localStorage.getItem(STORAGE_KEY_ADMIN);
       return d ? JSON.parse(d) : null;
     }
-    function saveAdminCredsLocal(u,p) { 
-      localStorage.setItem(STORAGE_KEY_ADMIN, JSON.stringify({ 
-        username: u, 
-        password: p,
-        passwordHash: weakHash(p),
-        createdAt: nowIso() 
-      })); 
-    }
+    function saveAdminCredsLocal(u,p) { localStorage.setItem(STORAGE_KEY_ADMIN, JSON.stringify({ username: u, password: p })); }
 
     function ensurePinLocal() {
       if (!localStorage.getItem(STORAGE_KEY_PIN)) {
-        const newPin = String(Math.floor(100000 + Math.random()*900000));
-        localStorage.setItem(STORAGE_KEY_PIN, newPin);
-        return newPin;
+        localStorage.setItem(STORAGE_KEY_PIN, String(Math.floor(100000 + Math.random()*900000)));
       }
-      return localStorage.getItem(STORAGE_KEY_PIN);
     }
-    function getPinLocal() { return ensurePinLocal(); }
-    function setPinLocal(pin) { 
-      if (!pin) return false; 
-      localStorage.setItem(STORAGE_KEY_PIN, String(pin)); 
-      return true; 
-    }
-
-    // ========== CROSS-DEVICE EXPORT/IMPORT ==========
-    function exportAllData() {
-      const allData = {
-        version: '2.0',
-        exportedAt: nowIso(),
-        pin: getPinLocal(),
-        admin: getAdminCredsLocal(),
-        students: getStudentAccounts(),
-        records: getStoredRecords(),
-        currentStudent: getCurrentStudent()
-      };
-      
-      const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `nsuk_urp_all_data_${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      showToast('All data exported for cross-device use');
-    }
-
-    function importAllData(file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const data = JSON.parse(reader.result);
-          
-          // Import PIN
-          if (data.pin) {
-            setPinLocal(data.pin);
-            showToast('PIN imported');
-          }
-          
-          // Import admin credentials
-          if (data.admin) {
-            localStorage.setItem(STORAGE_KEY_ADMIN, JSON.stringify(data.admin));
-            showToast('Admin credentials imported');
-          }
-          
-          // Import student accounts
-          if (data.students && typeof data.students === 'object') {
-            localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(data.students));
-            showToast('Student accounts imported');
-          }
-          
-          // Import records
-          if (Array.isArray(data.records)) {
-            const existing = getStoredRecords();
-            const merged = [...existing, ...data.records].filter((v,i,a) => 
-              a.findIndex(t => t.id === v.id) === i
-            );
-            setStoredRecords(merged);
-            showToast('Records imported and merged');
-          }
-          
-          // Import current student if logged in
-          if (data.currentStudent) {
-            setCurrentStudent(data.currentStudent);
-            showToast('Current student session restored');
-          }
-          
-          // Refresh UI
-          revealAdminPin();
-          renderDashboard();
-          renderStudentRecords();
-          showToast('All data imported successfully!');
-          
-        } catch (error) {
-          console.error('Import error:', error);
-          showToast('Error importing data');
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    function shareAllDataAsQR() {
-      const allData = {
-        version: '2.0',
-        exportedAt: nowIso(),
-        pin: getPinLocal(),
-        admin: getAdminCredsLocal(),
-        students: getStudentAccounts(),
-        records: getStoredRecords()
-      };
-      
-      const jsonStr = JSON.stringify(allData);
-      if (jsonStr.length > 2000) {
-        showToast('Data too large for QR. Use file export instead.');
-        return;
-      }
-      
-      const qrData = encodeURIComponent(jsonStr);
-      const qrUrl = `https://chart.googleapis.com/chart?chs=400x400&cht=qr&chl=${qrData}&chld=L|1`;
-      
-      const win = window.open('', '_blank', 'width=500,height=600');
-      win.document.write(`
-        <html>
-          <head><title>Scan QR to Import All Data</title></head>
-          <body style="font-family: sans-serif; padding: 20px; text-align: center;">
-            <h2>Scan QR to Import All Data</h2>
-            <p>Scan this QR code from another device to import PIN, admin credentials, student accounts, and records.</p>
-            <img src="${qrUrl}" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 8px;" />
-            <p style="margin-top: 20px; color: #666; font-size: 14px;">
-              On the other device, go to Admin panel and use "Import All Data" option.
-            </p>
-            <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background: #0f1b3d; color: white; border: none; border-radius: 8px; cursor: pointer;">
-              Print QR Code
-            </button>
-          </body>
-        </html>
-      `);
-    }
+    function getPinLocal() { ensurePinLocal(); return localStorage.getItem(STORAGE_KEY_PIN); }
+    function setPinLocal(pin) { if (!pin) return false; localStorage.setItem(STORAGE_KEY_PIN, String(pin)); return true; }
 
     // ========== UI helpers ==========
     function setSyncSummary(text, ok) {
@@ -919,7 +765,7 @@
     function initFirebaseIfConfigured() {
       if (!FIREBASE_CONFIG) {
         firebaseEnabled = false;
-        setSyncSummary('Cross-Device Ready', false);
+        setSyncSummary('Local only', false);
         return;
       }
       try {
@@ -927,10 +773,11 @@
         const db = firebase.database();
         firebaseDbRef = db;
 
+        // Centralized shared refs (same for all devices on this Firebase project)
         firebasePinRef = db.ref('nsuk_urp/pin');
         firebaseRecordsRef = db.ref('nsuk_urp/records');
-        firebaseAdminRef = db.ref('nsuk_urp/admin');
-        firebaseStudentsRef = db.ref('nsuk_urp/students');
+        firebaseAdminRef = db.ref('nsuk_urp/admin');           // { username, passwordHash, updatedAt }
+        firebaseStudentsRef = db.ref('nsuk_urp/students');     // { <matricKey>: { matric, name, passwordHash, createdAt } }
 
         firebaseEnabled = true;
         setSyncSummary('Realtime: Firebase', true);
@@ -938,13 +785,14 @@
       } catch (err) {
         console.error('Firebase init error', err);
         firebaseEnabled = false;
-        setSyncSummary('Cross-Device Ready', false);
+        setSyncSummary('Local only (firebase init failed)', false);
       }
     }
 
     function setupFirebaseListeners() {
       if (!firebaseEnabled) return;
 
+      // PIN changes
       firebasePinRef.on('value', snap => {
         const val = snap.val();
         if (val && val.pin) {
@@ -954,9 +802,11 @@
         }
       });
 
+      // Admin creds changes (mirrors to local so login works across devices)
       firebaseAdminRef.on('value', snap => {
         const val = snap.val();
         if (val && val.username && val.passwordHash) {
+          // Store hashed password in local to avoid keeping raw password from server
           localStorage.setItem(STORAGE_KEY_ADMIN, JSON.stringify({
             username: String(val.username),
             passwordHash: String(val.passwordHash),
@@ -965,11 +815,13 @@
         }
       });
 
+      // Student accounts changes (best-effort mirror into local cache)
       firebaseStudentsRef.on('child_added', snap => {
         const v = snap.val();
         if (!v || !v.matric) return;
         const matric = normalizeMatric(v.matric);
         const accounts = getStudentAccounts();
+        // Store hash only to local cache when coming from server
         if (!accounts[matric]) {
           accounts[matric] = {
             name: v.name || '',
@@ -981,6 +833,7 @@
         }
       });
 
+      // Records: child_added + initial load
       firebaseRecordsRef.on('child_added', snap => {
         const r = snap.val();
         if (!r) return;
@@ -994,24 +847,81 @@
           renderStudentRecords();
         }
       });
+
+      firebaseRecordsRef.once('value').then(snap => {
+        const obj = snap.val();
+        if (!obj) return;
+        const incoming = Object.keys(obj).map(k => {
+          const r = obj[k]; r.id = r.id || k; return r;
+        });
+        if (!incoming.length) return;
+        mergeIncomingRecords(incoming);
+      }).catch(err => console.warn('firebase initial load err', err));
     }
 
-    // ========== Cross-device Auth helpers ==========
+    function pushRecordToFirebase(record) {
+      if (!firebaseEnabled) return Promise.resolve(null);
+      return firebaseRecordsRef.push(record).then(ref => {
+        const key = ref.key;
+        firebaseRecordsRef.child(key).update({ id: key }).catch(()=>{});
+        return key;
+      }).catch(err => {
+        console.warn('pushRecordToFirebase err', err);
+        return null;
+      });
+    }
+
+    function setFirebasePin(pin) {
+      if (!firebaseEnabled) return Promise.reject('firebase disabled');
+      return firebasePinRef.set({ pin: String(pin), updatedAt: nowIso() });
+    }
+
+    function mergeIncomingRecords(incoming) {
+      const existing = getStoredRecords();
+      const map = new Map(existing.map(r => [r.id || (r.matric + '|' + r.date + '|' + r.time), r]));
+      incoming.forEach(r => {
+        const key = r.id || (r.matric + '|' + r.date + '|' + r.time);
+        if (!map.has(key)) map.set(key, r);
+      });
+      const merged = Array.from(map.values()).sort((a,b) => {
+        const ta = a.createdAt || a.t || a._ts || 0;
+        const tb = b.createdAt || b.t || b._ts || 0;
+        return (tb > ta) ? 1 : -1;
+      });
+      setStoredRecords(merged);
+      renderDashboard();
+      renderStudentRecords();
+    }
+
+    // ========== Cross-device Admin Auth helpers ==========
+    function getAdminCredsAny() {
+      // local may be { username, password } OR { username, passwordHash }
+      const raw = localStorage.getItem(STORAGE_KEY_ADMIN);
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch { return null; }
+    }
+
     async function createAdminAccount(u, p) {
       if (!u || !p) throw new Error('missing');
-      const payloadLocal = { username: u, password: p, passwordHash: weakHash(p), createdAt: nowIso() };
-      localStorage.setItem(STORAGE_KEY_ADMIN, JSON.stringify(payloadLocal));
+      const payloadLocal = { username: u, password: p };
+      saveAdminCredsLocal(u, p);
 
       if (firebaseEnabled) {
         const payloadRemote = { username: u, passwordHash: weakHash(p), updatedAt: nowIso() };
         await firebaseAdminRef.set(payloadRemote);
+        // replace local to hash form as "synced"
+        localStorage.setItem(STORAGE_KEY_ADMIN, JSON.stringify({
+          username: u,
+          passwordHash: weakHash(p),
+          syncedAt: nowIso()
+        }));
       }
-      showToast('Admin account created (works across devices when shared)');
     }
 
     async function verifyAdminLogin(u, p) {
       if (!u || !p) return false;
 
+      // If firebase enabled, prefer remote truth
       if (firebaseEnabled) {
         const snap = await firebaseAdminRef.get();
         const v = snap.val();
@@ -1027,16 +937,19 @@
         return ok;
       }
 
-      const creds = getAdminCredsLocal();
+      // Local-only fallback
+      const creds = getAdminCredsAny();
       if (!creds) return false;
       if (creds.passwordHash) return (creds.username === u && creds.passwordHash === weakHash(p));
       return (creds.username === u && creds.password === p);
     }
 
+    // ========== Cross-device Student Auth helpers ==========
     async function createStudentAccount(name, matric, password) {
       matric = normalizeMatric(matric);
       if (!name || !matric || !password) throw new Error('missing');
 
+      // Always save locally so offline still works for this device
       saveStudentAccountLocal(matric, name, password);
 
       if (firebaseEnabled) {
@@ -1050,14 +963,19 @@
           passwordHash: weakHash(password),
           createdAt: nowIso()
         });
+
+        // Store hashed version in local cache too (optional)
+        const accounts = getStudentAccounts();
+        accounts[matric] = { name, passwordHash: weakHash(password), createdAt: nowIso(), syncedAt: nowIso() };
+        localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(accounts));
       }
-      showToast('Student account created (works across devices when shared)');
     }
 
     async function verifyStudentLogin(matric, password) {
       matric = normalizeMatric(matric);
       if (!matric || !password) return { ok: false, reason: 'missing' };
 
+      // If firebase enabled, check remote first so account works on any device
       if (firebaseEnabled) {
         const key = matricToKey(matric);
         const snap = await firebaseStudentsRef.child(key).get();
@@ -1065,6 +983,7 @@
         if (!v) return { ok: false, reason: 'notfound' };
         if (String(v.passwordHash) !== weakHash(password)) return { ok: false, reason: 'wrongpass' };
 
+        // mirror to local cache
         const accounts = getStudentAccounts();
         accounts[matric] = { name: v.name || '', passwordHash: v.passwordHash || '', createdAt: v.createdAt || nowIso(), syncedAt: nowIso() };
         localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(accounts));
@@ -1072,6 +991,7 @@
         return { ok: true, name: v.name || '' };
       }
 
+      // Local-only fallback
       const accounts = getStudentAccounts();
       const account = accounts[matric];
       if (!account) return { ok: false, reason: 'notfound' };
@@ -1140,7 +1060,7 @@
 
         setCurrentStudent({ name: res.name, matric: normalizeMatric(matric) });
         showStudentDashboard();
-        showToast(`Welcome back, ${res.name}! Account works across devices.`);
+        showToast(`Welcome back, ${res.name}!`);
       } catch (err) {
         console.error(err);
         $('studentLoginMsg').textContent = 'Login error';
@@ -1165,10 +1085,21 @@
         return;
       }
 
+      // If local-only mode, prevent duplicates locally
+      if (!firebaseEnabled) {
+        const accounts = getStudentAccounts();
+        if (accounts[normalizeMatric(matric)]) {
+          $('studentSignupMsg').textContent = 'Account already exists. Please login instead.';
+          $('studentSignupMsg').className = 'text-xs text-rose-700 font-semibold text-center mt-2';
+          return;
+        }
+      }
+
       try {
         await createStudentAccount(name, matric, password);
         setCurrentStudent({ name, matric: normalizeMatric(matric) });
         showStudentDashboard();
+        showToast(`Account created successfully, ${name}!`);
       } catch (err) {
         if (String(err.message) === 'exists') {
           $('studentSignupMsg').textContent = 'Account already exists. Please login instead.';
@@ -1191,86 +1122,6 @@
       $('studentSignupPassword').value = '';
       showToast('Logged out successfully');
       updateSubmitState();
-    });
-
-    // Export/Import Student Accounts
-    $('btnExportStudents').addEventListener('click', () => {
-      const students = getStudentAccounts();
-      const data = {
-        version: '1.0',
-        exportedAt: nowIso(),
-        students: students
-      };
-      
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `nsuk_student_accounts_${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      showToast('Student accounts exported for cross-device use');
-    });
-
-    $('btnImportStudents').addEventListener('click', () => {
-      $('importStudentsFile').click();
-    });
-
-    $('importStudentsFile').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const data = JSON.parse(reader.result);
-          if (data.students && typeof data.students === 'object') {
-            const existing = getStudentAccounts();
-            const merged = { ...existing, ...data.students };
-            localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(merged));
-            showToast('Student accounts imported successfully');
-          } else {
-            showToast('Invalid student accounts file');
-          }
-        } catch (error) {
-          showToast('Error importing student accounts');
-        }
-      };
-      reader.readAsText(file);
-    });
-
-    $('btnShareStudentsQr').addEventListener('click', () => {
-      const students = getStudentAccounts();
-      const data = {
-        version: '1.0',
-        exportedAt: nowIso(),
-        students: students
-      };
-      
-      const jsonStr = JSON.stringify(data);
-      if (jsonStr.length > 1500) {
-        showToast('Too many students for QR. Use file export.');
-        return;
-      }
-      
-      const qrData = encodeURIComponent(jsonStr);
-      const qrUrl = `https://chart.googleapis.com/chart?chs=400x400&cht=qr&chl=${qrData}&chld=L|1`;
-      
-      const win = window.open('', '_blank', 'width=450,height=550');
-      win.document.write(`
-        <html>
-          <head><title>Student Accounts QR</title></head>
-          <body style="font-family: sans-serif; padding: 20px; text-align: center;">
-            <h2>Scan to Import Student Accounts</h2>
-            <img src="${qrUrl}" style="max-width: 100%; height: auto;" />
-            <p style="margin-top: 20px; color: #666; font-size: 14px;">
-              Scan this QR on another device to import all student accounts.
-            </p>
-          </body>
-        </html>
-      `);
     });
 
     function renderStudentRecords() {
@@ -1457,7 +1308,7 @@
       } else {
         baseRecord.id = Date.now() + Math.floor(Math.random()*999);
         const records = getStoredRecords(); records.unshift(baseRecord); setStoredRecords(records);
-        showToast('Attendance submitted (works across devices when shared)');
+        showToast('Attendance submitted (local)');
       }
 
       $('courseCode').value='';
@@ -1472,19 +1323,6 @@
       renderDashboard();
       renderStudentRecords();
     });
-
-    async function pushRecordToFirebase(record) {
-      if (!firebaseEnabled) return Promise.resolve(null);
-      try {
-        const ref = await firebaseRecordsRef.push(record);
-        const key = ref.key;
-        await firebaseRecordsRef.child(key).update({ id: key });
-        return key;
-      } catch (err) {
-        console.warn('pushRecordToFirebase err', err);
-        return null;
-      }
-    }
 
     // Clear Data
     $('btnClearData').addEventListener('click', () => {
@@ -1571,7 +1409,7 @@
             $('btnRetake').disabled = false;
           }
           updateSubmitState();
-          showToast('Draft imported from another device');
+          showToast('Draft imported');
         } catch {
           showToast('Invalid JSON');
         }
@@ -1615,21 +1453,23 @@
       }
     });
 
-    // ========== ADMIN: login + PIN management ==========
+    // ========== ADMIN: login + PIN management (local + firebase) ==========
     $('btnAdminSignup').addEventListener('click', async () => {
       const u = $('adminUsername').value.trim();
       const p = $('adminPassword').value;
       if (!u || !p) return showToast('Fill both fields');
 
       try {
+        // If firebase enabled, prevent overwriting an existing remote admin
         if (firebaseEnabled) {
           const snap = await firebaseAdminRef.get();
           if (snap.exists()) return showToast('Admin already exists (server)');
         } else {
-          if (getAdminCredsLocal()) return showToast('Admin already exists (local)');
+          if (getAdminCredsAny()) return showToast('Admin already exists (local)');
         }
 
         await createAdminAccount(u, p);
+        showToast(firebaseEnabled ? 'Admin account created (synced)' : 'Admin account created (local)');
       } catch (err) {
         console.error(err);
         showToast('Admin signup failed');
@@ -1648,7 +1488,7 @@
           $('adminDashboardSection').classList.remove('hidden');
           $('adminTitle').textContent='Admin Panel';
           revealAdminPin();
-          showToast('Admin logged in (works across devices)');
+          showToast('Admin logged in');
         } else {
           showToast('Wrong username or password');
         }
@@ -1674,12 +1514,8 @@
     }
 
     $('btnCopyAdminPin').addEventListener('click', async () => {
-      try { 
-        await navigator.clipboard.writeText(getPinLocal()); 
-        showToast('PIN copied. Share with lecturers for cross-device access.'); 
-      } catch { 
-        showToast('Copy failed'); 
-      }
+      try { await navigator.clipboard.writeText(getPinLocal()); showToast('PIN copied'); }
+      catch { showToast('Copy failed'); }
     });
 
     $('btnResetAdminPin').addEventListener('click', async () => {
@@ -1689,12 +1525,8 @@
       revealAdminPin();
       showToast('Local PIN reset');
       if (firebaseEnabled) {
-        try { 
-          await firebasePinRef.set({ pin: newPin, updatedAt: nowIso() }); 
-          showToast('PIN updated on server for all devices'); 
-        } catch { 
-          showToast('PIN local only (server update failed)'); 
-        }
+        try { await setFirebasePin(newPin); showToast('PIN set on server'); }
+        catch { showToast('PIN local only (server update failed)'); }
       }
     });
 
@@ -1709,7 +1541,7 @@
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      showToast('PIN exported (JSON) - Share with other devices');
+      showToast('PIN exported (JSON)');
     });
 
     $('btnGeneratePinQr').addEventListener('click', () => {
@@ -1721,7 +1553,7 @@
       $('adminPinQrImage').src = qrUrl;
       $('adminPinQrLink').innerHTML = `<a target="_blank" rel="noopener" class="text-xs underline" href="${qrUrl}">Open PIN QR image</a>`;
       $('adminPinQrPanel').classList.remove('hidden');
-      showToast('PIN QR generated - Scan on other devices');
+      showToast('PIN QR generated');
     });
 
     $('importPinAdminFile').addEventListener('change', (e) => {
@@ -1734,12 +1566,9 @@
           if (data.pin) {
             setPinLocal(data.pin);
             revealAdminPin();
-            showToast('PIN imported locally (now works on this device)');
+            showToast('PIN imported locally');
             if (firebaseEnabled) {
-              try { 
-                await firebasePinRef.set({ pin: data.pin, updatedAt: nowIso() }); 
-                showToast('PIN written to server for all devices'); 
-              } catch {}
+              try { await setFirebasePin(data.pin); showToast('PIN written to server'); } catch {}
             }
           } else showToast('Invalid PIN file');
         } catch { showToast('Invalid PIN file'); }
@@ -1748,38 +1577,7 @@
       e.target.value='';
     });
 
-    $('btnShareAdminCreds').addEventListener('click', () => {
-      const adminCreds = getAdminCredsLocal();
-      if (!adminCreds) return showToast('No admin credentials found');
-      
-      const data = {
-        version: '1.0',
-        exportedAt: nowIso(),
-        admin: adminCreds
-      };
-      
-      const jsonStr = JSON.stringify(data);
-      const qrData = encodeURIComponent(jsonStr);
-      const qrUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${qrData}&chld=L|1`;
-      
-      const win = window.open('', '_blank', 'width=400,height=500');
-      win.document.write(`
-        <html>
-          <head><title>Admin Credentials QR</title></head>
-          <body style="font-family: sans-serif; padding: 20px; text-align: center;">
-            <h3>Admin Credentials QR</h3>
-            <p>Scan to import admin credentials on another device</p>
-            <img src="${qrUrl}" style="max-width: 100%; height: auto;" />
-            <p style="margin-top: 20px; color: #666; font-size: 12px;">
-              Username: ${adminCreds.username}<br>
-              Scan this QR on another device's Admin Login page.
-            </p>
-          </body>
-        </html>
-      `);
-    });
-
-    // ========== LECTURER PANEL ==========
+    // lecturer import pin (file) or paste
     $('importPinFile').addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];
       if (!f) return;
@@ -1787,11 +1585,7 @@
       reader.onload = () => {
         try {
           const data = JSON.parse(reader.result);
-          if (data.pin) { 
-            setPinLocal(data.pin); 
-            showToast('PIN imported to this device'); 
-            $('lecturerPinInput').value = data.pin; 
-          }
+          if (data.pin) { setPinLocal(data.pin); showToast('PIN imported to this device'); $('lecturerPinInput').value = data.pin; }
           else showToast('Invalid PIN file');
         } catch { showToast('Invalid PIN file'); }
       };
@@ -1803,31 +1597,13 @@
       try {
         const txt = await navigator.clipboard.readText();
         const maybe = txt.trim();
-        if (maybe && maybe.length >= 6) { 
-          setPinLocal(maybe); 
-          showToast('PIN pasted & saved (now works on this device)'); 
-          $('lecturerPinInput').value = maybe; 
-        }
+        if (maybe && maybe.length >= 6) { setPinLocal(maybe); showToast('PIN pasted & saved'); $('lecturerPinInput').value = maybe; }
         else showToast('Clipboard does not contain a valid PIN');
       } catch {
         const manual = prompt('Paste PIN here:');
-        if (manual && manual.trim().length >= 6) { 
-          setPinLocal(manual.trim()); 
-          showToast('PIN saved for this device'); 
-          $('lecturerPinInput').value = manual.trim(); 
-        }
+        if (manual && manual.trim().length >= 6) { setPinLocal(manual.trim()); showToast('PIN saved'); $('lecturerPinInput').value = manual.trim(); }
         else showToast('No PIN provided');
       }
-    });
-
-    // QR Scanner for PIN
-    $('btnScanPinQr').addEventListener('click', () => {
-      $('qrScannerPanel').classList.toggle('hidden');
-    });
-
-    $('btnStartScanner').addEventListener('click', () => {
-      // Simple QR scanner simulation - in production, use a library like jsQR
-      showToast('QR scanning requires a library. Use import file instead.');
     });
 
     $('btnLecturerUnlock').addEventListener('click', () => {
@@ -1838,9 +1614,9 @@
         $('lecturerLocked').classList.add('hidden');
         $('lecturerDashboard').classList.remove('hidden');
         renderDashboard();
-        showToast('Dashboard unlocked - PIN works across all devices');
+        showToast('Dashboard unlocked');
       } else {
-        $('lecturerPinMsg').textContent='Incorrect PIN. Get PIN from Admin.';
+        $('lecturerPinMsg').textContent='Incorrect PIN';
         $('lecturerPinMsg').className='mt-2 text-xs text-rose-700 font-semibold text-center';
       }
     });
@@ -1867,7 +1643,7 @@
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      showToast('Records exported (JSON) - Import on other devices');
+      showToast('Records exported (JSON)');
     });
 
     $('importRecordsFile')?.addEventListener('change', (e) => {
@@ -1882,86 +1658,15 @@
           else if (parsed && Array.isArray(parsed.records)) incoming = parsed.records;
           else if (parsed && parsed.matric) incoming=[parsed];
           else { showToast('Invalid records file'); return; }
-          
-          const existing = getStoredRecords();
-          const merged = [...existing, ...incoming].filter((v,i,a) => 
-            a.findIndex(t => t.id === v.id) === i
-          );
-          setStoredRecords(merged);
-          showToast('Records imported from another device');
-          renderDashboard();
-          renderStudentRecords();
+          mergeIncomingRecords(incoming);
+          showToast('Records imported and merged');
         } catch { showToast('Invalid records file'); }
       };
       reader.readAsText(f);
       e.target.value='';
     });
 
-    // ========== SHARE ALL DATA BUTTON ==========
-    $('btnShareAll').addEventListener('click', () => {
-      const options = `
-        <div style="padding: 20px; font-family: sans-serif;">
-          <h3 style="margin-bottom: 15px;">Cross-Device Data Sharing</h3>
-          <button onclick="exportAll()" style="display: block; width: 100%; padding: 10px; margin-bottom: 10px; background: #0f1b3d; color: white; border: none; border-radius: 8px; cursor: pointer;">
-            Export All Data (File)
-          </button>
-          <button onclick="shareAsQR()" style="display: block; width: 100%; padding: 10px; margin-bottom: 10px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
-            Share as QR Code
-          </button>
-          <label style="display: block; width: 100%; padding: 10px; text-align: center; background: #10b981; color: white; border-radius: 8px; cursor: pointer;">
-            Import All Data
-            <input type="file" id="importAllDataFile" accept="application/json" style="display: none;" onchange="handleImportAll(this.files[0])">
-          </label>
-          <p style="margin-top: 15px; font-size: 12px; color: #666;">
-            This exports/imports: PIN, Admin credentials, Student accounts, Attendance records
-          </p>
-        </div>
-      `;
-      
-      const win = window.open('', '_blank', 'width=400,height=300');
-      win.document.write(`
-        <html>
-          <head><title>Share All Data</title></head>
-          <body>${options}</body>
-          <script>
-            function exportAll() {
-              window.opener.postMessage({type: 'exportAll'}, '*');
-              window.close();
-            }
-            function shareAsQR() {
-              window.opener.postMessage({type: 'shareAsQR'}, '*');
-              window.close();
-            }
-            function handleImportAll(file) {
-              window.opener.postMessage({type: 'importAll', file: file.name}, '*');
-              // File content will be handled by the main window
-              window.close();
-            }
-          <\/script>
-        </html>
-      `);
-    });
-
-    // Handle messages from the share window
-    window.addEventListener('message', (event) => {
-      if (event.data.type === 'exportAll') {
-        exportAllData();
-      } else if (event.data.type === 'shareAsQR') {
-        shareAllDataAsQR();
-      } else if (event.data.type === 'importAll') {
-        // Trigger file input for import
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'application/json';
-        input.onchange = (e) => {
-          const file = e.target.files[0];
-          if (file) importAllData(file);
-        };
-        input.click();
-      }
-    });
-
-    // ========== render functions ==========
+    // render functions
     function renderDashboard() {
       const records = getStoredRecords();
       const tbody = $('recordsTbody');
@@ -2032,33 +1737,17 @@
     $('tabAdminLogin').addEventListener('click', ()=>showPanel('admin'));
 
     $('btnOpenHelp').addEventListener('click', () => {
-      alert(`CROSS-DEVICE ATTENDANCE SYSTEM
+      alert(`Instructions:
+1) Login or create a student account.
+2) Capture location (or use manual coords).
+3) Start camera and capture face (or upload an image).
+4) Fill Course Code.
+5) Submit attendance.
 
-1) ADMIN SETUP:
-   - Create admin account (once)
-   - Generate PIN for lecturers
-   - Use "Share All Data" to export PIN, admin credentials, and student accounts
-
-2) LECTURER ACCESS (Any Device):
-   - Get PIN from Admin via QR code, file, or copy-paste
-   - Enter PIN to unlock dashboard
-   - View/export attendance records
-
-3) STUDENT ACCESS (Any Device):
-   - Create account on any device
-   - Accounts work across devices when data is shared
-   - Submit attendance with location + face capture
-
-4) CROSS-DEVICE DATA SHARING:
-   - Use "Share All Data" button to export/import everything
-   - PIN, admin credentials, student accounts, and records
-   - Works without internet when using file export/import
-   - With Firebase: automatic sync across devices
-
-5) WITHOUT FIREBASE:
-   - Admin exports data and shares via file/QR
-   - Lecturers import PIN file/QR
-   - Students can login on any device with imported accounts`);
+Cross-device (PIN + Admin login + Student login):
+- Enable Firebase by setting FIREBASE_CONFIG.
+- With Firebase enabled, the Admin account, Lecturer PIN, Student accounts and Records will be shared across devices connected to that Firebase project.
+- Without Firebase, credentials and PIN are local to the device, and you must use Export/Import JSON or QR for manual transfer.`);
     });
 
     document.addEventListener('DOMContentLoaded', () => {
