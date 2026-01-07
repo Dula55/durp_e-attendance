@@ -26,6 +26,10 @@
     input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
     @media print { .no-print { display: none !important; } body { background: #fff !important; } }
+
+    /* small helpers for new UI */
+    .small-muted { font-size: .78rem; color: #6b7280; }
+    .note-box { font-size: .82rem; color: #374151; background: #f8fafc; border: 1px solid #e6eef6; padding: .6rem; border-radius: .75rem; }
   </style>
 </head>
 
@@ -97,9 +101,28 @@
                     </div>
                     <p class="mt-1 text-sm text-slate-600">We capture your latitude and longitude for attendance verification.</p>
                   </div>
-                  <button id="btnGetLocation" class="shrink-0 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-                    Capture Location
-                  </button>
+                  <div class="flex gap-2 items-center">
+                    <button id="btnGetLocation" class="shrink-0 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                      Capture Location
+                    </button>
+                    <button id="btnToggleManualCoords" class="shrink-0 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">
+                      Manual coords
+                    </button>
+                  </div>
+                </div>
+
+                <div id="manualCoordsPanel" class="mt-3 hidden grid gap-2 sm:grid-cols-3">
+                  <div>
+                    <label class="text-xs text-slate-500">Latitude (manual)</label>
+                    <input id="manualLat" type="text" inputmode="decimal" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm tabular-nums" placeholder="e.g., 8.524139" />
+                  </div>
+                  <div>
+                    <label class="text-xs text-slate-500">Longitude (manual)</label>
+                    <input id="manualLon" type="text" inputmode="decimal" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm tabular-nums" placeholder="e.g., 7.123456" />
+                  </div>
+                  <div class="flex items-end">
+                    <button id="btnApplyManualCoords" class="w-full rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Apply</button>
+                  </div>
                 </div>
 
                 <div class="mt-3 grid gap-2 sm:grid-cols-3">
@@ -118,6 +141,7 @@
                 </div>
 
                 <div id="locError" class="mt-3 hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"></div>
+                <div class="mt-3 small-muted">If you cannot use geolocation, use <strong>Manual coords</strong> or export a draft to submit from another device (QR / JSON).</div>
               </div>
 
               <!-- Step 2: Face Capture -->
@@ -128,7 +152,7 @@
                       <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#0f1b3d] text-white text-sm font-bold">2</span>
                       <h3 class="text-base font-semibold">Capture Face</h3>
                     </div>
-                    <p class="mt-1 text-sm text-slate-600">Use your front camera and capture a clear image.</p>
+                    <p class="mt-1 text-sm text-slate-600">Use your front camera and capture a clear image. If camera is not available you can upload an image from this device.</p>
                   </div>
                   <div class="flex gap-2">
                     <button id="btnStartCamera" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">
@@ -137,6 +161,8 @@
                     <button id="btnCaptureFace" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                       Capture
                     </button>
+                    <label for="faceFile" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer">Upload</label>
+                    <input id="faceFile" type="file" accept="image/*" class="hidden" />
                   </div>
                 </div>
 
@@ -172,6 +198,7 @@
                           <p id="faceQuality" class="mt-1 text-sm font-semibold">—</p>
                         </div>
                       </div>
+                      <div class="mt-3 small-muted">You may upload from another device by exporting a draft (QR / JSON) and scanning/importing here to complete and submit.</div>
                     </div>
                   </div>
                 </div>
@@ -225,15 +252,39 @@
                       <div class="text-xs text-slate-600">
                         <span class="font-semibold">Auto-captured:</span> Date/Time, Latitude/Longitude, Face image.
                       </div>
-                      <button id="btnSubmit" type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                        Submit Attendance
-                      </button>
+                      <div class="flex gap-2">
+                        <button id="btnExportDraft" type="button" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Export Draft (JSON)</button>
+                        <button id="btnGenerateQr" type="button" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Generate QR</button>
+                        <button id="btnShareDraft" type="button" class="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50">Share Draft</button>
+                        <button id="btnSubmit" type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                          Submit Attendance
+                        </button>
+                      </div>
                     </div>
                   </fieldset>
 
                   <div id="formLockedNote" class="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
                     <span class="font-semibold">Locked:</span> Start the camera and capture your face to unlock the attendance form.
                   </div>
+
+                  <div class="mt-3 flex gap-2 items-center">
+                    <label class="small-muted">Import draft (JSON):</label>
+                    <input id="importDraftFile" type="file" accept="application/json" class="ml-2" />
+                  </div>
+
+                  <div id="qrPanel" class="mt-3 hidden">
+                    <div class="flex gap-3 items-start">
+                      <div>
+                        <img id="qrImage" alt="QR code" class="rounded-lg ring-1 ring-slate-200" />
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-semibold">Scan this QR from another device to prefill the attendance form.</p>
+                        <p class="small-muted mt-1">Note: very large images may produce long data; if QR fails use the JSON export instead.</p>
+                        <div id="qrLinkBox" class="mt-2 word-break-all"></div>
+                      </div>
+                    </div>
+                  </div>
+
                 </form>
               </div>
             </div>
@@ -253,14 +304,14 @@
                   <span id="checkLoc" class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 text-slate-700 ring-1 ring-slate-200" aria-hidden="true">—</span>
                   <div>
                     <p class="text-sm font-semibold">Location captured</p>
-                    <p class="text-xs text-slate-600">Allow location access when prompted.</p>
+                    <p class="text-xs text-slate-600">Allow location access when prompted or use manual coords.</p>
                   </div>
                 </li>
                 <li class="flex items-start gap-3">
                   <span id="checkFace" class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 text-slate-700 ring-1 ring-slate-200" aria-hidden="true">—</span>
                   <div>
                     <p class="text-sm font-semibold">Face captured</p>
-                    <p class="text-xs text-slate-600">Use the front camera; ensure clarity.</p>
+                    <p class="text-xs text-slate-600">Use the front camera; ensure clarity, or upload image file.</p>
                   </div>
                 </li>
                 <li class="flex items-start gap-3">
@@ -276,7 +327,7 @@
                 <p class="text-xs font-semibold text-slate-700">Privacy (Local Device Only)</p>
                 <p class="mt-1 text-xs text-slate-600">
                   Attendance records (including the captured image) are stored in your browser's local storage on this device.
-                  No data is uploaded to any server.
+                  No data is uploaded to any server unless you manually share or export them.
                 </p>
               </div>
 
@@ -431,13 +482,13 @@
 
     const state = {
       location: { ok: false, lat: null, lon: null, accuracy: null, denied: false },
-      face: { ok: false, dataUrl: null, w: null, h: null },
+      face: { ok: false, dataUrl: null, w: null, h: null, fromUpload: false },
       camera: { stream: null, started: false },
       admin: { loggedIn: false },
       lecturer: { unlocked: false }
     };
 
-    // ========== STUDENT ATTENDANCE FUNCTIONALITIES (Original) ==========
+    // ========== STUDENT ATTENDANCE FUNCTIONALITIES (Original + cross-device updates) ==========
     function showToast(msg) {
       $('toastText').textContent = msg;
       $('toast').classList.remove('hidden');
@@ -522,6 +573,7 @@
         },
         err => {
           state.location.ok = false;
+          state.location.denied = err.code === err.PERMISSION_DENIED;
           $('locStatus').textContent = 'Error';
           $('locError').textContent = err.message;
           $('locError').classList.remove('hidden');
@@ -531,11 +583,34 @@
       );
     });
 
+    // Manual coords support
+    $('btnToggleManualCoords').addEventListener('click', () => {
+      $('manualCoordsPanel').classList.toggle('hidden');
+    });
+    $('btnApplyManualCoords').addEventListener('click', () => {
+      const lat = parseFloat($('manualLat').value.trim());
+      const lon = parseFloat($('manualLon').value.trim());
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        state.location.ok = true;
+        state.location.lat = lat;
+        state.location.lon = lon;
+        state.location.accuracy = null;
+        $('locStatus').textContent = 'Manual';
+        $('latText').textContent = lat.toFixed(6);
+        $('lonText').textContent = lon.toFixed(6);
+        $('locError').classList.add('hidden');
+        showToast('Manual coordinates applied');
+        updateSubmitState();
+      } else {
+        showToast('Enter valid numeric coordinates');
+      }
+    });
+
     // Camera capture
     $('btnStartCamera').addEventListener('click', async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'user' } 
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' }
         });
         state.camera.stream = stream;
         state.camera.started = true;
@@ -554,24 +629,25 @@
       }
       const canvas = $('captureCanvas');
       const video = $('video');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-      
+
       state.face.ok = true;
       state.face.dataUrl = dataUrl;
       state.face.w = canvas.width;
       state.face.h = canvas.height;
-      
+      state.face.fromUpload = false;
+
       $('facePreview').src = dataUrl;
       $('facePreview').classList.remove('hidden');
       $('faceEmpty').classList.add('hidden');
       $('faceStatus').textContent = 'Captured';
       $('faceQuality').textContent = `${canvas.width}×${canvas.height}`;
       $('btnRetake').disabled = false;
-      
+
       // Stop camera
       if (state.camera.stream) {
         state.camera.stream.getTracks().forEach(t => t.stop());
@@ -579,19 +655,56 @@
         state.camera.started = false;
         $('video').srcObject = null;
       }
-      
+
       showToast('Face captured');
       updateSubmitState();
     });
 
     $('btnRetake').addEventListener('click', () => {
       state.face.ok = false;
+      state.face.dataUrl = null;
+      state.face.w = null;
+      state.face.h = null;
+      state.face.fromUpload = false;
       $('facePreview').classList.add('hidden');
       $('faceEmpty').classList.remove('hidden');
       $('faceStatus').textContent = 'Not captured';
       $('faceQuality').textContent = '—';
       $('btnRetake').disabled = true;
       updateSubmitState();
+    });
+
+    // Support uploading face image (for devices without camera or for cross-device submit)
+    $('faceFile').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      if (!f.type.startsWith('image/')) {
+        showToast('Select an image file');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        const img = new Image();
+        img.onload = () => {
+          state.face.ok = true;
+          state.face.dataUrl = dataUrl;
+          state.face.w = img.width;
+          state.face.h = img.height;
+          state.face.fromUpload = true;
+
+          $('facePreview').src = dataUrl;
+          $('facePreview').classList.remove('hidden');
+          $('faceEmpty').classList.add('hidden');
+          $('faceStatus').textContent = 'Uploaded';
+          $('faceQuality').textContent = `${img.width}×${img.height}`;
+          $('btnRetake').disabled = false;
+          updateSubmitState();
+          showToast('Image uploaded');
+        };
+        img.src = dataUrl;
+      };
+      reader.readAsDataURL(f);
     });
 
     // Submit attendance
@@ -601,11 +714,11 @@
         showToast('Complete all steps first');
         return;
       }
-      
+
       const d = new Date();
       const pad = n => String(n).padStart(2, '0');
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      
+
       const record = {
         id: Date.now(),
         name: $('studentName').value.trim(),
@@ -616,30 +729,166 @@
         lat: state.location.lat,
         lon: state.location.lon,
         accuracy: state.location.accuracy,
-        faceDataUrl: state.face.dataUrl
+        faceDataUrl: state.face.dataUrl,
+        faceFromUpload: !!state.face.fromUpload
       };
-      
+
       // Save to localStorage
       const records = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDS) || '[]');
       records.unshift(record);
       localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(records));
-      
+
       showToast('Attendance submitted: ' + record.name);
-      
+
       // Reset form but keep location
       $('studentName').value = '';
       $('matricNo').value = '';
       $('courseCode').value = '';
-      
+
       // Reset face
       state.face.ok = false;
+      state.face.dataUrl = null;
+      state.face.w = null;
+      state.face.h = null;
+      state.face.fromUpload = false;
       $('facePreview').classList.add('hidden');
       $('faceEmpty').classList.remove('hidden');
       $('faceStatus').textContent = 'Not captured';
       $('faceQuality').textContent = '—';
       $('btnRetake').disabled = true;
-      
+
       updateSubmitState();
+      renderDashboard();
+    });
+
+    // ========== DRAFT EXPORT/IMPORT / QR / SHARE (cross-device helpers) ==========
+    function createDraftObject() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return {
+        t: new Date().toISOString(),
+        name: $('studentName').value.trim(),
+        matric: $('matricNo').value.trim(),
+        course: $('courseCode').value.trim(),
+        date: `${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()}`,
+        time: `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`,
+        lat: state.location.lat,
+        lon: state.location.lon,
+        accuracy: state.location.accuracy,
+        faceDataUrl: state.face.dataUrl || null,
+        faceFromUpload: !!state.face.fromUpload
+      };
+    }
+
+    // Export JSON draft
+    $('btnExportDraft').addEventListener('click', () => {
+      const draft = createDraftObject();
+      const blob = new Blob([JSON.stringify(draft)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nsuk_urp_attendance_draft_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast('Draft exported (JSON)');
+    });
+
+    // Import JSON draft (prefill form & optionally accept pre-captured face)
+    $('importDraftFile').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          if (data.name) $('studentName').value = data.name;
+          if (data.matric) $('matricNo').value = data.matric;
+          if (data.course) $('courseCode').value = data.course;
+          if (Number.isFinite(parseFloat(data.lat))) {
+            state.location.ok = true;
+            state.location.lat = parseFloat(data.lat);
+            state.location.lon = parseFloat(data.lon);
+            state.location.accuracy = data.accuracy || null;
+            $('latText').textContent = state.location.lat?.toFixed(6) || '—';
+            $('lonText').textContent = state.location.lon?.toFixed(6) || '—';
+            $('locStatus').textContent = 'Imported';
+          }
+          if (data.faceDataUrl) {
+            state.face.ok = true;
+            state.face.dataUrl = data.faceDataUrl;
+            // approximate size (not available), set placeholders
+            $('facePreview').src = data.faceDataUrl;
+            $('facePreview').classList.remove('hidden');
+            $('faceEmpty').classList.add('hidden');
+            $('faceStatus').textContent = 'Imported';
+            $('faceQuality').textContent = '—';
+            $('btnRetake').disabled = false;
+            state.face.fromUpload = !!data.faceFromUpload;
+          }
+          updateSubmitState();
+          showToast('Draft imported');
+        } catch (err) {
+          showToast('Invalid JSON file');
+        }
+      };
+      reader.readAsText(f);
+      // clear input
+      e.target.value = '';
+    });
+
+    // Generate a QR code for the draft (uses Google Charts API)
+    $('btnGenerateQr').addEventListener('click', () => {
+      const draft = createDraftObject();
+      const json = JSON.stringify(draft);
+      // If payload is too big for QR, warn and provide JSON download instead
+      if (json.length > 1800) {
+        showToast('Draft too large for QR — use JSON export instead');
+        $('qrPanel').classList.add('hidden');
+        return;
+      }
+      const qrData = encodeURIComponent(json);
+      // using Google chart QR API for simplicity
+      const qrUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${qrData}&chld=L|1`;
+      $('qrImage').src = qrUrl;
+      $('qrPanel').classList.remove('hidden');
+      $('qrLinkBox').innerHTML = `<a target="_blank" rel="noopener" class="text-xs underline" href="${qrUrl}">Open QR image (new tab)</a>`;
+      showToast('QR generated — scan from another device');
+    });
+
+    // Share draft using Web Share API (if available)
+    $('btnShareDraft').addEventListener('click', async () => {
+      const draft = createDraftObject();
+      const text = JSON.stringify(draft);
+      if (navigator.canShare && navigator.canShare({ files: [] })) {
+        // prefer to share file
+        try {
+          const file = new File([text], `nsuk_urp_attendance_draft_${new Date().toISOString().slice(0,10)}.json`, { type: 'application/json' });
+          await navigator.share({ files: [file], title: 'Attendance draft', text: 'NSUK URP attendance draft' });
+          showToast('Draft shared');
+          return;
+        } catch (err) {
+          // fallback
+        }
+      }
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'Attendance draft', text });
+          showToast('Draft shared');
+        } catch (err) {
+          showToast('Share cancelled or failed');
+        }
+      } else {
+        // fallback: copy draft JSON to clipboard
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast('Draft JSON copied to clipboard — paste on other device');
+        } catch {
+          showToast('Share unavailable — use Export Draft (JSON)');
+        }
+      }
     });
 
     // ========== ADMIN AUTH ==========
@@ -787,10 +1036,27 @@
           <td class="px-4 py-3 text-sm">${r.date} ${r.time}</td>
           <td class="px-4 py-3 text-xs">${r.lat?.toFixed(6) || ''}</td>
           <td class="px-4 py-3 text-xs">${r.lon?.toFixed(6) || ''}</td>
-          <td class="px-4 py-3"><button class="text-xs underline text-blue-600" onclick="alert('Face preview not implemented in this minimal version')">View</button></td>
+          <td class="px-4 py-3"><button class="text-xs underline text-blue-600" onclick="previewFace(${r.id})">View</button></td>
         `;
         tbody.appendChild(tr);
       });
+    }
+
+    // Face preview for lecturer dashboard
+    function previewFace(id) {
+      const records = JSON.parse(localStorage.getItem(STORAGE_KEY_RECORDS) || '[]');
+      const r = records.find(x => x.id === id);
+      if (!r) return alert('Record not found');
+      // open simple popup with image and details
+      const win = window.open('', '_blank', 'width=520,height=640,scrollbars=yes');
+      win.document.write(`<title>Face preview</title><div style="font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; padding:12px;">
+        <h3>${r.name || ''} — ${r.matric || ''}</h3>
+        <p style="color:#555">${r.course || ''} — ${r.date} ${r.time}</p>
+        <p style="margin-top:8px;color:#555">Lat: ${r.lat?.toFixed(6) || ''} Lon: ${r.lon?.toFixed(6) || ''}</p>
+        <div style="margin-top:12px;border:1px solid #eee;padding:8px;background:#fafafa">
+          ${r.faceDataUrl ? `<img src="${r.faceDataUrl}" style="max-width:100%;height:auto;border-radius:8px" />` : '<div style="color:#666">No image</div>'}
+        </div>
+      </div>`);
     }
 
     // PDF Download
@@ -800,15 +1066,15 @@
         showToast('No records to export');
         return;
       }
-      
+
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      
+
       doc.setFontSize(16);
       doc.text('NSUK URP Attendance Records', 14, 20);
       doc.setFontSize(10);
       doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
-      
+
       const headers = [['Name', 'Matric', 'Course', 'Date', 'Time', 'Latitude', 'Longitude']];
       const data = records.map(r => [
         r.name || '',
@@ -819,13 +1085,13 @@
         r.lat?.toFixed(6) || '',
         r.lon?.toFixed(6) || ''
       ]);
-      
+
       doc.autoTable({
         head: headers,
         body: data,
         startY: 40,
       });
-      
+
       doc.save(`NSUK_URP_Attendance_${new Date().toISOString().slice(0,10)}.pdf`);
       showToast('PDF downloaded');
     });
@@ -834,22 +1100,46 @@
     document.addEventListener('DOMContentLoaded', () => {
       // Set year
       $('year').textContent = new Date().getFullYear();
-      
+
       // Ensure PIN exists
       ensurePin();
-      
+
       // Setup date/time updates
       updateDateTimePreview();
       setInterval(updateDateTimePreview, 1000);
-      
+
       // Setup input listeners
       ['studentName', 'matricNo', 'courseCode'].forEach(id => {
         $(id).addEventListener('input', updateSubmitState);
       });
-      
+
+      // Hook: clicking help shows a simple modal via alert (keep minimal)
+      $('btnOpenHelp').addEventListener('click', () => {
+        alert(
+`Instructions:
+1) Capture your location (or use manual coords).
+2) Start camera and capture face (or upload an image).
+3) Fill Name, Matric No, Course Code.
+4) Submit attendance.
+
+Cross-device: use Export Draft (JSON) or Generate QR to move current draft to another device and import/scan to finish submission.`
+        );
+      });
+
+      // Clear QR panel when clicking outside or when generating new
+      document.addEventListener('click', (e) => {
+        // keep as-is; no extra actions
+      });
+
+      // Import file input is set up above; also ensure value clears
+      $('importDraftFile').addEventListener('change', (e) => {
+        // handled in listener earlier
+      });
+
       // Initial state
       showPanel('student');
       updateSubmitState();
+      renderDashboard();
     });
   </script>
 </body>
