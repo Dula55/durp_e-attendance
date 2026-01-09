@@ -275,7 +275,7 @@
                         </form>
                     </div>
 
-                    <!-- Signup Form -->
+                    <!-- Signup Form (UPDATED - Email Removed) -->
                     <div id="studentSignupForm" class="hidden px-5 py-5">
                         <form id="studentSignupFormElement" onsubmit="studentSignup(event)" class="space-y-4">
                             <div>
@@ -288,10 +288,7 @@
                                 <input id="studentSignupMatric" type="text" required class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="e.g., URP/2023/001" />
                             </div>
                             
-                            <div>
-                                <label for="studentSignupEmail" class="block text-sm font-semibold text-slate-900 dark:text-white">Email</label>
-                                <input id="studentSignupEmail" type="email" required class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="student@nsuk.edu.ng" />
-                            </div>
+                            <!-- EMAIL FIELD REMOVED -->
                             
                             <div>
                                 <label for="studentSignupPassword" class="block text-sm font-semibold text-slate-900 dark:text-white">Password</label>
@@ -1495,7 +1492,7 @@
                 };
             },
             
-            // ========== STUDENT FUNCTIONS ==========
+            // ========== STUDENT FUNCTIONS (UPDATED - Email Removed) ==========
             handleStudentLogin(credentials) {
                 const students = JSON.parse(localStorage.getItem('nsukStudentAccounts') || '[]');
                 const student = students.find(s => 
@@ -1520,8 +1517,7 @@
                         student: {
                             id: student.id,
                             name: student.name,
-                            matric: student.matric,
-                            email: student.email
+                            matric: student.matric
                         }
                     };
                 } else {
@@ -1543,20 +1539,11 @@
                     };
                 }
                 
-                // Check if email already exists
-                if (students.some(s => s.email === data.email)) {
-                    return {
-                        success: false,
-                        error: 'Email already registered'
-                    };
-                }
-                
-                // Create new student
+                // Create new student (NO EMAIL FIELD)
                 const newStudent = {
                     id: Date.now(),
                     name: data.name,
                     matric: data.matric,
-                    email: data.email,
                     password: data.password, // In production, this would be hashed
                     createdAt: new Date().toISOString(),
                     isActive: true,
@@ -1584,8 +1571,7 @@
                     student: {
                         id: newStudent.id,
                         name: newStudent.name,
-                        matric: newStudent.matric,
-                        email: newStudent.email
+                        matric: newStudent.matric
                     }
                 };
             },
@@ -1606,8 +1592,7 @@
                                     data: {
                                         id: student.id,
                                         name: student.name,
-                                        matric: student.matric,
-                                        email: student.email
+                                        matric: student.matric
                                     }
                                 };
                             }
@@ -1922,19 +1907,18 @@
             }
         }
 
-        // Initialize student accounts system
+        // Initialize student accounts system (UPDATED - No Email)
         function initializeStudentAccountsSystem() {
             // Check if student accounts exist in localStorage
             let students = JSON.parse(localStorage.getItem('nsukStudentAccounts') || '[]');
             
             if (students.length === 0) {
-                // Create sample student accounts for demonstration
+                // Create sample student accounts for demonstration (NO EMAIL)
                 const sampleStudents = [
                     {
                         id: 2001,
                         name: 'Abdullahi Suleiman',
                         matric: 'URP/2023/001',
-                        email: 'abdullahi.suleiman@student.nsuk.edu.ng',
                         password: 'Student@123',
                         createdAt: new Date().toISOString(),
                         isActive: true,
@@ -1944,7 +1928,6 @@
                         id: 2002,
                         name: 'Fatima Ahmed',
                         matric: 'URP/2023/002',
-                        email: 'fatima.ahmed@student.nsuk.edu.ng',
                         password: 'Student@123',
                         createdAt: new Date().toISOString(),
                         isActive: true,
@@ -1953,7 +1936,7 @@
                 ];
                 
                 localStorage.setItem('nsukStudentAccounts', JSON.stringify(sampleStudents));
-                console.log('Student accounts system initialized with sample data');
+                console.log('Student accounts system initialized with sample data (no email)');
             }
             
             // Check for existing student session
@@ -2232,12 +2215,12 @@
             }
         }
 
+        // UPDATED STUDENT SIGNUP - EMAIL REMOVED
         async function studentSignup(event) {
             event.preventDefault();
             
             const name = document.getElementById('studentSignupName').value.trim();
             const matric = document.getElementById('studentSignupMatric').value.trim();
-            const email = document.getElementById('studentSignupEmail').value.trim();
             const password = document.getElementById('studentSignupPassword').value;
             const confirmPassword = document.getElementById('studentConfirmPassword').value;
             const termsAgreed = document.getElementById('studentTermsAgreement').checked;
@@ -2248,8 +2231,8 @@
             errorDiv.classList.add('hidden');
             successDiv.classList.add('hidden');
             
-            // Validation
-            if (!name || !matric || !email || !password || !confirmPassword) {
+            // Validation (NO EMAIL VALIDATION)
+            if (!name || !matric || !password || !confirmPassword) {
                 errorDiv.textContent = 'Please fill in all fields.';
                 errorDiv.classList.remove('hidden');
                 return;
@@ -2280,11 +2263,10 @@
             submitBtn.disabled = true;
             
             try {
-                // Use simulated backend API
+                // Use simulated backend API (NO EMAIL FIELD)
                 const result = await BACKEND_SIMULATION.call('/auth/student-signup', 'POST', {
                     name: name,
                     matric: matric,
-                    email: email,
                     password: password
                 });
                 
@@ -2318,7 +2300,7 @@
         }
 
         function studentForgotPassword() {
-            alert('Student Password Reset\n\nPlease contact your department administrator or system admin to reset your password.\n\nYou can also create a new account with a different email if needed.');
+            alert('Student Password Reset\n\nPlease contact your department administrator or system admin to reset your password.\n\nYou can also create a new account with a different matric number if needed.');
         }
 
         function updateStudentAttendanceForm() {
@@ -3325,7 +3307,6 @@
             students.forEach((student, index) => {
                 message += `${index + 1}. ${student.name}\n`;
                 message += `   Matric: ${student.matric}\n`;
-                message += `   Email: ${student.email}\n`;
                 message += `   Created: ${new Date(student.createdAt).toLocaleDateString()}\n\n`;
             });
             
