@@ -131,7 +131,7 @@
             <!-- Meta Text (Footer) -->
             <div class="w-full pb-8 pt-4 z-10">
                 <p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal text-center">
-                    Version 1.1.0
+                    Version 1.2.0
                 </p>
             </div>
         </div>
@@ -161,7 +161,7 @@
             <div class="w-full px-6 py-2">
                 <div class="flex flex-col gap-4">
                     <!-- Student Card -->
-                    <button onclick="showScreen('student-attendance')" class="group flex w-full items-center gap-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm transition-all duration-200 hover:border-primary hover:bg-primary/5 active:scale-[0.98] active:bg-primary active:border-primary">
+                    <button onclick="showScreen('student-auth')" class="group flex w-full items-center gap-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm transition-all duration-200 hover:border-primary hover:bg-primary/5 active:scale-[0.98] active:bg-primary active:border-primary">
                         <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary group-active:bg-white/20 group-active:text-white transition-colors">
                             <span class="material-symbols-outlined" style="font-size: 28px;">school</span>
                         </div>
@@ -215,15 +215,148 @@
             </div>
         </div>
         
-        <!-- Student Attendance Screen (Hidden by default) -->
-        <div id="student-attendance" class="hidden">
+        <!-- Student Authentication Screen (Hidden by default) -->
+        <div id="student-auth" class="hidden">
             <!-- Back Button -->
             <div class="flex items-center px-4 py-4 justify-between sticky top-0 z-10 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm">
                 <button onclick="showScreen('role-selection-screen')" class="text-slate-900 dark:text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
                     <span class="material-symbols-outlined" style="font-size: 24px;">arrow_back_ios_new</span>
                 </button>
-                <h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Student Attendance</h2>
+                <h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Student Access</h2>
                 <div class="size-10"></div> <!-- Spacer for centering -->
+            </div>
+            
+            <!-- Main Content -->
+            <div class="flex-1 flex flex-col px-4 pb-8">
+                <!-- Login/Signup Tabs -->
+                <div class="mt-6 rounded-2xl bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm">
+                    <div class="border-b border-slate-200 dark:border-slate-700">
+                        <div class="flex">
+                            <button id="studentLoginTab" onclick="showStudentTab('login')" class="flex-1 px-4 py-3 text-sm font-semibold text-primary border-b-2 border-primary">
+                                Login
+                            </button>
+                            <button id="studentSignupTab" onclick="showStudentTab('signup')" class="flex-1 px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-400 border-b-2 border-transparent">
+                                Sign Up
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Login Form -->
+                    <div id="studentLoginForm" class="px-5 py-5">
+                        <form id="studentLoginFormElement" onsubmit="studentLogin(event)" class="space-y-4">
+                            <div>
+                                <label for="studentLoginMatric" class="block text-sm font-semibold text-slate-900 dark:text-white">Matric Number</label>
+                                <input id="studentLoginMatric" type="text" required class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="Enter your matric number" />
+                            </div>
+                            
+                            <div>
+                                <label for="studentLoginPassword" class="block text-sm font-semibold text-slate-900 dark:text-white">Password</label>
+                                <div class="mt-1 relative">
+                                    <input id="studentLoginPassword" type="password" required class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 pr-12" placeholder="Enter your password" />
+                                    <button type="button" onclick="toggleStudentPasswordVisibility('studentLoginPassword', 'studentPasswordToggleIcon')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                        <span id="studentPasswordToggleIcon" class="material-symbols-outlined">visibility_off</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <label class="flex items-center gap-2">
+                                    <input id="studentRememberMe" type="checkbox" class="rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary/50" />
+                                    <span class="text-sm text-slate-700 dark:text-slate-300">Remember me</span>
+                                </label>
+                                <button type="button" onclick="studentForgotPassword()" class="text-sm text-primary hover:text-primary-hover">
+                                    Forgot Password?
+                                </button>
+                            </div>
+                            
+                            <button type="submit" class="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/50">
+                                Sign In
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Signup Form -->
+                    <div id="studentSignupForm" class="hidden px-5 py-5">
+                        <form id="studentSignupFormElement" onsubmit="studentSignup(event)" class="space-y-4">
+                            <div>
+                                <label for="studentSignupName" class="block text-sm font-semibold text-slate-900 dark:text-white">Full Name</label>
+                                <input id="studentSignupName" type="text" required class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="Enter your full name" />
+                            </div>
+                            
+                            <div>
+                                <label for="studentSignupMatric" class="block text-sm font-semibold text-slate-900 dark:text-white">Matric Number</label>
+                                <input id="studentSignupMatric" type="text" required class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="e.g., URP/2023/001" />
+                            </div>
+                            
+                            <div>
+                                <label for="studentSignupEmail" class="block text-sm font-semibold text-slate-900 dark:text-white">Email</label>
+                                <input id="studentSignupEmail" type="email" required class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="student@nsuk.edu.ng" />
+                            </div>
+                            
+                            <div>
+                                <label for="studentSignupPassword" class="block text-sm font-semibold text-slate-900 dark:text-white">Password</label>
+                                <div class="mt-1 relative">
+                                    <input id="studentSignupPassword" type="password" required minlength="6" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 pr-12" placeholder="Create a password" />
+                                    <button type="button" onclick="toggleStudentPasswordVisibility('studentSignupPassword', 'studentSignupPasswordToggleIcon')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                        <span id="studentSignupPasswordToggleIcon" class="material-symbols-outlined">visibility_off</span>
+                                    </button>
+                                </div>
+                                <p class="mt-1 text-xs text-slate-500">Must be at least 6 characters long</p>
+                            </div>
+                            
+                            <div>
+                                <label for="studentConfirmPassword" class="block text-sm font-semibold text-slate-900 dark:text-white">Confirm Password</label>
+                                <div class="mt-1 relative">
+                                    <input id="studentConfirmPassword" type="password" required minlength="6" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 pr-12" placeholder="Confirm your password" />
+                                    <button type="button" onclick="toggleStudentPasswordVisibility('studentConfirmPassword', 'studentConfirmPasswordToggleIcon')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                        <span id="studentConfirmPasswordToggleIcon" class="material-symbols-outlined">visibility_off</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <input id="studentTermsAgreement" type="checkbox" required class="rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary/50" />
+                                <label for="studentTermsAgreement" class="ml-2 text-sm text-slate-700 dark:text-slate-300">
+                                    I agree to the <a href__="#" class="text-primary hover:text-primary-hover">Terms of Service</a>
+                                </label>
+                            </div>
+                            
+                            <button type="submit" class="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/50">
+                                Create Account
+                            </button>
+                        </form>
+                    </div>
+
+                    <div id="studentAuthError" class="mt-3 mx-5 mb-5 hidden rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-800 dark:text-red-300"></div>
+                    <div id="studentAuthSuccess" class="mt-3 mx-5 mb-5 hidden rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 p-3 text-sm text-emerald-800 dark:text-emerald-300"></div>
+                </div>
+
+                <!-- Quick Info -->
+                <div class="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
+                    <div class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary">info</span>
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Multi-Device Access</h3>
+                            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                                Your account works across all devices. Once created, you can login from any device using your matric number and password.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Student Attendance Screen (Hidden by default) -->
+        <div id="student-attendance" class="hidden">
+            <!-- Back Button -->
+            <div class="flex items-center px-4 py-4 justify-between sticky top-0 z-10 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm">
+                <button onclick="studentLogout()" class="text-slate-900 dark:text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-outlined" style="font-size: 24px;">logout</span>
+                </button>
+                <h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Student Attendance</h2>
+                <div class="flex items-center gap-2">
+                    <span id="studentNameBadge" class="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded-lg"></span>
+                </div>
             </div>
             
             <!-- Main Content -->
@@ -342,11 +475,11 @@
                         <fieldset id="formFieldset" disabled class="opacity-60">
                             <div class="grid gap-3">
                                 <div>
-                                    <label for="studentName" class="block text-sm font-semibold text-slate-900 dark:text-white">Name <span class="text-red-600">*</span></label>
+                                    <label class="block text-sm font-semibold text-slate-900 dark:text-white">Name <span class="text-red-600">*</span></label>
                                     <input id="studentName" name="name" type="text" required class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="e.g., Abdullahi Suleiman" />
                                 </div>
                                 <div>
-                                    <label for="matricNo" class="block text-sm font-semibold text-slate-900 dark:text-white">Matric Number <span class="text-red-600">*</span></label>
+                                    <label class="block text-sm font-semibold text-slate-900 dark:text-white">Matric Number <span class="text-red-600">*</span></label>
                                     <input id="matricNo" name="matric" type="text" required class="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="e.g., URP/2023/001 or any format" />
                                 </div>
                                 <div>
@@ -1001,10 +1134,18 @@
                     <div>
                         <h4 class="font-semibold text-slate-900 dark:text-white">Student Attendance Guide</h4>
                         <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                            1. Allow location access when prompted<br>
-                            2. Start camera and capture your face clearly<br>
-                            3. Fill in the required attendance form fields<br>
-                            4. Submit your attendance
+                            1. Login or sign up with your matric number<br>
+                            2. Allow location access when prompted<br>
+                            3. Start camera and capture your face clearly<br>
+                            4. Fill in the required attendance form fields<br>
+                            5. Submit your attendance
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-slate-900 dark:text-white">Multi-Device Access</h4>
+                        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                            Your student account works across all devices. Once created on one device, you can login from any other device using your matric number and password.
                         </p>
                     </div>
                     
@@ -1209,13 +1350,14 @@
             currentScreen: 'splash-screen',
             demoMode: false,
             currentAdmin: null,
+            currentStudent: null,
             isOnline: navigator.onLine,
             generatedPin: null,
             lecturerUnlocked: false,
             sessions: JSON.parse(localStorage.getItem('nsukAttendanceSessions') || '[]')
         };
 
-        // Backend API Simulation (For Multi-device Admin Accounts)
+        // Backend API Simulation (For Multi-device Support)
         const BACKEND_SIMULATION = {
             // Simulated backend endpoints
             API_BASE: 'https://api.nsuk-urp.edu.ng',
@@ -1234,6 +1376,10 @@
                             return this.handleSignup(data);
                         case '/auth/validate':
                             return this.validateToken(data);
+                        case '/auth/student-login':
+                            return this.handleStudentLogin(data);
+                        case '/auth/student-signup':
+                            return this.handleStudentSignup(data);
                         case '/admins/list':
                             return this.getAdmins();
                         case '/attendance/list':
@@ -1255,6 +1401,7 @@
                 }
             },
             
+            // ========== ADMIN FUNCTIONS ==========
             handleLogin(credentials) {
                 const admins = JSON.parse(localStorage.getItem('nsukAdminAccounts') || '[]');
                 const admin = admins.find(a => 
@@ -1325,7 +1472,7 @@
                 localStorage.setItem('nsukAdminAccounts', JSON.stringify(admins));
                 
                 // Sync across devices (simulated)
-                this.syncToCloud(admins);
+                this.syncToCloud(admins, 'nsukAdminAccounts');
                 
                 // Generate token
                 const token = btoa(JSON.stringify({
@@ -1348,23 +1495,138 @@
                 };
             },
             
+            // ========== STUDENT FUNCTIONS ==========
+            handleStudentLogin(credentials) {
+                const students = JSON.parse(localStorage.getItem('nsukStudentAccounts') || '[]');
+                const student = students.find(s => 
+                    s.matric === credentials.matric && 
+                    s.password === credentials.password
+                );
+                
+                if (student) {
+                    // Generate simulated token
+                    const token = btoa(JSON.stringify({
+                        id: student.id,
+                        matric: student.matric,
+                        exp: Date.now() + 86400000 // 24 hours
+                    }));
+                    
+                    // Store in session storage
+                    sessionStorage.setItem('nsukStudentToken', token);
+                    
+                    return {
+                        success: true,
+                        token: token,
+                        student: {
+                            id: student.id,
+                            name: student.name,
+                            matric: student.matric,
+                            email: student.email
+                        }
+                    };
+                } else {
+                    return {
+                        success: false,
+                        error: 'Invalid matric number or password'
+                    };
+                }
+            },
+            
+            handleStudentSignup(data) {
+                const students = JSON.parse(localStorage.getItem('nsukStudentAccounts') || '[]');
+                
+                // Check if matric number already exists
+                if (students.some(s => s.matric === data.matric)) {
+                    return {
+                        success: false,
+                        error: 'Matric number already registered'
+                    };
+                }
+                
+                // Check if email already exists
+                if (students.some(s => s.email === data.email)) {
+                    return {
+                        success: false,
+                        error: 'Email already registered'
+                    };
+                }
+                
+                // Create new student
+                const newStudent = {
+                    id: Date.now(),
+                    name: data.name,
+                    matric: data.matric,
+                    email: data.email,
+                    password: data.password, // In production, this would be hashed
+                    createdAt: new Date().toISOString(),
+                    isActive: true,
+                    department: 'Urban and Regional Planning'
+                };
+                
+                students.push(newStudent);
+                localStorage.setItem('nsukStudentAccounts', JSON.stringify(students));
+                
+                // Sync across devices (simulated)
+                this.syncToCloud(students, 'nsukStudentAccounts');
+                
+                // Generate token
+                const token = btoa(JSON.stringify({
+                    id: newStudent.id,
+                    matric: newStudent.matric,
+                    exp: Date.now() + 86400000
+                }));
+                
+                sessionStorage.setItem('nsukStudentToken', token);
+                
+                return {
+                    success: true,
+                    token: token,
+                    student: {
+                        id: newStudent.id,
+                        name: newStudent.name,
+                        matric: newStudent.matric,
+                        email: newStudent.email
+                    }
+                };
+            },
+            
             validateToken(token) {
                 try {
                     const payload = JSON.parse(atob(token));
                     if (payload.exp > Date.now()) {
-                        const admins = JSON.parse(localStorage.getItem('nsukAdminAccounts') || '[]');
-                        const admin = admins.find(a => a.id === payload.id);
-                        
-                        if (admin) {
-                            return {
-                                success: true,
-                                admin: {
-                                    id: admin.id,
-                                    name: admin.name,
-                                    email: admin.email,
-                                    username: admin.username
-                                }
-                            };
+                        // Check if it's a student or admin token
+                        if (payload.matric) {
+                            const students = JSON.parse(localStorage.getItem('nsukStudentAccounts') || '[]');
+                            const student = students.find(s => s.id === payload.id);
+                            
+                            if (student) {
+                                return {
+                                    success: true,
+                                    type: 'student',
+                                    data: {
+                                        id: student.id,
+                                        name: student.name,
+                                        matric: student.matric,
+                                        email: student.email
+                                    }
+                                };
+                            }
+                        } else {
+                            const admins = JSON.parse(localStorage.getItem('nsukAdminAccounts') || '[]');
+                            const admin = admins.find(a => a.id === payload.id);
+                            
+                            if (admin) {
+                                return {
+                                    success: true,
+                                    type: 'admin',
+                                    data: {
+                                        id: admin.id,
+                                        name: admin.name,
+                                        email: admin.email,
+                                        username: admin.username
+                                    }
+                                };
+                            }
                         }
                     }
                 } catch (e) {
@@ -1503,28 +1765,44 @@
                 };
             },
             
-            // Simulate cloud sync
-            syncToCloud(data) {
+            // Simulate cloud sync for multi-device support
+            syncToCloud(data, key) {
                 // In a real app, this would sync to a backend
-                console.log('Syncing data to cloud...', data.length, 'records');
+                console.log(`Syncing ${key} to cloud...`, data.length, 'records');
                 // Store in multiple localStorage keys to simulate cloud persistence
-                localStorage.setItem('nsukCloudBackup', JSON.stringify(data));
-                localStorage.setItem('nsukLastSync', new Date().toISOString());
+                localStorage.setItem(key + '_cloud', JSON.stringify(data));
+                localStorage.setItem(key + '_lastSync', new Date().toISOString());
             },
             
             // Check for cloud sync
             checkCloudSync() {
-                const cloudData = localStorage.getItem('nsukCloudBackup');
-                const localData = localStorage.getItem('nsukAdminAccounts');
+                // Sync admin accounts
+                const adminCloudData = localStorage.getItem('nsukAdminAccounts_cloud');
+                const adminLocalData = localStorage.getItem('nsukAdminAccounts');
                 
-                if (cloudData && localData) {
-                    const cloud = JSON.parse(cloudData);
-                    const local = JSON.parse(localData);
+                if (adminCloudData && adminLocalData) {
+                    const cloud = JSON.parse(adminCloudData);
+                    const local = JSON.parse(adminLocalData);
                     
-                    // Merge data (simple implementation)
+                    // Merge data (simple implementation - cloud wins)
                     if (cloud.length > local.length) {
                         localStorage.setItem('nsukAdminAccounts', JSON.stringify(cloud));
-                        console.log('Data synced from cloud');
+                        console.log('Admin data synced from cloud');
+                    }
+                }
+                
+                // Sync student accounts
+                const studentCloudData = localStorage.getItem('nsukStudentAccounts_cloud');
+                const studentLocalData = localStorage.getItem('nsukStudentAccounts');
+                
+                if (studentCloudData && studentLocalData) {
+                    const cloud = JSON.parse(studentCloudData);
+                    const local = JSON.parse(studentLocalData);
+                    
+                    // Merge data (simple implementation - cloud wins)
+                    if (cloud.length > local.length) {
+                        localStorage.setItem('nsukStudentAccounts', JSON.stringify(cloud));
+                        console.log('Student data synced from cloud');
                     }
                 }
             }
@@ -1537,6 +1815,9 @@
             
             // Initialize multi-device admin system
             initializeMultiDeviceAdminSystem();
+            
+            // Initialize student accounts system
+            initializeStudentAccountsSystem();
             
             // Initialize PIN system
             initializePinSystem();
@@ -1566,11 +1847,11 @@
             // Check if we're in HTTPS (required for geolocation/camera)
             checkSecurityEnvironment();
             
-            // Check for remembered admin login
-            checkRememberedAdmin();
+            // Check for remembered logins
+            checkRememberedLogins();
             
             // Initialize PIN auto-generation toggle
-            document.getElementById('autoGenerate').addEventListener('change', function() {
+            document.getElementById('autoGenerate')?.addEventListener('change', function() {
                 const customPinSection = document.getElementById('customPinSection');
                 if (!this.checked) {
                     customPinSection.classList.remove('hidden');
@@ -1604,7 +1885,7 @@
             let admins = JSON.parse(localStorage.getItem('nsukAdminAccounts') || '[]');
             
             if (admins.length === 0) {
-                // Create default admin account that works on any device
+                // Create SINGLE default admin account that works on any device
                 const defaultAdmin = {
                     id: 1001,
                     name: 'System Administrator',
@@ -1614,43 +1895,78 @@
                     createdAt: new Date().toISOString(),
                     isActive: true,
                     permissions: ['view', 'edit', 'delete', 'manage_users', 'generate_pins'],
-                    role: 'super_admin'
+                    role: 'super_admin',
+                    isSingleUser: true // Mark as single user
                 };
                 
                 admins.push(defaultAdmin);
                 localStorage.setItem('nsukAdminAccounts', JSON.stringify(admins));
                 
-                // Create sample lecturer account
-                const lecturerAdmin = {
-                    id: 1002,
-                    name: 'Dr. Lecturer',
-                    email: 'lecturer@nsuk-urp.edu.ng',
-                    username: 'lecturer',
-                    password: 'Lecturer@123',
-                    createdAt: new Date().toISOString(),
-                    isActive: true,
-                    permissions: ['view', 'edit'],
-                    role: 'lecturer_admin'
-                };
-                
-                admins.push(lecturerAdmin);
-                localStorage.setItem('nsukAdminAccounts', JSON.stringify(admins));
-                
-                console.log('Multi-device admin system initialized');
+                console.log('Single admin account system initialized');
             }
             
-            // Check for existing session
+            // Check for existing admin session
             const token = sessionStorage.getItem('nsukAdminToken');
             if (token) {
                 const result = BACKEND_SIMULATION.validateToken(token);
-                if (result.success) {
-                    appState.currentAdmin = result.admin;
+                if (result.success && result.type === 'admin') {
+                    appState.currentAdmin = result.data;
                     // Auto-login if token is valid
                     setTimeout(() => {
                         if (window.location.hash !== '#logout') {
                             showScreen('admin-dashboard');
-                            document.getElementById('adminWelcomeName').textContent = result.admin.name;
+                            document.getElementById('adminWelcomeName').textContent = result.data.name;
                         }
+                    }, 500);
+                }
+            }
+        }
+
+        // Initialize student accounts system
+        function initializeStudentAccountsSystem() {
+            // Check if student accounts exist in localStorage
+            let students = JSON.parse(localStorage.getItem('nsukStudentAccounts') || '[]');
+            
+            if (students.length === 0) {
+                // Create sample student accounts for demonstration
+                const sampleStudents = [
+                    {
+                        id: 2001,
+                        name: 'Abdullahi Suleiman',
+                        matric: 'URP/2023/001',
+                        email: 'abdullahi.suleiman@student.nsuk.edu.ng',
+                        password: 'Student@123',
+                        createdAt: new Date().toISOString(),
+                        isActive: true,
+                        department: 'Urban and Regional Planning'
+                    },
+                    {
+                        id: 2002,
+                        name: 'Fatima Ahmed',
+                        matric: 'URP/2023/002',
+                        email: 'fatima.ahmed@student.nsuk.edu.ng',
+                        password: 'Student@123',
+                        createdAt: new Date().toISOString(),
+                        isActive: true,
+                        department: 'Urban and Regional Planning'
+                    }
+                ];
+                
+                localStorage.setItem('nsukStudentAccounts', JSON.stringify(sampleStudents));
+                console.log('Student accounts system initialized with sample data');
+            }
+            
+            // Check for existing student session
+            const token = sessionStorage.getItem('nsukStudentToken');
+            if (token) {
+                const result = BACKEND_SIMULATION.validateToken(token);
+                if (result.success && result.type === 'student') {
+                    appState.currentStudent = result.data;
+                    // Auto-login if token is valid
+                    setTimeout(() => {
+                        showScreen('student-attendance');
+                        updateStudentAttendanceForm();
+                        document.getElementById('studentNameBadge').textContent = result.data.name;
                     }, 500);
                 }
             }
@@ -1725,12 +2041,20 @@
             }
         }
 
-        // Check for remembered admin
-        function checkRememberedAdmin() {
-            const rememberedUsername = localStorage.getItem('nsukAdminRemember');
-            if (rememberedUsername) {
-                document.getElementById('adminUsername').value = rememberedUsername;
+        // Check for remembered logins
+        function checkRememberedLogins() {
+            // Check for remembered admin
+            const rememberedAdmin = localStorage.getItem('nsukAdminRemember');
+            if (rememberedAdmin) {
+                document.getElementById('adminUsername').value = rememberedAdmin;
                 document.getElementById('rememberMe').checked = true;
+            }
+            
+            // Check for remembered student
+            const rememberedStudent = localStorage.getItem('nsukStudentRemember');
+            if (rememberedStudent) {
+                document.getElementById('studentLoginMatric').value = rememberedStudent;
+                document.getElementById('studentRememberMe').checked = true;
             }
         }
 
@@ -1800,6 +2124,237 @@
                     updateLecturerDashboard();
                 }
             }
+        }
+
+        // ========== STUDENT AUTHENTICATION FUNCTIONS ==========
+        function toggleStudentPasswordVisibility(inputId, iconId) {
+            const passwordInput = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.textContent = 'visibility';
+            } else {
+                passwordInput.type = 'password';
+                icon.textContent = 'visibility_off';
+            }
+        }
+
+        function showStudentTab(tab) {
+            const loginTab = document.getElementById('studentLoginTab');
+            const signupTab = document.getElementById('studentSignupTab');
+            const loginForm = document.getElementById('studentLoginForm');
+            const signupForm = document.getElementById('studentSignupForm');
+            const errorDiv = document.getElementById('studentAuthError');
+            const successDiv = document.getElementById('studentAuthSuccess');
+            
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+            
+            if (tab === 'login') {
+                loginTab.classList.add('text-primary', 'border-primary');
+                loginTab.classList.remove('text-slate-600', 'border-transparent');
+                signupTab.classList.remove('text-primary', 'border-primary');
+                signupTab.classList.add('text-slate-600', 'border-transparent');
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+            } else {
+                signupTab.classList.add('text-primary', 'border-primary');
+                signupTab.classList.remove('text-slate-600', 'border-transparent');
+                loginTab.classList.remove('text-primary', 'border-primary');
+                loginTab.classList.add('text-slate-600', 'border-transparent');
+                signupForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+        }
+
+        async function studentLogin(event) {
+            event.preventDefault();
+            
+            const matric = document.getElementById('studentLoginMatric').value.trim();
+            const password = document.getElementById('studentLoginPassword').value;
+            const errorDiv = document.getElementById('studentAuthError');
+            const successDiv = document.getElementById('studentAuthSuccess');
+            
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+            
+            if (!matric || !password) {
+                errorDiv.textContent = 'Please enter both matric number and password.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Signing in...';
+            submitBtn.disabled = true;
+            
+            try {
+                // Use simulated backend API
+                const result = await BACKEND_SIMULATION.call('/auth/student-login', 'POST', {
+                    matric: matric,
+                    password: password
+                });
+                
+                if (result.success) {
+                    successDiv.textContent = 'Login successful! Redirecting to attendance...';
+                    successDiv.classList.remove('hidden');
+                    
+                    // Store current student session
+                    appState.currentStudent = result.student;
+                    
+                    // Remember me functionality
+                    const rememberMe = document.getElementById('studentRememberMe').checked;
+                    if (rememberMe) {
+                        localStorage.setItem('nsukStudentRemember', matric);
+                    } else {
+                        localStorage.removeItem('nsukStudentRemember');
+                    }
+                    
+                    // Update student attendance form with student info
+                    setTimeout(() => {
+                        showScreen('student-attendance');
+                        updateStudentAttendanceForm();
+                        document.getElementById('studentNameBadge').textContent = result.student.name;
+                    }, 1000);
+                } else {
+                    errorDiv.textContent = result.error || 'Invalid matric number or password.';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please check your connection and try again.';
+                errorDiv.classList.remove('hidden');
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        async function studentSignup(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('studentSignupName').value.trim();
+            const matric = document.getElementById('studentSignupMatric').value.trim();
+            const email = document.getElementById('studentSignupEmail').value.trim();
+            const password = document.getElementById('studentSignupPassword').value;
+            const confirmPassword = document.getElementById('studentConfirmPassword').value;
+            const termsAgreed = document.getElementById('studentTermsAgreement').checked;
+            
+            const errorDiv = document.getElementById('studentAuthError');
+            const successDiv = document.getElementById('studentAuthSuccess');
+            
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+            
+            // Validation
+            if (!name || !matric || !email || !password || !confirmPassword) {
+                errorDiv.textContent = 'Please fill in all fields.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            if (password.length < 6) {
+                errorDiv.textContent = 'Password must be at least 6 characters long.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                errorDiv.textContent = 'Passwords do not match.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            if (!termsAgreed) {
+                errorDiv.textContent = 'Please agree to the Terms of Service.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Creating account...';
+            submitBtn.disabled = true;
+            
+            try {
+                // Use simulated backend API
+                const result = await BACKEND_SIMULATION.call('/auth/student-signup', 'POST', {
+                    name: name,
+                    matric: matric,
+                    email: email,
+                    password: password
+                });
+                
+                if (result.success) {
+                    successDiv.textContent = 'Account created successfully! Redirecting to attendance...';
+                    successDiv.classList.remove('hidden');
+                    
+                    // Store current student session
+                    appState.currentStudent = result.student;
+                    
+                    // Clear form
+                    document.getElementById('studentSignupFormElement').reset();
+                    
+                    // Update student attendance form with student info
+                    setTimeout(() => {
+                        showScreen('student-attendance');
+                        updateStudentAttendanceForm();
+                        document.getElementById('studentNameBadge').textContent = result.student.name;
+                    }, 1500);
+                } else {
+                    errorDiv.textContent = result.error || 'Account creation failed. Please try again.';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please check your connection and try again.';
+                errorDiv.classList.remove('hidden');
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        function studentForgotPassword() {
+            alert('Student Password Reset\n\nPlease contact your department administrator or system admin to reset your password.\n\nYou can also create a new account with a different email if needed.');
+        }
+
+        function updateStudentAttendanceForm() {
+            if (appState.currentStudent) {
+                // Auto-fill the form with student information
+                document.getElementById('studentName').value = appState.currentStudent.name;
+                document.getElementById('matricNo').value = appState.currentStudent.matric;
+                
+                // Make fields read-only since they come from the logged-in student account
+                document.getElementById('studentName').readOnly = true;
+                document.getElementById('matricNo').readOnly = true;
+                
+                // Add visual indication
+                document.getElementById('studentName').classList.add('bg-slate-50', 'dark:bg-slate-800');
+                document.getElementById('matricNo').classList.add('bg-slate-50', 'dark:bg-slate-800');
+            }
+        }
+
+        function studentLogout() {
+            // Clear student session
+            appState.currentStudent = null;
+            sessionStorage.removeItem('nsukStudentToken');
+            localStorage.removeItem('nsukStudentRemember');
+            
+            // Reset student form
+            document.getElementById('studentName').readOnly = false;
+            document.getElementById('matricNo').readOnly = false;
+            document.getElementById('studentName').classList.remove('bg-slate-50', 'dark:bg-slate-800');
+            document.getElementById('matricNo').classList.remove('bg-slate-50', 'dark:bg-slate-800');
+            
+            showScreen('student-auth');
+            
+            // Show logout message
+            setTimeout(() => {
+                alert('Logged out successfully. You can login from any device using your matric number and password.');
+            }, 500);
         }
 
         // Update date and time display
@@ -2033,7 +2588,7 @@
             document.getElementById('verifyText').classList.add('text-success');
             
             setTimeout(() => {
-                document.getElementById('studentName').focus();
+                document.getElementById('courseCode').focus();
             }, 100);
         }
 
@@ -2130,7 +2685,8 @@
                     userAgent: navigator.userAgent,
                     platform: navigator.platform,
                     language: navigator.language
-                }
+                },
+                studentId: appState.currentStudent?.id || null
             };
             
             saveAttendanceToLocal(attendanceData);
@@ -2193,6 +2749,12 @@
 
         function resetStudentForm() {
             document.getElementById('attendanceForm').reset();
+            
+            // Restore student info if logged in
+            if (appState.currentStudent) {
+                document.getElementById('studentName').value = appState.currentStudent.name;
+                document.getElementById('matricNo').value = appState.currentStudent.matric;
+            }
             
             appState.location = null;
             document.getElementById('locStatus').textContent = 'Not captured';
@@ -2753,7 +3315,22 @@
         }
 
         function manageStudents() {
-            alert('Opening student management...\n\nThis would show the student roster and attendance history.');
+            const students = JSON.parse(localStorage.getItem('nsukStudentAccounts') || '[]');
+            if (students.length === 0) {
+                alert('No student accounts found.');
+                return;
+            }
+            
+            let message = 'Student Accounts:\n\n';
+            students.forEach((student, index) => {
+                message += `${index + 1}. ${student.name}\n`;
+                message += `   Matric: ${student.matric}\n`;
+                message += `   Email: ${student.email}\n`;
+                message += `   Created: ${new Date(student.createdAt).toLocaleDateString()}\n\n`;
+            });
+            
+            message += `Total Students: ${students.length}`;
+            alert(message);
         }
 
         function exportAttendanceCSV() {
@@ -2828,7 +3405,7 @@
             }, 3000);
         }
 
-        // Admin functions - UPDATED FOR MULTI-DEVICE SUPPORT
+        // Admin functions - UPDATED FOR SINGLE USER & MULTI-DEVICE SUPPORT
         function togglePasswordVisibility(inputId, iconId) {
             const passwordInput = document.getElementById(inputId);
             const icon = document.getElementById(iconId);
@@ -2842,7 +3419,7 @@
             }
         }
 
-        // Admin login - Multi-device support
+        // Admin login - Single user, multi-device support
         async function adminLogin(event) {
             event.preventDefault();
             
@@ -2907,7 +3484,7 @@
             }
         }
 
-        // Admin signup - Multi-device support
+        // Admin signup - Multi-device support (but only one admin can be created)
         async function adminSignup(event) {
             event.preventDefault();
             
@@ -2949,6 +3526,14 @@
                 return;
             }
             
+            // Check if there's already an admin account (single user restriction)
+            const existingAdmins = JSON.parse(localStorage.getItem('nsukAdminAccounts') || '[]');
+            if (existingAdmins.length > 0) {
+                errorDiv.textContent = 'Only one administrator account is allowed. Please login with the existing admin credentials.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
             // Show loading state
             const submitBtn = event.target.querySelector('button[type="submit"]');
             const originalText = submitBtn.textContent;
@@ -2965,7 +3550,7 @@
                 });
                 
                 if (result.success) {
-                    successDiv.textContent = 'Account created successfully! Redirecting to dashboard...';
+                    successDiv.textContent = 'Admin account created successfully! This is the only admin account allowed. Redirecting to dashboard...';
                     successDiv.classList.remove('hidden');
                     
                     // Store current admin session
@@ -3004,6 +3589,9 @@
             errorDiv.classList.add('hidden');
             successDiv.classList.add('hidden');
             
+            // Check if admin already exists
+            const existingAdmins = JSON.parse(localStorage.getItem('nsukAdminAccounts') || '[]');
+            
             if (tab === 'login') {
                 loginTab.classList.add('text-primary', 'border-primary');
                 loginTab.classList.remove('text-slate-600', 'border-transparent');
@@ -3012,6 +3600,14 @@
                 loginForm.classList.remove('hidden');
                 signupForm.classList.add('hidden');
             } else {
+                // If admin already exists, show message and switch to login
+                if (existingAdmins.length > 0) {
+                    errorDiv.textContent = 'Only one administrator account is allowed. Please login with the existing admin credentials.';
+                    errorDiv.classList.remove('hidden');
+                    showAdminTab('login');
+                    return;
+                }
+                
                 signupTab.classList.add('text-primary', 'border-primary');
                 signupTab.classList.remove('text-slate-600', 'border-transparent');
                 loginTab.classList.remove('text-primary', 'border-primary');
@@ -3024,20 +3620,23 @@
         function forgotPassword() {
             const admins = JSON.parse(localStorage.getItem('nsukAdminAccounts') || '[]');
             if (admins.length > 0) {
-                let message = 'Multi-Device Admin System\n\n';
-                message += 'This system supports admin accounts across multiple devices.\n\n';
-                message += 'To reset your password on another device:\n';
+                const admin = admins[0]; // Get the single admin
+                let message = 'Single Admin System\n\n';
+                message += 'Only one administrator account exists for this system.\n\n';
+                message += 'Admin Details:\n';
+                message += `Name: ${admin.name}\n`;
+                message += `Username: ${admin.username}\n`;
+                message += `Email: ${admin.email}\n\n`;
+                message += 'If you forgot your password:\n';
                 message += '1. Use the same credentials on any device\n';
-                message += '2. Accounts are synced across devices\n';
-                message += '3. Contact system administrator for password reset\n\n';
-                message += 'Current admin accounts:\n\n';
-                
-                admins.forEach((admin, index) => {
-                    message += `${index + 1}. ${admin.name}\n   Username: ${admin.username}\n   Email: ${admin.email}\n\n`;
-                });
+                message += '2. The account works across all devices\n';
+                message += '3. Contact technical support if needed\n\n';
+                message += 'Default credentials (if not changed):\n';
+                message += 'Username: admin\n';
+                message += 'Password: Admin@123';
                 alert(message);
             } else {
-                alert('No admin accounts found. Please create a new account.');
+                alert('No admin account found. Please create a new account.');
             }
         }
 
@@ -3046,6 +3645,7 @@
             const admins = JSON.parse(localStorage.getItem('nsukAdminAccounts') || '[]');
             const records = JSON.parse(localStorage.getItem('nsukAttendanceRecords') || '[]');
             const pins = JSON.parse(localStorage.getItem('nsukLecturerPins') || '[]');
+            const students = JSON.parse(localStorage.getItem('nsukStudentAccounts') || '[]');
             
             // Count active PINs
             const now = new Date();
@@ -3184,7 +3784,7 @@
             let message = 'Lecturer PINs:\n\n';
             pins.forEach((pin, index) => {
                 const expiry = new Date(pin.expiry);
-                const isExpired = expiry < now;
+                const isExpired = expiry < new Date();
                 const status = !pin.isActive ? 'Deactivated' : (isExpired ? 'Expired' : 'Active');
                 const expiryStr = expiry.toLocaleDateString();
                 
@@ -3217,7 +3817,7 @@
             
             // Show logout message
             setTimeout(() => {
-                alert('Logged out successfully. You can now login from any device using your credentials.');
+                alert('Logged out successfully. You can now login from any device using your admin credentials.');
             }, 500);
         }
 
@@ -3226,8 +3826,8 @@
                 const result = await BACKEND_SIMULATION.call('/admins/list');
                 
                 if (result.success) {
-                    let message = 'Multi-Device Admin Accounts:\n\n';
-                    message += `Total Admins: ${result.data.length}\n\n`;
+                    let message = 'Single Admin Account:\n\n';
+                    message += `Note: Only one administrator account is allowed for this system.\n\n`;
                     
                     result.data.forEach((admin, index) => {
                         const date = new Date(admin.createdAt).toLocaleDateString();
@@ -3239,7 +3839,7 @@
                         message += `   Created: ${date}\n\n`;
                     });
                     
-                    message += '\nNote: These accounts work across all devices.';
+                    message += '\nNote: This account works across all devices.';
                     alert(message);
                 } else {
                     alert('Error loading admin list.');
@@ -3260,7 +3860,7 @@
                         return;
                     }
                     
-                    let message = `Multi-Device Attendance Records: ${records.length}\n\n`;
+                    let message = `Attendance Records: ${records.length}\n\n`;
                     message += 'Last 5 Records:\n\n';
                     
                     records.slice(-5).reverse().forEach((record, index) => {
@@ -3280,23 +3880,23 @@
         }
 
         function systemSettings() {
-            let message = 'Multi-Device System Settings\n\n';
+            let message = 'System Settings\n\n';
             message += '1. Account Management:\n';
-            message += '   - Admin accounts work across all devices\n';
-            message += '   - Data syncs automatically when online\n';
-            message += '   - Session tokens valid for 24 hours\n\n';
+            message += '   - Single admin account (works on all devices)\n';
+            message += '   - Student accounts work across all devices\n';
+            message += '   - Data syncs automatically when online\n\n';
             message += '2. PIN Generation:\n';
             message += '   - Generate 6-digit PINs for lecturers\n';
             message += '   - Customizable expiry periods\n';
             message += '   - Track PIN usage statistics\n\n';
-            message += '3. Device Compatibility:\n';
+            message += '3. Multi-Device Support:\n';
             message += '   - Works on mobile and desktop\n';
-            message += '   - Syncs across different browsers\n';
+            message += '   - Syncs across different browsers/devices\n';
             message += '   - Offline mode supported\n\n';
             message += '4. Security Features:\n';
+            message += '   - Single admin user restriction\n';
             message += '   - Encrypted session tokens\n';
-            message += '   - Automatic logout after 24h\n';
-            message += '   - Activity logging enabled';
+            message += '   - Automatic logout after 24h';
             
             alert(message);
         }
