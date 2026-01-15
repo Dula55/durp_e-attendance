@@ -92,6 +92,8 @@
         .stat-gradient-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
         .stat-gradient-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
         .stat-gradient-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .stat-gradient-4 { background: linear-gradient(135deg, #a78bfa 0%, #c084fc 100%); }
+        .stat-gradient-5 { background: linear-gradient(135deg, #fdba74 0%, #fb923c 100%); }
         
         .face-image-container {
             position: relative;
@@ -125,15 +127,9 @@
         }
         
         /* Role-specific styles */
-        [data-view="student-dashboard"] .student-only,
-        [data-view="lecturer-dashboard"] .lecturer-only,
-        [data-view="admin-dashboard"] .admin-only {
-            display: block;
-        }
-        
-        [data-view]:not([data-view="student-dashboard"]) .student-only,
-        [data-view]:not([data-view="lecturer-dashboard"]) .lecturer-only,
-        [data-view]:not([data-view="admin-dashboard"]) .admin-only {
+        .student-only,
+        .lecturer-only,
+        .admin-only {
             display: none;
         }
         
@@ -147,13 +143,34 @@
             animation: fadeIn 0.3s ease-out;
         }
         
+        .course-filter-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .course-filter-btn.active {
+            background-color: #0f1b3d;
+            color: white;
+        }
+        
+        .course-filter-btn:hover:not(.active) {
+            background-color: #f1f5f9;
+        }
+        
+        .dark .course-filter-btn.active {
+            background-color: #1e40af;
+        }
+        
+        .dark .course-filter-btn:hover:not(.active) {
+            background-color: #334155;
+        }
+        
         @media print {
             .no-print { display: none !important; }
             body { background: #fff !important; }
         }
     </style>
 </head>
-<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display" data-view="home">
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display">
     <!-- Navigation Bar -->
     <nav class="bg-surface-light dark:bg-surface-dark shadow-md">
         <div class="container mx-auto px-4 py-3">
@@ -173,19 +190,19 @@
                 <div class="flex items-center space-x-4">
                     <div id="authLinks" class="flex items-center space-x-3">
                         <!-- Login link for home view -->
-                        <a href="#" onclick="showView('login')" class="auth-link text-primary hover:text-primary-hover font-semibold">
+                        <button onclick="showView('login')" class="auth-link text-primary hover:text-primary-hover font-semibold">
                             Login
-                        </a>
-                        <a href="#" onclick="showView('signup')" class="auth-link bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                        </button>
+                        <button onclick="showView('signup')" class="auth-link bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
                             Sign Up
-                        </a>
+                        </button>
                     </div>
                     
                     <div id="userInfo" class="hidden flex items-center space-x-3">
                         <span id="userRole" class="text-sm text-slate-700 dark:text-slate-300"></span>
-                        <a href="#" onclick="logout()" class="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                        <button onclick="logout()" class="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
                             Logout
-                        </a>
+                        </button>
                     </div>
                     
                     <!-- Theme Toggle -->
@@ -542,10 +559,10 @@
             </div>
         </div>
 
-        <!-- STUDENT DASHBOARD (student_dashboard.html) -->
+        <!-- STUDENT DASHBOARD -->
         <div id="studentDashboardView" class="view-container">
             <div class="student-only">
-                <!-- Student Dashboard content -->
+                <!-- Welcome Message -->
                 <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 mb-8 border-l-4 border-primary">
                     <div class="flex items-center justify-between">
                         <div>
@@ -573,10 +590,31 @@
                             </div>
                             
                             <div class="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl mb-4">
+                                <p class="text-blue-800 dark:text-blue-300 mb-4">
+                                    <span class="material-symbols-outlined align-middle mr-2">info</span>
+                                    Click the button below to capture your current location for verification
+                                </p>
+                                
                                 <button id="captureLocation" class="bg-primary hover:bg-primary-hover text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center">
                                     <span class="material-symbols-outlined mr-2">location_on</span>
                                     Capture Location
                                 </button>
+                                
+                                <div class="mt-6 space-y-3">
+                                    <div id="locationStatus" class="text-sm text-slate-600 dark:text-slate-400">
+                                        <span class="material-symbols-outlined align-middle text-yellow-600">pending</span>
+                                        Location not captured yet
+                                    </div>
+                                    <div id="coordinates" class="hidden mt-2 space-y-2">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="material-symbols-outlined text-green-600">check_circle</span>
+                                            <div>
+                                                <p class="text-sm text-slate-700 dark:text-slate-300">Latitude: <span id="latitude" class="font-mono font-bold">-</span></p>
+                                                <p class="text-sm text-slate-700 dark:text-slate-300">Longitude: <span id="longitude" class="font-mono font-bold">-</span></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -590,15 +628,20 @@
                             </div>
                             
                             <div class="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-xl">
-                                <div id="cameraContainer" class="hidden">
-                                    <video id="video" width="100%" height="auto" autoplay playsinline class="rounded-xl"></video>
-                                </div>
-                                <div id="noCamera" class="text-center py-8">
-                                    <span class="material-symbols-outlined text-4xl text-slate-400 mb-4">videocam_off</span>
-                                    <p class="text-slate-600 dark:text-slate-400">Camera will appear here when started</p>
+                                <div class="mb-6">
+                                    <div id="cameraContainer" class="hidden">
+                                        <video id="video" width="100%" height="auto" autoplay playsinline class="rounded-xl"></video>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
+                                            Ensure your face is clearly visible in the frame
+                                        </p>
+                                    </div>
+                                    <div id="noCamera" class="text-center py-8">
+                                        <span class="material-symbols-outlined text-4xl text-slate-400 mb-4">videocam_off</span>
+                                        <p class="text-slate-600 dark:text-slate-400">Camera will appear here when started</p>
+                                    </div>
                                 </div>
                                 
-                                <div class="flex flex-wrap gap-4 mt-4">
+                                <div class="flex flex-wrap gap-4">
                                     <button id="startCamera" class="bg-primary hover:bg-primary-hover text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center">
                                         <span class="material-symbols-outlined mr-2">videocam</span>
                                         Start Camera
@@ -607,6 +650,24 @@
                                         <span class="material-symbols-outlined mr-2">camera</span>
                                         Capture Face
                                     </button>
+                                    <button id="retakePhoto" class="bg-slate-600 hover:bg-slate-700 text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center hidden">
+                                        <span class="material-symbols-outlined mr-2">refresh</span>
+                                        Retake Photo
+                                    </button>
+                                </div>
+                                
+                                <div id="facePreview" class="mt-6 hidden">
+                                    <h3 class="font-semibold text-slate-900 dark:text-white mb-3">Captured Image</h3>
+                                    <div class="flex flex-col md:flex-row items-center gap-6">
+                                        <img id="capturedImage" src="" alt="Captured Face" class="rounded-xl max-w-xs border-4 border-green-200 dark:border-green-900">
+                                        <div class="text-green-600 dark:text-green-400 flex items-center">
+                                            <span class="material-symbols-outlined text-4xl mr-2">check_circle</span>
+                                            <div>
+                                                <p class="font-semibold">Face captured successfully!</p>
+                                                <p class="text-sm text-slate-600 dark:text-slate-400">Ready for submission</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -621,9 +682,20 @@
                             </div>
                             
                             <form id="attendanceForm" class="space-y-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Full Name</label>
+                                        <input type="text" id="studentFullNameInput" value="" readonly class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Matric Number</label>
+                                        <input type="text" id="studentMatricInput" value="" readonly class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 font-mono text-slate-700 dark:text-slate-300">
+                                    </div>
+                                </div>
+                                
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Course Code *</label>
-                                    <select id="courseCode" required class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900">
+                                    <select id="courseCode" required class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
                                         <option value="">Select Course</option>
                                         <option value="URP213">URP 213 - Introduction to Land Surveying</option>
                                         <option value="URP313">URP 313 - Regional Development Planning</option>
@@ -632,9 +704,33 @@
                                         <option value="URP419">URP 419 - Pollution Control and Management</option>
                                         <option value="URP302">URP 302 - Housing and Community Development</option>
                                     </select>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Note: The selected course code will be recorded in the attendance system</p>
                                 </div>
                                 
-                                <button type="submit" id="submitAttendanceBtn" class="w-full bg-primary hover:bg-primary-hover text-white py-4 rounded-xl font-semibold transition-colors flex items-center justify-center" disabled>
+                                <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 rounded-xl p-4">
+                                    <div class="flex items-start">
+                                        <span class="material-symbols-outlined text-yellow-600 dark:text-yellow-400 mr-3 mt-1">warning</span>
+                                        <div>
+                                            <p class="font-semibold text-slate-900 dark:text-white mb-1">Requirements before submission:</p>
+                                            <ul class="text-sm text-slate-600 dark:text-slate-400 space-y-1">
+                                                <li class="flex items-center">
+                                                    <span id="locationCheck" class="material-symbols-outlined text-red-500 mr-2 text-sm">radio_button_unchecked</span>
+                                                    Location captured
+                                                </li>
+                                                <li class="flex items-center">
+                                                    <span id="faceCheck" class="material-symbols-outlined text-red-500 mr-2 text-sm">radio_button_unchecked</span>
+                                                    Face image captured
+                                                </li>
+                                                <li class="flex items-center">
+                                                    <span id="courseCheck" class="material-symbols-outlined text-red-500 mr-2 text-sm">radio_button_unchecked</span>
+                                                    Course selected
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" id="submitAttendanceBtn" class="w-full bg-primary hover:bg-primary-hover text-white py-4 rounded-xl font-semibold transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                                     <span class="material-symbols-outlined mr-2">check_circle</span>
                                     Submit Attendance
                                 </button>
@@ -662,6 +758,20 @@
                                         <p id="studentMatric" class="font-mono font-medium">-</p>
                                     </div>
                                 </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="material-symbols-outlined text-slate-400">school</span>
+                                    <div>
+                                        <p class="text-sm text-slate-600 dark:text-slate-400">Role</p>
+                                        <p class="font-medium">Student</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="material-symbols-outlined text-slate-400">calendar_today</span>
+                                    <div>
+                                        <p class="text-sm text-slate-600 dark:text-slate-400">Account Created</p>
+                                        <p id="studentCreatedAt" class="font-medium">-</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -672,6 +782,7 @@
                                 <div class="text-center py-8">
                                     <span class="material-symbols-outlined text-4xl text-slate-400 mb-4">history</span>
                                     <p class="text-slate-500 dark:text-slate-400">No attendance records yet</p>
+                                    <p class="text-sm text-slate-500 dark:text-slate-500 mt-2">Submit your first attendance above</p>
                                 </div>
                             </div>
                         </div>
@@ -680,10 +791,10 @@
             </div>
         </div>
 
-        <!-- LECTURER DASHBOARD (lecturer_dashboard.html) -->
+        <!-- LECTURER DASHBOARD -->
         <div id="lecturerDashboardView" class="view-container">
             <div class="lecturer-only">
-                <!-- Lecturer Dashboard content -->
+                <!-- Welcome Message -->
                 <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 mb-8 border-l-4 border-primary">
                     <div class="flex items-center justify-between">
                         <div>
@@ -699,6 +810,7 @@
                     </div>
                 </div>
 
+                <!-- Statistics Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="stat-gradient-1 text-white rounded-2xl p-6">
                         <div class="flex items-center justify-between">
@@ -723,35 +835,64 @@
                     <div class="stat-gradient-3 text-white rounded-2xl p-6">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm opacity-90">Active Sessions</p>
-                                <p class="text-3xl font-bold" id="activeSessions">0</p>
+                                <p class="text-sm opacity-90">Absent Today</p>
+                                <p class="text-3xl font-bold" id="absentToday">0</p>
                             </div>
-                            <span class="material-symbols-outlined text-4xl opacity-80">event_available</span>
+                            <span class="material-symbols-outlined text-4xl opacity-80">cancel</span>
                         </div>
                     </div>
                 </div>
 
+                <!-- Two Column Layout -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <!-- Attendance Records -->
                     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
-                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Recent Attendance</h2>
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Attendance Records</h2>
+                            <div class="flex items-center space-x-2">
+                                <div class="flex space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg">
+                                    <button onclick="filterByCourse('all')" class="course-filter-btn active px-3 py-1 rounded-md text-sm">
+                                        All
+                                    </button>
+                                    <button onclick="filterByCourse('URP213')" class="course-filter-btn px-3 py-1 rounded-md text-sm">
+                                        URP213
+                                    </button>
+                                    <button onclick="filterByCourse('URP313')" class="course-filter-btn px-3 py-1 rounded-md text-sm">
+                                        URP313
+                                    </button>
+                                    <button onclick="filterByCourse('URP431')" class="course-filter-btn px-3 py-1 rounded-md text-sm">
+                                        URP431
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
                             <table class="w-full">
                                 <thead>
                                     <tr class="bg-slate-50 dark:bg-slate-900">
                                         <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Student</th>
+                                        <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Matric</th>
                                         <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Course</th>
                                         <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Date & Time</th>
+                                        <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="lecturerRecords">
-                                    <tr>
-                                        <td colspan="3" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
-                                            No attendance records yet
-                                        </td>
-                                    </tr>
+                                    <!-- Records will be populated by JavaScript -->
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <p class="text-sm text-slate-600 dark:text-slate-400">
+                                Showing <span id="recordCount">0</span> records
+                            </p>
+                            <div class="flex space-x-2">
+                                <button onclick="exportData()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-semibold transition-colors flex items-center">
+                                    <span class="material-symbols-outlined mr-2">download</span>
+                                    Export CSV
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -769,6 +910,10 @@
                                     <span class="material-symbols-outlined mr-2">summarize</span>
                                     Generate Report
                                 </button>
+                                <button onclick="viewStudents()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined mr-2">list</span>
+                                    View Students
+                                </button>
                             </div>
                         </div>
 
@@ -776,9 +921,7 @@
                         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
                             <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Course Summary</h2>
                             <div id="courseSummary" class="space-y-4">
-                                <p class="text-slate-500 dark:text-slate-400 text-center py-4">
-                                    No course data available
-                                </p>
+                                <!-- Course summary will be populated by JavaScript -->
                             </div>
                         </div>
                     </div>
@@ -786,15 +929,15 @@
             </div>
         </div>
 
-        <!-- ADMIN DASHBOARD (admin_dashboard.html) -->
+        <!-- ADMIN DASHBOARD -->
         <div id="adminDashboardView" class="view-container">
             <div class="admin-only">
-                <!-- Admin Dashboard content -->
+                <!-- Welcome Message -->
                 <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 mb-8 border-l-4 border-primary">
                     <div class="flex items-center justify-between">
                         <div>
                             <h1 class="text-2xl font-bold text-slate-900 dark:text-white" id="adminName">Loading...</h1>
-                            <p class="text-slate-600 dark:text-slate-400 mt-2">System administration and monitoring</p>
+                            <p class="text-slate-600 dark:text-slate-400 mt-2">You have full system administration access</p>
                         </div>
                         <div class="flex items-center space-x-3">
                             <div class="bg-primary/10 text-primary dark:text-blue-400 px-4 py-2 rounded-lg">
@@ -805,83 +948,192 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                <!-- Statistics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                    <div class="stat-gradient-1 text-white rounded-2xl p-6">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-slate-600 dark:text-slate-400">Total Users</p>
-                                <p class="text-3xl font-bold text-slate-900 dark:text-white" id="totalUsers">0</p>
+                                <p class="text-sm opacity-90">Total Admins</p>
+                                <p class="text-3xl font-bold" id="totalAdmins">0</p>
                             </div>
-                            <span class="material-symbols-outlined text-primary text-3xl">groups</span>
+                            <span class="material-symbols-outlined text-4xl opacity-80">admin_panel_settings</span>
                         </div>
                     </div>
                     
-                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                    <div class="stat-gradient-2 text-white rounded-2xl p-6">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-slate-600 dark:text-slate-400">Total Records</p>
-                                <p class="text-3xl font-bold text-slate-900 dark:text-white" id="totalRecords">0</p>
+                                <p class="text-sm opacity-90">Attendance Records</p>
+                                <p class="text-3xl font-bold" id="totalRecords">0</p>
                             </div>
-                            <span class="material-symbols-outlined text-green-600 text-3xl">fact_check</span>
+                            <span class="material-symbols-outlined text-4xl opacity-80">fact_check</span>
                         </div>
                     </div>
                     
-                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                    <div class="stat-gradient-3 text-white rounded-2xl p-6">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-slate-600 dark:text-slate-400">Active PINs</p>
-                                <p class="text-3xl font-bold text-slate-900 dark:text-white" id="activePins">0</p>
+                                <p class="text-sm opacity-90">Active PINs</p>
+                                <p class="text-3xl font-bold" id="activePins">0</p>
                             </div>
-                            <span class="material-symbols-outlined text-purple-600 text-3xl">key</span>
+                            <span class="material-symbols-outlined text-4xl opacity-80">vpn_key</span>
                         </div>
                     </div>
                     
-                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                    <div class="stat-gradient-4 text-white rounded-2xl p-6">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-slate-600 dark:text-slate-400">Pending Approvals</p>
-                                <p class="text-3xl font-bold text-slate-900 dark:text-white" id="pendingApprovals">0</p>
+                                <p class="text-sm opacity-90">PIN Usage Today</p>
+                                <p class="text-3xl font-bold" id="pinUsageToday">0</p>
                             </div>
-                            <span class="material-symbols-outlined text-yellow-600 text-3xl">pending</span>
+                            <span class="material-symbols-outlined text-4xl opacity-80">trending_up</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-gradient-5 text-white rounded-2xl p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm opacity-90">Pending Approvals</p>
+                                <p class="text-3xl font-bold" id="pendingApprovals">0</p>
+                            </div>
+                            <span class="material-symbols-outlined text-4xl opacity-80">person_add</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- PIN Management -->
+                <!-- System Alerts -->
+                <div id="systemAlerts" class="mb-8 space-y-4">
+                    <!-- Alerts will be populated by JavaScript -->
+                </div>
+
+                <!-- Three Column Layout -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Generate PIN Section -->
                     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
-                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">PIN Management</h2>
-                        <div class="space-y-4">
-                            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl">
-                                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Generate New PIN</h3>
-                                <div class="space-y-3">
-                                    <input type="text" id="lecturerNameInput" placeholder="Lecturer Name" class="w-full px-3 py-2 border rounded-lg">
-                                    <input type="number" id="expiryDays" placeholder="Expiry Days (7)" value="7" class="w-full px-3 py-2 border rounded-lg">
-                                    <button onclick="generatePIN()" class="w-full bg-primary hover:bg-primary-hover text-white py-2 rounded-lg font-semibold">
-                                        Generate PIN
-                                    </button>
-                                </div>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Generate Lecturer PIN</h2>
+                        <form id="pinForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Lecturer Name *</label>
+                                <input type="text" id="lecturerNameInput" required class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
                             </div>
-                            <div id="generatedPIN" class="hidden bg-green-50 dark:bg-green-900/20 p-4 rounded-xl">
-                                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Generated PIN</h3>
-                                <p class="font-mono text-2xl text-center my-2" id="pinDisplay"></p>
-                                <p class="text-sm text-slate-600 dark:text-slate-400 text-center" id="pinDetails"></p>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email (Optional)</label>
+                                <input type="email" id="lecturerEmail" class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
                             </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">PIN Expiry</label>
+                                <select id="expiryDays" class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
+                                    <option value="1">24 Hours</option>
+                                    <option value="7" selected>7 Days</option>
+                                    <option value="30">30 Days</option>
+                                    <option value="90">90 Days</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="autoGenerate" checked class="mr-3 w-5 h-5 text-primary rounded">
+                                <label for="autoGenerate" class="text-sm text-slate-700 dark:text-slate-300">Auto-generate 6-digit PIN</label>
+                            </div>
+                            <div id="customPinSection" class="hidden">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Custom PIN</label>
+                                <input type="text" id="customPin" maxlength="6" class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-center text-2xl tracking-widest">
+                            </div>
+                            <div class="flex space-x-4">
+                                <button type="submit" class="flex-1 bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined mr-2">vpn_key</span>
+                                    Generate PIN
+                                </button>
+                                <button type="button" onclick="viewAllPins()" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined mr-2">list</span>
+                                    View All PINs
+                                </button>
+                            </div>
+                        </form>
+                        <div id="pinMessage" class="mt-4 hidden"></div>
+                    </div>
+
+                    <!-- Pending Approvals -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Pending Lecturer Approvals</h2>
+                        <div id="pendingLecturersList" class="space-y-4 max-h-[500px] overflow-y-auto">
+                            <!-- Pending lecturers will be populated by JavaScript -->
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                <span class="material-symbols-outlined align-middle text-sm mr-1">info</span>
+                                Student accounts are automatically approved. Only lecturer accounts require admin approval.
+                            </p>
                         </div>
                     </div>
 
-                    <!-- Recent Activity -->
+                    <!-- Recent PINs -->
                     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
-                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Recent Activity</h2>
-                        <div id="recentActivity" class="space-y-4">
-                            <div class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
-                                <span class="material-symbols-outlined text-blue-500">info</span>
-                                <div>
-                                    <p class="font-medium text-slate-900 dark:text-white">System Started</p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">Just now</p>
-                                </div>
-                            </div>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Recent PINs</h2>
+                        <div id="recentPinsList" class="space-y-4 max-h-[500px] overflow-y-auto">
+                            <!-- Recent PINs will be populated by JavaScript -->
                         </div>
+                    </div>
+                </div>
+
+                <!-- System Management -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 mt-8">
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">System Management</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <button onclick="viewAllUsers()" class="bg-blue-100 dark:bg-blue-900/20 hover:bg-blue-200 dark:hover:bg-blue-900/40 text-blue-800 dark:text-blue-300 p-6 rounded-xl transition-colors flex flex-col items-center justify-center">
+                            <span class="material-symbols-outlined text-4xl mb-3">group</span>
+                            <span class="font-semibold">View All Users</span>
+                        </button>
+                        <button onclick="viewAllAttendance()" class="bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/40 text-green-800 dark:text-green-300 p-6 rounded-xl transition-colors flex flex-col items-center justify-center">
+                            <span class="material-symbols-outlined text-4xl mb-3">assignment</span>
+                            <span class="font-semibold">All Attendance</span>
+                        </button>
+                        <button onclick="systemSettings()" class="bg-purple-100 dark:bg-purple-900/20 hover:bg-purple-200 dark:hover:bg-purple-900/40 text-purple-800 dark:text-purple-300 p-6 rounded-xl transition-colors flex flex-col items-center justify-center">
+                            <span class="material-symbols-outlined text-4xl mb-3">settings</span>
+                            <span class="font-semibold">System Settings</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Record Details Modal -->
+        <div id="recordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white">Attendance Record Details</h3>
+                        <button onclick="closeModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    <div id="modalContent" class="space-y-6">
+                        <!-- Content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PIN Modal -->
+        <div id="pinModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full">
+                <div class="p-6">
+                    <div class="text-center mb-6">
+                        <span class="material-symbols-outlined text-6xl text-green-500 mb-4">check_circle</span>
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">PIN Generated Successfully!</h3>
+                        <p class="text-slate-600 dark:text-slate-400">Share this PIN with the lecturer</p>
+                    </div>
+                    <div class="text-center mb-6">
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">Lecturer PIN</p>
+                        <p id="generatedPin" class="text-5xl font-bold tracking-widest font-mono mb-2 text-slate-900 dark:text-white">000000</p>
+                        <p id="pinLecturerName" class="text-lg font-semibold text-slate-900 dark:text-white"></p>
+                        <p id="pinExpiry" class="text-sm text-slate-500 dark:text-slate-400 mt-2"></p>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button onclick="copyPin()" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold transition-colors">
+                            Copy PIN
+                        </button>
+                        <button onclick="closePinModal()" class="flex-1 bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition-colors">
+                            Done
+                        </button>
                     </div>
                 </div>
             </div>
@@ -925,6 +1177,9 @@
         let currentLocation = null;
         let faceImage = null;
         let videoStream = null;
+        let attendanceRecords = [];
+        let pendingLecturers = [];
+        let recentPins = [];
         
         // Set current year in footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
@@ -969,7 +1224,10 @@
             });
             
             // Show selected view
-            document.getElementById(viewName + 'View').classList.add('active');
+            const viewElement = document.getElementById(viewName + 'View');
+            if (viewElement) {
+                viewElement.classList.add('active');
+            }
             
             // Update navigation
             updateNavigation(viewName);
@@ -1012,7 +1270,7 @@
         
         // Authentication functions
         function login(username, password, remember) {
-            // Simulate login - in real app, this would be an API call
+            // Get users from localStorage
             const users = JSON.parse(localStorage.getItem('users') || '[]');
             const user = users.find(u => u.username === username || u.matricNumber === username);
             
@@ -1072,6 +1330,9 @@
             }
             
             // Add new user
+            userData.id = Date.now();
+            userData.isApproved = userData.role !== 'lecturer';
+            userData.createdAt = new Date().toISOString();
             users.push(userData);
             localStorage.setItem('users', JSON.stringify(users));
             
@@ -1107,16 +1368,21 @@
             
             document.getElementById('studentName').textContent = `Welcome, ${currentUser.fullName}!`;
             document.getElementById('studentFullName').textContent = currentUser.fullName;
-            document.getElementById('studentMatric').textContent = currentUser.matricNumber;
+            document.getElementById('studentMatric').textContent = currentUser.matricNumber || 'N/A';
+            document.getElementById('studentCreatedAt').textContent = new Date(currentUser.createdAt).toLocaleDateString();
+            
+            // Set form inputs
+            document.getElementById('studentFullNameInput').value = currentUser.fullName;
+            document.getElementById('studentMatricInput').value = currentUser.matricNumber || 'N/A';
             
             // Load attendance records
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            const studentRecords = records.filter(r => r.studentId === currentUser.id);
+            attendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            const studentRecords = attendanceRecords.filter(r => r.studentId === currentUser.id);
             
             const recentAttendance = document.getElementById('recentAttendance');
             if (studentRecords.length > 0) {
                 recentAttendance.innerHTML = studentRecords.slice(0, 5).map(record => `
-                    <div class="border-l-4 border-primary pl-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-900/50 rounded-r-xl">
+                    <div class="border-l-4 border-primary pl-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-900/50 rounded-r-xl transition-colors">
                         <div class="flex justify-between items-start mb-1">
                             <p class="font-medium text-slate-900 dark:text-white">${record.courseCode}</p>
                             <span class="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">Present</span>
@@ -1124,6 +1390,11 @@
                         <p class="text-sm text-slate-600 dark:text-slate-400">
                             ${new Date(record.timestamp).toLocaleDateString()} at ${new Date(record.timestamp).toLocaleTimeString()}
                         </p>
+                        ${record.latitude && record.longitude ? `
+                        <p class="text-xs text-slate-500 dark:text-slate-500 mt-2">
+                            Location: ${parseFloat(record.latitude).toFixed(4)}, ${parseFloat(record.longitude).toFixed(4)}
+                        </p>
+                        ` : ''}
                     </div>
                 `).join('');
             }
@@ -1138,21 +1409,24 @@
             
             document.getElementById('lecturerName').textContent = `Welcome, ${currentUser.fullName}!`;
             
-            // Load statistics (demo data)
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            // Load statistics
+            attendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
             const today = new Date().toDateString();
-            const todayRecords = records.filter(r => new Date(r.timestamp).toDateString() === today);
+            const todayRecords = attendanceRecords.filter(r => new Date(r.timestamp).toDateString() === today);
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const students = users.filter(u => u.role === 'student');
             
-            document.getElementById('totalStudents').textContent = '45';
-            document.getElementById('presentToday').textContent = todayRecords.length.toString();
-            document.getElementById('activeSessions').textContent = '2';
+            document.getElementById('totalStudents').textContent = students.length;
+            document.getElementById('presentToday').textContent = todayRecords.length;
+            document.getElementById('absentToday').textContent = students.length - todayRecords.length;
             
-            // Load recent attendance
+            // Load attendance records
             const lecturerRecords = document.getElementById('lecturerRecords');
-            if (records.length > 0) {
-                lecturerRecords.innerHTML = records.slice(0, 5).map(record => `
-                    <tr class="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50">
+            if (attendanceRecords.length > 0) {
+                lecturerRecords.innerHTML = attendanceRecords.slice(0, 10).map(record => `
+                    <tr class="record-row border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors" data-course="${record.courseCode}">
                         <td class="py-3 px-4">${record.studentName}</td>
+                        <td class="py-3 px-4 font-mono">${record.matricNumber}</td>
                         <td class="py-3 px-4">
                             <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">
                                 ${record.courseCode}
@@ -1162,9 +1436,67 @@
                             <div>${new Date(record.timestamp).toLocaleDateString()}</div>
                             <div class="text-sm text-slate-600 dark:text-slate-400">${new Date(record.timestamp).toLocaleTimeString()}</div>
                         </td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center space-x-2">
+                                <button onclick="viewRecordDetails('${record.id}')" class="text-primary hover:text-primary-hover transition-colors p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20" title="View Details">
+                                    <span class="material-symbols-outlined align-middle">visibility</span>
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                 `).join('');
+                document.getElementById('recordCount').textContent = attendanceRecords.length;
+            } else {
+                lecturerRecords.innerHTML = `
+                    <tr id="noRecordsRow">
+                        <td colspan="5" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
+                            No attendance records found
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('recordCount').textContent = '0';
             }
+            
+            // Load course summary
+            const courseSummary = document.getElementById('courseSummary');
+            const courses = ['URP213', 'URP313', 'URP431', 'URP435', 'URP419', 'URP302'];
+            const courseData = courses.map(course => {
+                const count = attendanceRecords.filter(r => r.courseCode === course).length;
+                return { code: course, count: count };
+            }).filter(course => course.count > 0);
+            
+            if (courseData.length > 0) {
+                courseSummary.innerHTML = courseData.map(course => `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-slate-900 dark:text-white">${course.code}</p>
+                            <p class="text-xs text-slate-600 dark:text-slate-400">${getCourseName(course.code)}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-primary dark:text-blue-400">${course.count}</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">records</p>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                courseSummary.innerHTML = `
+                    <p class="text-slate-500 dark:text-slate-400 text-center py-4">
+                        No courses with attendance records
+                    </p>
+                `;
+            }
+        }
+        
+        function getCourseName(code) {
+            const courses = {
+                'URP213': 'Introduction to Land Surveying',
+                'URP313': 'Regional Development Planning',
+                'URP431': 'Planning Studio VII (Master Plan)',
+                'URP435': 'Public Utilities and Services',
+                'URP419': 'Pollution Control and Management',
+                'URP302': 'Housing and Community Development'
+            };
+            return courses[code] || code;
         }
         
         // Admin Dashboard Functions
@@ -1178,19 +1510,120 @@
             
             // Load statistics
             const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            const pendingLecturers = users.filter(u => u.role === 'lecturer' && !u.isApproved);
+            attendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            pendingLecturers = users.filter(u => u.role === 'lecturer' && !u.isApproved);
+            recentPins = JSON.parse(localStorage.getItem('pins') || '[]');
             
-            document.getElementById('totalUsers').textContent = users.length;
-            document.getElementById('totalRecords').textContent = records.length;
-            document.getElementById('activePins').textContent = '3';
+            document.getElementById('totalAdmins').textContent = users.filter(u => u.role === 'admin').length;
+            document.getElementById('totalRecords').textContent = attendanceRecords.length;
+            document.getElementById('activePins').textContent = recentPins.filter(p => p.isActive).length;
+            document.getElementById('pinUsageToday').textContent = recentPins.filter(p => p.lastUsed && new Date(p.lastUsed).toDateString() === new Date().toDateString()).length;
             document.getElementById('pendingApprovals').textContent = pendingLecturers.length;
+            
+            // Load system alerts
+            const systemAlerts = document.getElementById('systemAlerts');
+            const alerts = [];
+            
+            if (pendingLecturers.length > 0) {
+                alerts.push({
+                    type: 'warning',
+                    title: `${pendingLecturers.length} Lecturer(s) Awaiting Approval`,
+                    message: 'Review pending lecturer registrations',
+                    icon: 'person_add'
+                });
+            }
+            
+            // Check for expiring PINs
+            const expiringPins = recentPins.filter(p => p.isActive && new Date(p.expiryDate) < new Date(Date.now() + 2 * 24 * 60 * 60 * 1000));
+            if (expiringPins.length > 0) {
+                alerts.push({
+                    type: 'warning',
+                    title: `${expiringPins.length} PINs Expiring Soon`,
+                    message: 'Expire in next 2 days',
+                    icon: 'warning'
+                });
+            }
+            
+            alerts.push({
+                type: 'success',
+                title: 'System Normal',
+                message: 'All systems operational',
+                icon: 'check_circle'
+            });
+            
+            systemAlerts.innerHTML = alerts.map(alert => `
+                <div class="flex items-center p-4 rounded-2xl ${alert.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900' : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900'}">
+                    <span class="material-symbols-outlined mr-3 ${alert.type === 'warning' ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}">
+                        ${alert.icon}
+                    </span>
+                    <div class="flex-1">
+                        <h3 class="font-semibold ${alert.type === 'warning' ? 'text-yellow-800 dark:text-yellow-300' : 'text-green-800 dark:text-green-300'}">
+                            ${alert.title}
+                        </h3>
+                        <p class="text-sm ${alert.type === 'warning' ? 'text-yellow-700 dark:text-yellow-400' : 'text-green-700 dark:text-green-400'}">
+                            ${alert.message}
+                        </p>
+                    </div>
+                    ${alert.type === 'warning' && 'Pending' in alert.title ? `
+                    <button onclick="viewPendingApprovals()" class="ml-4 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold text-sm transition-colors">
+                        Review
+                    </button>
+                    ` : ''}
+                </div>
+            `).join('');
+            
+            // Load pending lecturers
+            const pendingLecturersList = document.getElementById('pendingLecturersList');
+            if (pendingLecturers.length > 0) {
+                pendingLecturersList.innerHTML = pendingLecturers.map(lecturer => `
+                    <div class="border border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold text-slate-900 dark:text-white">${lecturer.fullName}</h3>
+                            <span class="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300 text-xs px-2 py-1 rounded-full">Pending</span>
+                        </div>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mb-1">Username: <strong>${lecturer.username}</strong></p>
+                        <p class="text-xs text-slate-500 dark:text-slate-500 mb-3">Registered: ${new Date(lecturer.createdAt).toLocaleDateString()}</p>
+                        <div class="flex space-x-2">
+                            <button onclick="approveLecturer(${lecturer.id})" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold text-sm transition-colors">Approve</button>
+                            <button onclick="rejectLecturer(${lecturer.id})" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-semibold text-sm transition-colors">Reject</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                pendingLecturersList.innerHTML = `
+                    <div class="text-center py-8">
+                        <span class="material-symbols-outlined text-4xl text-slate-400 dark:text-slate-500 mb-3">check_circle</span>
+                        <p class="text-slate-500 dark:text-slate-400">No pending lecturer approvals</p>
+                        <p class="text-sm text-slate-400 dark:text-slate-500 mt-1">Student accounts are auto-approved</p>
+                    </div>
+                `;
+            }
+            
+            // Load recent PINs
+            const recentPinsList = document.getElementById('recentPinsList');
+            if (recentPins.length > 0) {
+                recentPinsList.innerHTML = recentPins.slice(0, 5).map(pin => `
+                    <div class="border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold text-slate-900 dark:text-white">${pin.lecturerName}</h3>
+                            ${pin.isActive ? '<span class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs px-2 py-1 rounded-full">Active</span>' : '<span class="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 text-xs px-2 py-1 rounded-full">Inactive</span>'}
+                        </div>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mb-1">PIN: <strong class="text-xl tracking-widest font-mono">${pin.pin}</strong></p>
+                        <p class="text-xs text-slate-500 dark:text-slate-500">Generated: ${new Date(pin.generatedAt).toLocaleDateString()}</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-500">Expires: ${new Date(pin.expiryDate).toLocaleDateString()}</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-500">Usage: ${pin.usageCount || 0} times</p>
+                    </div>
+                `).join('');
+            } else {
+                recentPinsList.innerHTML = '<p class="text-slate-500 dark:text-slate-400 text-center py-8">No PINs generated yet</p>';
+            }
         }
         
         // Student-specific functions
         function captureLocation() {
             if (navigator.geolocation) {
                 const btn = document.getElementById('captureLocation');
+                const originalText = btn.innerHTML;
                 btn.innerHTML = '<span class="material-symbols-outlined mr-2 animate-spin">sync</span>Capturing...';
                 btn.disabled = true;
                 
@@ -1200,23 +1633,68 @@
                             lat: position.coords.latitude,
                             lon: position.coords.longitude
                         };
-                        showFlashMessage('Location captured successfully!', 'success');
-                        btn.innerHTML = '<span class="material-symbols-outlined mr-2">location_on</span>Location Captured';
-                        checkAttendanceReady();
+                        
+                        document.getElementById('locationStatus').innerHTML = `
+                            <span class="material-symbols-outlined align-middle text-green-600">check_circle</span>
+                            Location captured successfully
+                        `;
+                        document.getElementById('locationStatus').className = 'text-green-600 dark:text-green-400 text-sm';
+                        document.getElementById('coordinates').classList.remove('hidden');
+                        document.getElementById('latitude').textContent = currentLocation.lat.toFixed(6);
+                        document.getElementById('longitude').textContent = currentLocation.lon.toFixed(6);
+                        
+                        updateStudentSubmitButton();
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
                     },
                     error => {
-                        showFlashMessage('Error capturing location: ' + error.message, 'error');
-                        btn.innerHTML = '<span class="material-symbols-outlined mr-2">location_on</span>Capture Location';
+                        // Mock location for demo
+                        currentLocation = {
+                            lat: 8.5060,
+                            lon: 7.6866
+                        };
+                        
+                        document.getElementById('locationStatus').innerHTML = `
+                            <span class="material-symbols-outlined align-middle text-green-600">check_circle</span>
+                            Location captured (Demo Mode)
+                        `;
+                        document.getElementById('coordinates').classList.remove('hidden');
+                        document.getElementById('latitude').textContent = currentLocation.lat.toFixed(6);
+                        document.getElementById('longitude').textContent = currentLocation.lon.toFixed(6);
+                        
+                        updateStudentSubmitButton();
+                        btn.innerHTML = originalText;
                         btn.disabled = false;
+                        showFlashMessage('Using demo location for testing', 'info');
                     }
                 );
             } else {
-                showFlashMessage('Geolocation not supported', 'error');
+                // Mock location for browsers without geolocation
+                currentLocation = {
+                    lat: 8.5060,
+                    lon: 7.6866
+                };
+                
+                document.getElementById('locationStatus').innerHTML = `
+                    <span class="material-symbols-outlined align-middle text-green-600">check_circle</span>
+                    Location captured (Demo Mode)
+                `;
+                document.getElementById('coordinates').classList.remove('hidden');
+                document.getElementById('latitude').textContent = currentLocation.lat.toFixed(6);
+                document.getElementById('longitude').textContent = currentLocation.lon.toFixed(6);
+                
+                updateStudentSubmitButton();
+                showFlashMessage('Using demo location for testing', 'info');
             }
         }
         
         function startCamera() {
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                const btn = document.getElementById('startCamera');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="material-symbols-outlined mr-2 animate-spin">sync</span>Starting...';
+                btn.disabled = true;
+                
                 navigator.mediaDevices.getUserMedia({ 
                     video: { 
                         facingMode: 'user',
@@ -1232,10 +1710,17 @@
                     document.getElementById('cameraContainer').classList.remove('hidden');
                     document.getElementById('noCamera').classList.add('hidden');
                     document.getElementById('captureFace').disabled = false;
+                    
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
                 })
                 .catch(error => {
                     showFlashMessage('Could not access camera: ' + error.message, 'error');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
                 });
+            } else {
+                showFlashMessage('Camera not supported in this browser', 'error');
             }
         }
         
@@ -1255,18 +1740,46 @@
                 videoStream = null;
             }
             
+            const preview = document.getElementById('facePreview');
+            const capturedImage = document.getElementById('capturedImage');
+            capturedImage.src = faceImage;
+            preview.classList.remove('hidden');
+            
+            document.getElementById('captureFace').classList.add('hidden');
+            document.getElementById('retakePhoto').classList.remove('hidden');
+            
+            updateStudentSubmitButton();
             showFlashMessage('Face captured successfully!', 'success');
-            document.getElementById('captureFace').textContent = 'Face Captured';
-            document.getElementById('captureFace').disabled = true;
-            checkAttendanceReady();
         }
         
-        function checkAttendanceReady() {
-            const courseCode = document.getElementById('courseCode');
+        function updateStudentSubmitButton() {
             const submitBtn = document.getElementById('submitAttendanceBtn');
+            const locationCheck = document.getElementById('locationCheck');
+            const faceCheck = document.getElementById('faceCheck');
+            const courseCheck = document.getElementById('courseCheck');
+            const courseCode = document.getElementById('courseCode').value;
             
-            if (currentLocation && faceImage && courseCode.value) {
+            // Update checks
+            if (currentLocation) {
+                locationCheck.textContent = 'check_circle';
+                locationCheck.className = 'material-symbols-outlined text-green-500 mr-2 text-sm';
+            }
+            
+            if (faceImage) {
+                faceCheck.textContent = 'check_circle';
+                faceCheck.className = 'material-symbols-outlined text-green-500 mr-2 text-sm';
+            }
+            
+            if (courseCode) {
+                courseCheck.textContent = 'check_circle';
+                courseCheck.className = 'material-symbols-outlined text-green-500 mr-2 text-sm';
+            }
+            
+            // Enable/disable submit button
+            if (currentLocation && faceImage && courseCode) {
                 submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
             }
         }
         
@@ -1278,9 +1791,14 @@
                 return;
             }
             
+            const submitBtn = document.getElementById('submitAttendanceBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="material-symbols-outlined mr-2 animate-spin">sync</span>Submitting...';
+            submitBtn.disabled = true;
+            
             // Save attendance record
             const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            records.push({
+            const newRecord = {
                 id: Date.now(),
                 studentId: currentUser.id,
                 studentName: currentUser.fullName,
@@ -1290,29 +1808,145 @@
                 longitude: currentLocation.lon,
                 faceImage: faceImage,
                 timestamp: new Date().toISOString()
-            });
-            
+            };
+            records.push(newRecord);
             localStorage.setItem('attendanceRecords', JSON.stringify(records));
             
-            showFlashMessage('Attendance submitted successfully!', 'success');
-            
-            // Reset form
-            currentLocation = null;
-            faceImage = null;
-            document.getElementById('captureLocation').innerHTML = '<span class="material-symbols-outlined mr-2">location_on</span>Capture Location';
-            document.getElementById('captureLocation').disabled = false;
-            document.getElementById('captureFace').innerHTML = '<span class="material-symbols-outlined mr-2">camera</span>Capture Face';
-            document.getElementById('captureFace').disabled = false;
-            document.getElementById('courseCode').value = '';
-            document.getElementById('submitAttendanceBtn').disabled = true;
-            document.getElementById('cameraContainer').classList.add('hidden');
-            document.getElementById('noCamera').classList.remove('hidden');
-            
-            // Reload dashboard
-            loadStudentDashboard();
+            // Simulate API delay
+            setTimeout(() => {
+                showFlashMessage(`Attendance submitted successfully for ${courseCode}!`, 'success');
+                
+                // Reset form
+                currentLocation = null;
+                faceImage = null;
+                document.getElementById('captureLocation').innerHTML = '<span class="material-symbols-outlined mr-2">location_on</span>Capture Location';
+                document.getElementById('captureLocation').disabled = false;
+                document.getElementById('startCamera').innerHTML = '<span class="material-symbols-outlined mr-2">videocam</span>Start Camera';
+                document.getElementById('startCamera').disabled = false;
+                document.getElementById('captureFace').innerHTML = '<span class="material-symbols-outlined mr-2">camera</span>Capture Face';
+                document.getElementById('captureFace').disabled = false;
+                document.getElementById('retakePhoto').classList.add('hidden');
+                document.getElementById('facePreview').classList.add('hidden');
+                document.getElementById('courseCode').value = '';
+                document.getElementById('cameraContainer').classList.add('hidden');
+                document.getElementById('noCamera').classList.remove('hidden');
+                
+                // Reset check icons
+                document.getElementById('locationCheck').textContent = 'radio_button_unchecked';
+                document.getElementById('locationCheck').className = 'material-symbols-outlined text-red-500 mr-2 text-sm';
+                document.getElementById('faceCheck').textContent = 'radio_button_unchecked';
+                document.getElementById('faceCheck').className = 'material-symbols-outlined text-red-500 mr-2 text-sm';
+                document.getElementById('courseCheck').textContent = 'radio_button_unchecked';
+                document.getElementById('courseCheck').className = 'material-symbols-outlined text-red-500 mr-2 text-sm';
+                
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = true;
+                
+                // Reload dashboard
+                loadStudentDashboard();
+            }, 1500);
         }
         
         // Lecturer-specific functions
+        function filterByCourse(courseCode) {
+            const rows = document.querySelectorAll('.record-row');
+            const noRecordsRow = document.getElementById('noRecordsRow');
+            let visibleCount = 0;
+            
+            // Update active button
+            document.querySelectorAll('.course-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            rows.forEach(row => {
+                if (courseCode === 'all' || row.dataset.course === courseCode) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Show/hide no records message
+            if (noRecordsRow) {
+                noRecordsRow.style.display = visibleCount === 0 ? '' : 'none';
+            }
+        }
+        
+        function viewRecordDetails(recordId) {
+            const record = attendanceRecords.find(r => r.id === parseInt(recordId));
+            if (!record) {
+                showFlashMessage('Record not found', 'error');
+                return;
+            }
+            
+            const modalContent = document.getElementById('modalContent');
+            modalContent.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
+                        <h4 class="font-semibold text-lg text-slate-900 dark:text-white mb-3">Student Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Name</p>
+                                <p class="font-medium">${record.studentName}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Matric Number</p>
+                                <p class="font-mono font-medium">${record.matricNumber}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
+                        <h4 class="font-semibold text-lg text-slate-900 dark:text-white mb-3">Attendance Details</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Course Code</p>
+                                <p class="font-medium font-mono">${record.courseCode}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Course Name</p>
+                                <p class="font-medium">${getCourseName(record.courseCode)}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Date</p>
+                                <p class="font-medium">${new Date(record.timestamp).toLocaleDateString()}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Time</p>
+                                <p class="font-medium">${new Date(record.timestamp).toLocaleTimeString()}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Status</p>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Present</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
+                        <h4 class="font-semibold text-lg text-slate-900 dark:text-white mb-3">Location Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Latitude</p>
+                                <p class="font-mono">${record.latitude?.toFixed(6) || '8.5060'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Longitude</p>
+                                <p class="font-mono">${record.longitude?.toFixed(6) || '7.6866'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('recordModal').classList.remove('hidden');
+        }
+        
+        function closeModal() {
+            document.getElementById('recordModal').classList.add('hidden');
+        }
+        
         function startSession() {
             showFlashMessage('Starting new session... (Demo)', 'info');
         }
@@ -1321,27 +1955,181 @@
             showFlashMessage('Generating report... (Demo)', 'info');
         }
         
+        function viewStudents() {
+            showFlashMessage('View students feature would be implemented here', 'info');
+        }
+        
+        function exportData() {
+            let csv = 'Student Name,Matric Number,Course Code,Course Name,Date,Time,Latitude,Longitude,Status\n';
+            
+            const visibleRows = document.querySelectorAll('.record-row:not([style*="display: none"])');
+            if (visibleRows.length === 0) {
+                showFlashMessage('No records to export', 'error');
+                return;
+            }
+            
+            // Get actual data from records
+            attendanceRecords.forEach(record => {
+                csv += `"${record.studentName}","${record.matricNumber}","${record.courseCode}","${getCourseName(record.courseCode)}","${new Date(record.timestamp).toLocaleDateString()}","${new Date(record.timestamp).toLocaleTimeString()}",${record.latitude || '8.5060'},${record.longitude || '7.6866'},"Present"\n`;
+            });
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `attendance_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showFlashMessage('CSV exported successfully!', 'success');
+        }
+        
         // Admin-specific functions
         function generatePIN() {
             const lecturerName = document.getElementById('lecturerNameInput').value;
             const expiryDays = parseInt(document.getElementById('expiryDays').value) || 7;
+            const autoGenerate = document.getElementById('autoGenerate').checked;
+            const customPin = document.getElementById('customPin').value;
             
             if (!lecturerName) {
                 showFlashMessage('Please enter lecturer name', 'error');
                 return;
             }
             
-            // Generate 6-digit PIN
-            const pin = Math.floor(100000 + Math.random() * 900000).toString();
+            let pin;
+            if (autoGenerate) {
+                pin = Math.floor(100000 + Math.random() * 900000).toString();
+            } else {
+                pin = customPin;
+                if (!/^\d{6}$/.test(pin)) {
+                    showFlashMessage('PIN must be exactly 6 digits', 'error');
+                    return;
+                }
+            }
+            
             const expiryDate = new Date();
             expiryDate.setDate(expiryDate.getDate() + expiryDays);
             
-            // Display PIN
-            document.getElementById('pinDisplay').textContent = pin;
-            document.getElementById('pinDetails').textContent = `For ${lecturerName}, expires ${expiryDate.toLocaleDateString()}`;
-            document.getElementById('generatedPIN').classList.remove('hidden');
+            // Save PIN
+            const pins = JSON.parse(localStorage.getItem('pins') || '[]');
+            const newPin = {
+                id: Date.now(),
+                pin: pin,
+                lecturerName: lecturerName,
+                generatedBy: currentUser.fullName,
+                generatedAt: new Date().toISOString(),
+                expiryDate: expiryDate.toISOString(),
+                isActive: true,
+                usageCount: 0
+            };
+            pins.push(newPin);
+            localStorage.setItem('pins', JSON.stringify(pins));
+            
+            // Display PIN in modal
+            document.getElementById('generatedPin').textContent = pin;
+            document.getElementById('pinLecturerName').textContent = lecturerName;
+            document.getElementById('pinExpiry').textContent = `Expires: ${expiryDate.toLocaleDateString()}`;
+            document.getElementById('pinModal').classList.remove('hidden');
+            
+            // Reset form
+            document.getElementById('pinForm').reset();
+            document.getElementById('customPinSection').classList.add('hidden');
             
             showFlashMessage('PIN generated successfully!', 'success');
+        }
+        
+        function copyPin() {
+            const pin = document.getElementById('generatedPin').textContent;
+            navigator.clipboard.writeText(pin).then(() => {
+                showFlashMessage('PIN copied to clipboard!', 'success');
+            });
+        }
+        
+        function closePinModal() {
+            document.getElementById('pinModal').classList.add('hidden');
+            loadAdminDashboard(); // Refresh the dashboard
+        }
+        
+        function viewAllPins() {
+            const pins = JSON.parse(localStorage.getItem('pins') || '[]');
+            if (pins.length === 0) {
+                showFlashMessage('No PINs generated yet', 'info');
+                return;
+            }
+            
+            let message = 'All Lecturer PINs:\n\n';
+            pins.forEach(pin => {
+                const expiry = new Date(pin.expiryDate);
+                const now = new Date();
+                const status = pin.isActive ? (expiry > now ? 'Active' : 'Expired') : 'Deactivated';
+                
+                message += `Lecturer: ${pin.lecturerName}\n`;
+                message += `PIN: ${pin.pin}\n`;
+                message += `Status: ${status}\n`;
+                message += `Generated: ${new Date(pin.generatedAt).toLocaleDateString()}\n`;
+                message += `Expires: ${expiry.toLocaleDateString()}\n`;
+                message += `Usage: ${pin.usageCount} times\n`;
+                message += `Generated By: ${pin.generatedBy}\n`;
+                message += '─'.repeat(30) + '\n';
+            });
+            
+            alert(message);
+        }
+        
+        function approveLecturer(userId) {
+            if (!confirm('Are you sure you want to approve this lecturer?')) {
+                return;
+            }
+            
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const userIndex = users.findIndex(u => u.id === userId);
+            
+            if (userIndex !== -1) {
+                users[userIndex].isApproved = true;
+                users[userIndex].approvedBy = currentUser.fullName;
+                users[userIndex].approvedAt = new Date().toISOString();
+                localStorage.setItem('users', JSON.stringify(users));
+                
+                showFlashMessage('Lecturer approved successfully!', 'success');
+                loadAdminDashboard(); // Refresh the dashboard
+            } else {
+                showFlashMessage('Lecturer not found', 'error');
+            }
+        }
+        
+        function rejectLecturer(userId) {
+            if (!confirm('Are you sure you want to reject this lecturer registration? This action cannot be undone.')) {
+                return;
+            }
+            
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const updatedUsers = users.filter(u => u.id !== userId);
+            localStorage.setItem('users', JSON.stringify(updatedUsers));
+            
+            showFlashMessage('Lecturer registration rejected and removed', 'success');
+            loadAdminDashboard(); // Refresh the dashboard
+        }
+        
+        function viewPendingApprovals() {
+            const pendingSection = document.querySelector('.bg-white.rounded-2xl.shadow-soft.p-6:nth-child(2)');
+            if (pendingSection) {
+                pendingSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        
+        function viewAllUsers() {
+            showFlashMessage('View all users feature would be implemented here', 'info');
+        }
+        
+        function viewAllAttendance() {
+            showFlashMessage('View all attendance feature would be implemented here', 'info');
+        }
+        
+        function systemSettings() {
+            showFlashMessage('System settings feature would be implemented here', 'info');
         }
         
         // Utility functions
@@ -1522,14 +2310,11 @@
                 }
                 
                 const userData = {
-                    id: Date.now(),
                     username: username,
-                    password: password, // In real app, this would be hashed
+                    password: password,
                     role: role,
                     fullName: fullName,
-                    matricNumber: role === 'student' ? matricNumber : null,
-                    isApproved: role !== 'lecturer', // Lecturers need approval
-                    createdAt: new Date().toISOString()
+                    matricNumber: role === 'student' ? matricNumber : null
                 };
                 
                 signup(userData);
@@ -1541,16 +2326,112 @@
                 showFlashMessage('Reset instructions have been sent to your email.', 'success');
             });
             
+            // PIN form auto-generate toggle
+            document.getElementById('autoGenerate')?.addEventListener('change', function() {
+                const customSection = document.getElementById('customPinSection');
+                if (!this.checked) {
+                    customSection.classList.remove('hidden');
+                    document.getElementById('customPin').focus();
+                } else {
+                    customSection.classList.add('hidden');
+                    document.getElementById('customPin').value = '';
+                }
+            });
+            
+            // PIN form
+            document.getElementById('pinForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                generatePIN();
+            });
+            
             // Student dashboard buttons
             document.getElementById('captureLocation')?.addEventListener('click', captureLocation);
             document.getElementById('startCamera')?.addEventListener('click', startCamera);
             document.getElementById('captureFace')?.addEventListener('click', captureFace);
+            document.getElementById('retakePhoto')?.addEventListener('click', function() {
+                document.getElementById('facePreview').classList.add('hidden');
+                document.getElementById('captureFace').classList.remove('hidden');
+                document.getElementById('retakePhoto').classList.add('hidden');
+                faceImage = null;
+                updateStudentSubmitButton();
+            });
             document.getElementById('attendanceForm')?.addEventListener('submit', function(e) {
                 e.preventDefault();
                 submitAttendance();
             });
-            document.getElementById('courseCode')?.addEventListener('change', checkAttendanceReady);
+            document.getElementById('courseCode')?.addEventListener('change', updateStudentSubmitButton);
+            
+            // Initialize demo data if needed
+            initializeDemoData();
         });
+        
+        function initializeDemoData() {
+            // Create demo users if none exist
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            if (users.length === 0) {
+                const demoUsers = [
+                    {
+                        id: 1,
+                        username: 'student1',
+                        password: 'password123',
+                        role: 'student',
+                        fullName: 'John Student',
+                        matricNumber: 'URP/2023/001',
+                        isApproved: true,
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 2,
+                        username: 'lecturer1',
+                        password: 'password123',
+                        role: 'lecturer',
+                        fullName: 'Dr. Jane Lecturer',
+                        isApproved: true,
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 3,
+                        username: 'admin',
+                        password: 'Admin@123',
+                        role: 'admin',
+                        fullName: 'System Administrator',
+                        isApproved: true,
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                localStorage.setItem('users', JSON.stringify(demoUsers));
+            }
+            
+            // Create demo attendance records if none exist
+            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            if (records.length === 0) {
+                const demoRecords = [
+                    {
+                        id: 1,
+                        studentId: 1,
+                        studentName: 'John Student',
+                        matricNumber: 'URP/2023/001',
+                        courseCode: 'URP213',
+                        latitude: 8.5060,
+                        longitude: 7.6866,
+                        faceImage: 'demo_face_image.jpg',
+                        timestamp: new Date(Date.now() - 86400000).toISOString() // Yesterday
+                    },
+                    {
+                        id: 2,
+                        studentId: 1,
+                        studentName: 'John Student',
+                        matricNumber: 'URP/2023/001',
+                        courseCode: 'URP313',
+                        latitude: 8.5060,
+                        longitude: 7.6866,
+                        faceImage: 'demo_face_image.jpg',
+                        timestamp: new Date(Date.now() - 172800000).toISOString() // 2 days ago
+                    }
+                ];
+                localStorage.setItem('attendanceRecords', JSON.stringify(demoRecords));
+            }
+        }
     </script>
 </body>
 </html>
