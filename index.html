@@ -2,61 +2,1555 @@
 <html class="light" lang="en">
 <head>
     <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>NSUK URP E-Attendance System</title>
-
-    <!-- Fonts & Icons -->
+    
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
-
-    <!-- Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Noto+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0f1b3d",
+                        "primary-hover": "#0a1430",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1e293b",
+                        "success": "#10b981",
+                        "warning": "#f59e0b",
+                        "danger": "#ef4444",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.75rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                    boxShadow: {
+                        "soft": "0 2px 8px rgba(15, 23, 42, 0.08)",
+                        "glow": "0 0 15px rgba(15, 27, 61, 0.3)"
+                    }
+                },
+            },
+        }
+    </script>
+    
     <style>
-        body { font-family: 'Lexend', sans-serif; }
+        body {
+            min-height: 100vh;
+            font-family: 'Lexend', sans-serif;
+        }
+        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .form-input:focus {
+            box-shadow: 0 0 0 3px rgba(15, 27, 61, 0.1);
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0f1b3d;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        /* Dashboard-specific styles */
+        .stat-gradient-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stat-gradient-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .stat-gradient-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        
+        .face-image-container {
+            position: relative;
+            width: 256px;
+            height: 256px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border: 3px solid #10b981;
+        }
+        
+        .face-verification-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #10b981;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+        
+        #video {
+            transform: scaleX(-1);
+            border-radius: 1rem;
+            background: #000;
+        }
+        
+        /* Role-specific styles */
+        [data-view="student-dashboard"] .student-only,
+        [data-view="lecturer-dashboard"] .lecturer-only,
+        [data-view="admin-dashboard"] .admin-only {
+            display: block;
+        }
+        
+        [data-view]:not([data-view="student-dashboard"]) .student-only,
+        [data-view]:not([data-view="lecturer-dashboard"]) .lecturer-only,
+        [data-view]:not([data-view="admin-dashboard"]) .admin-only {
+            display: none;
+        }
+        
+        /* View transitions */
+        .view-container {
+            display: none;
+        }
+        
+        .view-container.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #fff !important; }
+        }
     </style>
 </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display" data-view="home">
+    <!-- Navigation Bar -->
+    <nav class="bg-surface-light dark:bg-surface-dark shadow-md">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <!-- Logo and Brand -->
+                <div class="flex items-center space-x-3">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzBmMWIzZCIvPgo8dGV4dCB4PSIyMCIgeT0iMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIj5OU1VLIChVUFApPC90ZXh0Pgo8L3N2Zz4K" 
+                         alt="NSUK Logo" 
+                         class="h-10 w-10 rounded-lg">
+                    <div>
+                        <h1 class="text-lg font-bold text-primary dark:text-white">NSUK URP</h1>
+                        <p class="text-xs text-slate-600 dark:text-slate-400">E-Attendance System</p>
+                    </div>
+                </div>
+                
+                <!-- Navigation Links (Dynamic based on view) -->
+                <div class="flex items-center space-x-4">
+                    <div id="authLinks" class="flex items-center space-x-3">
+                        <!-- Login link for home view -->
+                        <a href="#" onclick="showView('login')" class="auth-link text-primary hover:text-primary-hover font-semibold">
+                            Login
+                        </a>
+                        <a href="#" onclick="showView('signup')" class="auth-link bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                            Sign Up
+                        </a>
+                    </div>
+                    
+                    <div id="userInfo" class="hidden flex items-center space-x-3">
+                        <span id="userRole" class="text-sm text-slate-700 dark:text-slate-300"></span>
+                        <a href="#" onclick="logout()" class="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                            Logout
+                        </a>
+                    </div>
+                    
+                    <!-- Theme Toggle -->
+                    <button onclick="toggleTheme()" 
+                            class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <span id="themeIcon" class="material-symbols-outlined text-slate-700 dark:text-slate-300">
+                            dark_mode
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-<body class="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
+    <!-- Flash Messages Container -->
+    <div id="flashMessages" class="container mx-auto px-4 py-4"></div>
 
-<div class="relative z-10 max-w-md w-full bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 text-center">
+    <!-- Main Content Area - All Views -->
+    <main id="mainContent" class="container mx-auto px-4 py-8">
+        
+        <!-- SPLASH SCREEN (index.html) -->
+        <div id="splashView" class="view-container active">
+            <div class="relative z-10 max-w-md w-full bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 text-center mx-auto">
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMTYiIGZpbGw9IiMwZjFiM2QiLz4KPHBhdGggZD0iTTQ4IDI0TDI0IDQ4SDcyTDQ4IDI0WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTQ4IDcyTDcyIDQ4SDI0TDQ4IDcyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg=="
+                     class="mx-auto h-24 w-24 rounded-xl shadow mb-6"
+                     alt="NSUK Logo">
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-white">NSUK URP</h1>
+                <p class="text-slate-600 dark:text-slate-400 mt-2 mb-8">E-Attendance System</p>
+                
+                <div class="flex flex-col gap-4">
+                    <button onclick="showView('home')"
+                           class="bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition">
+                        Enter System
+                    </button>
+                    
+                    <button onclick="showView('login')"
+                           class="border border-primary text-primary py-3 rounded-xl font-semibold hover:bg-primary/10 transition">
+                        Login
+                    </button>
+                    
+                    <button onclick="showView('signup')"
+                           class="text-sm text-slate-500 hover:text-primary transition">
+                        Create Account
+                    </button>
+                </div>
+                
+                <p class="mt-8 text-xs text-slate-500">Version 1.0.0 • Multi-Device Support</p>
+            </div>
+        </div>
 
-    <!-- Logo -->
-    <img src="{{ url_for('static', filename='NSUK-logo.jpg') }}"
-         class="mx-auto h-24 w-24 rounded-xl shadow mb-6"
-         alt="NSUK Logo">
+        <!-- HOME PAGE (home.html) -->
+        <div id="homeView" class="view-container">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <div class="flex justify-center mb-6">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMTYiIGZpbGw9IiMwZjFiM2QiLz4KPHBhdGggZD0iTTQ4IDI0TDI0IDQ4SDcyTDQ4IDI0WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTQ4IDcyTDcyIDQ4SDI0TDQ4IDcyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==" 
+                             alt="NSUK Logo" 
+                             class="h-24 w-24 rounded-2xl shadow-lg">
+                    </div>
+                    <h1 class="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+                        NSUK URP E-Attendance System
+                    </h1>
+                    <p class="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+                        Streamline attendance tracking for Urban and Regional Planning Department with multi-device support
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-soft fade-in" style="animation-delay: 0.1s">
+                        <div class="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-4">
+                            <span class="material-symbols-outlined text-primary text-2xl">school</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">For Students</h3>
+                        <p class="text-slate-600 dark:text-slate-400">
+                            Submit attendance with location and face verification from any device
+                        </p>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-soft fade-in" style="animation-delay: 0.2s">
+                        <div class="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-4">
+                            <span class="material-symbols-outlined text-primary text-2xl">co_present</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">For Lecturers</h3>
+                        <p class="text-slate-600 dark:text-slate-400">
+                            Manage classes, track attendance, and generate reports with PIN access
+                        </p>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-soft fade-in" style="animation-delay: 0.3s">
+                        <div class="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-4">
+                            <span class="material-symbols-outlined text-primary text-2xl">admin_panel_settings</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">For Administrators</h3>
+                        <p class="text-slate-600 dark:text-slate-400">
+                            System configuration, PIN generation, and comprehensive monitoring
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="bg-gradient-to-r from-primary to-primary-hover rounded-2xl p-8 text-center text-white fade-in" style="animation-delay: 0.4s">
+                    <h2 class="text-2xl font-bold mb-4">Ready to Get Started?</h2>
+                    <p class="mb-6 opacity-90">Join thousands of students and lecturers using our modern attendance system</p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button onclick="showView('signup')" 
+                               class="bg-white text-primary hover:bg-slate-100 px-6 py-3 rounded-xl font-semibold transition-colors">
+                            Create Account
+                        </button>
+                        <button onclick="showView('login')" 
+                               class="bg-transparent border-2 border-white hover:bg-white/10 px-6 py-3 rounded-xl font-semibold transition-colors">
+                            Sign In
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    <h1 class="text-3xl font-bold text-slate-900 dark:text-white">
-        NSUK URP
-    </h1>
-    <p class="text-slate-600 dark:text-slate-400 mt-2 mb-8">
-        E-Attendance System
-    </p>
+        <!-- LOGIN PAGE (login.html) -->
+        <div id="loginView" class="view-container">
+            <div class="max-w-md mx-auto">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8">
+                    <div class="text-center mb-6">
+                        <span class="material-symbols-outlined text-primary text-5xl mb-2">lock</span>
+                        <h2 class="text-2xl font-bold">Sign In</h2>
+                        <p class="text-slate-500 text-sm mt-1">Enter your credentials to access the system</p>
+                    </div>
 
-    <!-- Actions -->
-    <div class="flex flex-col gap-4">
-        <a href="{{ url_for('home') }}"
-           class="bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition">
-            Enter System
-        </a>
+                    <form id="loginForm" class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Username / Matric No.</label>
+                            <input type="text" id="loginUsername" required class="w-full rounded-xl border-slate-300 focus:border-primary focus:ring-primary" placeholder="Enter username or matric number">
+                        </div>
 
-        <a href="{{ url_for('login') }}"
-           class="border border-primary text-primary py-3 rounded-xl font-semibold hover:bg-primary/10 transition">
-            Login
-        </a>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Password</label>
+                            <input type="password" id="loginPassword" required class="w-full rounded-xl border-slate-300 focus:border-primary focus:ring-primary" placeholder="Enter your password">
+                        </div>
 
-        <a href="{{ url_for('signup') }}"
-           class="text-sm text-slate-500 hover:text-primary transition">
-            Create Account
-        </a>
-    </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="remember" class="rounded border-slate-300 text-primary focus:ring-primary">
+                            <label for="remember" class="ml-2 text-sm text-slate-600">Remember me</label>
+                        </div>
 
-    <p class="mt-8 text-xs text-slate-500">
-        Version 1.0.0 • Multi-Device Support
-    </p>
-</div>
+                        <button type="submit" class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition">
+                            <span class="material-symbols-outlined align-middle mr-1">login</span>
+                            Login
+                        </button>
+                    </form>
 
+                    <div class="mt-6 text-center text-sm text-slate-500">
+                        Don't have an account?
+                        <button onclick="showView('signup')" class="text-primary font-semibold hover:underline ml-1">Sign up</button>
+                    </div>
+                    
+                    <div class="mt-4 text-center">
+                        <button onclick="showView('reset')" class="text-sm text-primary hover:underline">Forgot password?</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SIGNUP PAGE (signup.html) -->
+        <div id="signupView" class="view-container">
+            <div class="max-w-md mx-auto">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8">
+                    <div class="text-center mb-8">
+                        <div class="flex justify-center mb-4">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiMwZjFiM2QiLz4KPHBhdGggZD0iTTMyIDI0TDI0IDMySDQwTDMyIDI0WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTMyIDQwTDQwIDMySDI0TDMyIDQwWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==" 
+                                 alt="NSUK Logo" 
+                                 class="h-16 w-16 rounded-xl">
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Create Account</h2>
+                        <p class="text-slate-600 dark:text-slate-400 mt-2">Join NSUK URP E-Attendance System</p>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-slate-900 dark:text-white mb-3">Select Account Type</label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <button type="button" onclick="selectRole('student')" id="roleStudent" class="role-btn p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-center transition-all hover:border-primary hover:bg-primary/5">
+                                <span class="material-symbols-outlined block text-2xl mb-2">school</span>
+                                <span class="font-semibold">Student</span>
+                            </button>
+                            <button type="button" onclick="selectRole('lecturer')" id="roleLecturer" class="role-btn p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-center transition-all hover:border-primary hover:bg-primary/5">
+                                <span class="material-symbols-outlined block text-2xl mb-2">co_present</span>
+                                <span class="font-semibold">Lecturer</span>
+                            </button>
+                            <button type="button" onclick="selectRole('admin')" id="roleAdmin" class="role-btn p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-center transition-all hover:border-primary hover:bg-primary/5">
+                                <span class="material-symbols-outlined block text-2xl mb-2">admin_panel_settings</span>
+                                <span class="font-semibold">Admin</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <form id="signupForm" class="space-y-6">
+                        <input type="hidden" id="selectedRole" value="student">
+                        
+                        <div>
+                            <label for="fullName" class="block text-sm font-semibold text-slate-900 dark:text-white mb-2">Full Name *</label>
+                            <input type="text" id="fullName" required class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl form-input" placeholder="Enter your full name">
+                        </div>
+
+                        <div id="matricField">
+                            <label for="matricNumber" class="block text-sm font-semibold text-slate-900 dark:text-white mb-2">Matric Number *</label>
+                            <input type="text" id="matricNumber" class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl form-input" placeholder="e.g., URP/2023/001">
+                        </div>
+
+                        <div>
+                            <label for="signupUsername" class="block text-sm font-semibold text-slate-900 dark:text-white mb-2">Username *</label>
+                            <input type="text" id="signupUsername" required class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl form-input" placeholder="Choose a username">
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">This will be used for login</p>
+                        </div>
+
+                        <div>
+                            <label for="signupPassword" class="block text-sm font-semibold text-slate-900 dark:text-white mb-2">Password *</label>
+                            <div class="relative">
+                                <input type="password" id="signupPassword" required minlength="8" class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl form-input pr-12" placeholder="Create a password" oninput="checkPasswordStrength(this.value)">
+                                <button type="button" onclick="togglePassword('signupPassword', 'passwordToggle')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                    <span id="passwordToggle" class="material-symbols-outlined">visibility_off</span>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <div id="passwordStrength" class="text-xs"></div>
+                                <div class="grid grid-cols-4 gap-1 mt-1">
+                                    <div id="strength1" class="h-1 rounded bg-slate-200 dark:bg-slate-700"></div>
+                                    <div id="strength2" class="h-1 rounded bg-slate-200 dark:bg-slate-700"></div>
+                                    <div id="strength3" class="h-1 rounded bg-slate-200 dark:bg-slate-700"></div>
+                                    <div id="strength4" class="h-1 rounded bg-slate-200 dark:bg-slate-700"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="confirmPassword" class="block text-sm font-semibold text-slate-900 dark:text-white mb-2">Confirm Password *</label>
+                            <div class="relative">
+                                <input type="password" id="confirmPassword" required minlength="8" class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl form-input pr-12" placeholder="Confirm your password" oninput="checkPasswordMatch()">
+                                <button type="button" onclick="togglePassword('confirmPassword', 'confirmPasswordToggle')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                    <span id="confirmPasswordToggle" class="material-symbols-outlined">visibility_off</span>
+                                </button>
+                            </div>
+                            <div id="passwordMatch" class="text-xs mt-1"></div>
+                        </div>
+
+                        <div class="flex items-start">
+                            <input type="checkbox" id="terms" required class="mt-1 rounded border-slate-300 text-primary focus:ring-primary">
+                            <label for="terms" class="ml-2 text-sm text-slate-700 dark:text-slate-300">
+                                I agree to the <a href="#" class="text-primary hover:text-primary-hover font-semibold">Terms of Service</a> and <a href="#" class="text-primary hover:text-primary-hover font-semibold">Privacy Policy</a>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition-colors">
+                            Create Account
+                        </button>
+
+                        <div class="text-center pt-4 border-t border-slate-200 dark:border-slate-700">
+                            <p class="text-slate-600 dark:text-slate-400">
+                                Already have an account? 
+                                <button onclick="showView('login')" class="text-primary hover:text-primary-hover font-semibold">Sign in here</button>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESET PASSWORD PAGE (reset.html) -->
+        <div id="resetView" class="view-container">
+            <div class="max-w-md mx-auto">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8">
+                    <div class="text-center mb-8">
+                        <div class="flex justify-center mb-4">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiMwZjFiM2QiLz4KPHBhdGggZD0iTTMyIDI0TDI0IDMySDQwTDMyIDI0WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTMyIDQwTDQwIDMySDI0TDMyIDQwWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==" 
+                                 alt="NSUK Logo" 
+                                 class="h-16 w-16 rounded-xl">
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Reset Password</h2>
+                        <p class="text-slate-600 dark:text-slate-400 mt-2">Recover your account access</p>
+                    </div>
+
+                    <div class="mb-6">
+                        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900 rounded-xl p-4">
+                            <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Password Reset Process</h3>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">
+                                Enter your email address or username below. If an account exists, you'll receive password reset instructions.
+                            </p>
+                        </div>
+                    </div>
+
+                    <form id="resetForm" class="space-y-6">
+                        <div>
+                            <label for="resetIdentifier" class="block text-sm font-semibold text-slate-900 dark:text-white mb-2">Email or Username *</label>
+                            <input type="text" id="resetIdentifier" required class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl form-input" placeholder="Enter your email or username">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-900 dark:text-white mb-3">Account Type</label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="user_type" value="student" class="sr-only peer" checked>
+                                    <div class="p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-center transition-all peer-checked:border-primary peer-checked:bg-primary/10">
+                                        <span class="material-symbols-outlined block text-2xl mb-2">school</span>
+                                        <span class="font-semibold">Student</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="user_type" value="lecturer" class="sr-only peer">
+                                    <div class="p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-center transition-all peer-checked:border-primary peer-checked:bg-primary/10">
+                                        <span class="material-symbols-outlined block text-2xl mb-2">co_present</span>
+                                        <span class="font-semibold">Lecturer</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="user_type" value="admin" class="sr-only peer">
+                                    <div class="p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-center transition-all peer-checked:border-primary peer-checked:bg-primary/10">
+                                        <span class="material-symbols-outlined block text-2xl mb-2">admin_panel_settings</span>
+                                        <span class="font-semibold">Admin</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition-colors">
+                            Send Reset Instructions
+                        </button>
+
+                        <div class="text-center pt-4">
+                            <p class="text-slate-600 dark:text-slate-400">
+                                Remember your password? 
+                                <button onclick="showView('login')" class="text-primary hover:text-primary-hover font-semibold">Back to login</button>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOGOUT PAGE (logout.html) -->
+        <div id="logoutView" class="view-container">
+            <div class="max-w-md mx-auto">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8 text-center">
+                    <span class="material-symbols-outlined text-primary text-6xl mb-4">
+                        logout
+                    </span>
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Logout Successful</h2>
+                    <p class="text-slate-600 dark:text-slate-400 mb-6">You have safely logged out of the system.</p>
+                    
+                    <div class="space-y-4">
+                        <button onclick="showView('login')" class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition">
+                            Login Again
+                        </button>
+                        <button onclick="showView('home')" class="w-full border border-primary text-primary py-3 rounded-xl font-semibold hover:bg-primary/10 transition">
+                            Back to Home
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STUDENT DASHBOARD (student_dashboard.html) -->
+        <div id="studentDashboardView" class="view-container">
+            <div class="student-only">
+                <!-- Student Dashboard content -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 mb-8 border-l-4 border-primary">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 dark:text-white" id="studentName">Loading...</h1>
+                            <p class="text-slate-600 dark:text-slate-400 mt-2">Submit your attendance with location and face verification</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-primary/10 text-primary dark:text-blue-400 px-4 py-2 rounded-lg">
+                                <span class="font-semibold">Student</span>
+                            </div>
+                            <span class="material-symbols-outlined text-4xl text-primary dark:text-blue-400">school</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 space-y-6">
+                        <!-- Location Capture -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                            <div class="flex items-center mb-6">
+                                <div class="flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl mr-4">
+                                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">location_on</span>
+                                </div>
+                                <h2 class="text-xl font-bold text-slate-900 dark:text-white">1. Capture Location</h2>
+                            </div>
+                            
+                            <div class="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl mb-4">
+                                <button id="captureLocation" class="bg-primary hover:bg-primary-hover text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center">
+                                    <span class="material-symbols-outlined mr-2">location_on</span>
+                                    Capture Location
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Face Capture -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                            <div class="flex items-center mb-6">
+                                <div class="flex items-center justify-center w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl mr-4">
+                                    <span class="material-symbols-outlined text-purple-600 dark:text-purple-400">face</span>
+                                </div>
+                                <h2 class="text-xl font-bold text-slate-900 dark:text-white">2. Capture Face</h2>
+                            </div>
+                            
+                            <div class="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-xl">
+                                <div id="cameraContainer" class="hidden">
+                                    <video id="video" width="100%" height="auto" autoplay playsinline class="rounded-xl"></video>
+                                </div>
+                                <div id="noCamera" class="text-center py-8">
+                                    <span class="material-symbols-outlined text-4xl text-slate-400 mb-4">videocam_off</span>
+                                    <p class="text-slate-600 dark:text-slate-400">Camera will appear here when started</p>
+                                </div>
+                                
+                                <div class="flex flex-wrap gap-4 mt-4">
+                                    <button id="startCamera" class="bg-primary hover:bg-primary-hover text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center">
+                                        <span class="material-symbols-outlined mr-2">videocam</span>
+                                        Start Camera
+                                    </button>
+                                    <button id="captureFace" class="bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center" disabled>
+                                        <span class="material-symbols-outlined mr-2">camera</span>
+                                        Capture Face
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Attendance Form -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                            <div class="flex items-center mb-6">
+                                <div class="flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl mr-4">
+                                    <span class="material-symbols-outlined text-green-600 dark:text-green-400">fact_check</span>
+                                </div>
+                                <h2 class="text-xl font-bold text-slate-900 dark:text-white">3. Submit Attendance</h2>
+                            </div>
+                            
+                            <form id="attendanceForm" class="space-y-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Course Code *</label>
+                                    <select id="courseCode" required class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900">
+                                        <option value="">Select Course</option>
+                                        <option value="URP213">URP 213 - Introduction to Land Surveying</option>
+                                        <option value="URP313">URP 313 - Regional Development Planning</option>
+                                        <option value="URP431">URP 431 - Planning Studio VII (Master Plan)</option>
+                                        <option value="URP435">URP 435 - Public Utilities and Services</option>
+                                        <option value="URP419">URP 419 - Pollution Control and Management</option>
+                                        <option value="URP302">URP 302 - Housing and Community Development</option>
+                                    </select>
+                                </div>
+                                
+                                <button type="submit" id="submitAttendanceBtn" class="w-full bg-primary hover:bg-primary-hover text-white py-4 rounded-xl font-semibold transition-colors flex items-center justify-center" disabled>
+                                    <span class="material-symbols-outlined mr-2">check_circle</span>
+                                    Submit Attendance
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="space-y-6">
+                        <!-- Student Info -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Student Information</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center space-x-3">
+                                    <span class="material-symbols-outlined text-slate-400">person</span>
+                                    <div>
+                                        <p class="text-sm text-slate-600 dark:text-slate-400">Full Name</p>
+                                        <p id="studentFullName" class="font-medium">-</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="material-symbols-outlined text-slate-400">badge</span>
+                                    <div>
+                                        <p class="text-sm text-slate-600 dark:text-slate-400">Matric Number</p>
+                                        <p id="studentMatric" class="font-mono font-medium">-</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Attendance -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Recent Attendance</h3>
+                            <div id="recentAttendance" class="space-y-4 max-h-[400px] overflow-y-auto">
+                                <div class="text-center py-8">
+                                    <span class="material-symbols-outlined text-4xl text-slate-400 mb-4">history</span>
+                                    <p class="text-slate-500 dark:text-slate-400">No attendance records yet</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LECTURER DASHBOARD (lecturer_dashboard.html) -->
+        <div id="lecturerDashboardView" class="view-container">
+            <div class="lecturer-only">
+                <!-- Lecturer Dashboard content -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 mb-8 border-l-4 border-primary">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 dark:text-white" id="lecturerName">Loading...</h1>
+                            <p class="text-slate-600 dark:text-slate-400 mt-2">Manage classes and track student attendance</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-primary/10 text-primary dark:text-blue-400 px-4 py-2 rounded-lg">
+                                <span class="font-semibold">Lecturer</span>
+                            </div>
+                            <span class="material-symbols-outlined text-4xl text-primary dark:text-blue-400">co_present</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="stat-gradient-1 text-white rounded-2xl p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm opacity-90">Total Students</p>
+                                <p class="text-3xl font-bold" id="totalStudents">0</p>
+                            </div>
+                            <span class="material-symbols-outlined text-4xl opacity-80">groups</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-gradient-2 text-white rounded-2xl p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm opacity-90">Present Today</p>
+                                <p class="text-3xl font-bold" id="presentToday">0</p>
+                            </div>
+                            <span class="material-symbols-outlined text-4xl opacity-80">check_circle</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-gradient-3 text-white rounded-2xl p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm opacity-90">Active Sessions</p>
+                                <p class="text-3xl font-bold" id="activeSessions">0</p>
+                            </div>
+                            <span class="material-symbols-outlined text-4xl opacity-80">event_available</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Attendance Records -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Recent Attendance</h2>
+                        <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="bg-slate-50 dark:bg-slate-900">
+                                        <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Student</th>
+                                        <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Course</th>
+                                        <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Date & Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lecturerRecords">
+                                    <tr>
+                                        <td colspan="3" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
+                                            No attendance records yet
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="space-y-6">
+                        <!-- Quick Actions -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Quick Actions</h2>
+                            <div class="space-y-4">
+                                <button onclick="startSession()" class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined mr-2">add_circle</span>
+                                    Start New Session
+                                </button>
+                                <button onclick="generateReport()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined mr-2">summarize</span>
+                                    Generate Report
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Course Summary -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Course Summary</h2>
+                            <div id="courseSummary" class="space-y-4">
+                                <p class="text-slate-500 dark:text-slate-400 text-center py-4">
+                                    No course data available
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN DASHBOARD (admin_dashboard.html) -->
+        <div id="adminDashboardView" class="view-container">
+            <div class="admin-only">
+                <!-- Admin Dashboard content -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 mb-8 border-l-4 border-primary">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 dark:text-white" id="adminName">Loading...</h1>
+                            <p class="text-slate-600 dark:text-slate-400 mt-2">System administration and monitoring</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-primary/10 text-primary dark:text-blue-400 px-4 py-2 rounded-lg">
+                                <span class="font-semibold">Administrator</span>
+                            </div>
+                            <span class="material-symbols-outlined text-4xl text-primary dark:text-blue-400">admin_panel_settings</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Total Users</p>
+                                <p class="text-3xl font-bold text-slate-900 dark:text-white" id="totalUsers">0</p>
+                            </div>
+                            <span class="material-symbols-outlined text-primary text-3xl">groups</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Total Records</p>
+                                <p class="text-3xl font-bold text-slate-900 dark:text-white" id="totalRecords">0</p>
+                            </div>
+                            <span class="material-symbols-outlined text-green-600 text-3xl">fact_check</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Active PINs</p>
+                                <p class="text-3xl font-bold text-slate-900 dark:text-white" id="activePins">0</p>
+                            </div>
+                            <span class="material-symbols-outlined text-purple-600 text-3xl">key</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Pending Approvals</p>
+                                <p class="text-3xl font-bold text-slate-900 dark:text-white" id="pendingApprovals">0</p>
+                            </div>
+                            <span class="material-symbols-outlined text-yellow-600 text-3xl">pending</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- PIN Management -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">PIN Management</h2>
+                        <div class="space-y-4">
+                            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl">
+                                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Generate New PIN</h3>
+                                <div class="space-y-3">
+                                    <input type="text" id="lecturerNameInput" placeholder="Lecturer Name" class="w-full px-3 py-2 border rounded-lg">
+                                    <input type="number" id="expiryDays" placeholder="Expiry Days (7)" value="7" class="w-full px-3 py-2 border rounded-lg">
+                                    <button onclick="generatePIN()" class="w-full bg-primary hover:bg-primary-hover text-white py-2 rounded-lg font-semibold">
+                                        Generate PIN
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="generatedPIN" class="hidden bg-green-50 dark:bg-green-900/20 p-4 rounded-xl">
+                                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Generated PIN</h3>
+                                <p class="font-mono text-2xl text-center my-2" id="pinDisplay"></p>
+                                <p class="text-sm text-slate-600 dark:text-slate-400 text-center" id="pinDetails"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Recent Activity</h2>
+                        <div id="recentActivity" class="space-y-4">
+                            <div class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                                <span class="material-symbols-outlined text-blue-500">info</span>
+                                <div>
+                                    <p class="font-medium text-slate-900 dark:text-white">System Started</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Just now</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-surface-light dark:bg-surface-dark border-t border-slate-200 dark:border-slate-800 mt-12">
+        <div class="container mx-auto px-4 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center space-x-3">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iOCIgZmlsbD0iIzBmMWIzZCIvPgo8cGF0aCBkPSJNMTYgMTJMMTIgMTZIMjBMMTYgMTJaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTYgMjBMMjAgMTZIMTJMMTYgMjBaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K" 
+                             alt="NSUK Logo" 
+                             class="h-8 w-8 rounded">
+                        <div>
+                            <p class="font-bold text-slate-900 dark:text-white">NSUK URP</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">E-Attendance System</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center md:text-right">
+                    <p class="text-sm text-slate-600 dark:text-slate-400">
+                        Department of Urban and Regional Planning<br>
+                        Nasarawa State University, Keffi
+                    </p>
+                    <p class="text-xs text-slate-500 dark:text-slate-500 mt-2">
+                        Developed by A. Suleiman • © <span id="currentYear"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Current user data
+        let currentUser = null;
+        let currentLocation = null;
+        let faceImage = null;
+        let videoStream = null;
+        
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        
+        // Theme toggle function
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('themeIcon');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                themeIcon.textContent = 'dark_mode';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                themeIcon.textContent = 'light_mode';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        
+        // Check for saved theme preference
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const themeIcon = document.getElementById('themeIcon');
+            
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                themeIcon.textContent = 'light_mode';
+            } else {
+                document.documentElement.classList.add('light');
+                themeIcon.textContent = 'dark_mode';
+            }
+        }
+        
+        // View management
+        function showView(viewName) {
+            // Hide all views
+            document.querySelectorAll('.view-container').forEach(view => {
+                view.classList.remove('active');
+            });
+            
+            // Show selected view
+            document.getElementById(viewName + 'View').classList.add('active');
+            
+            // Update navigation
+            updateNavigation(viewName);
+            
+            // Initialize view-specific functionality
+            initializeView(viewName);
+        }
+        
+        function updateNavigation(viewName) {
+            const authLinks = document.getElementById('authLinks');
+            const userInfo = document.getElementById('userInfo');
+            const userRole = document.getElementById('userRole');
+            
+            if (currentUser) {
+                authLinks.classList.add('hidden');
+                userInfo.classList.remove('hidden');
+                userRole.textContent = `${currentUser.fullName} (${currentUser.role})`;
+            } else {
+                authLinks.classList.remove('hidden');
+                userInfo.classList.add('hidden');
+            }
+        }
+        
+        function initializeView(viewName) {
+            switch(viewName) {
+                case 'student-dashboard':
+                    loadStudentDashboard();
+                    break;
+                case 'lecturer-dashboard':
+                    loadLecturerDashboard();
+                    break;
+                case 'admin-dashboard':
+                    loadAdminDashboard();
+                    break;
+                case 'signup':
+                    selectRole('student'); // Default role
+                    break;
+            }
+        }
+        
+        // Authentication functions
+        function login(username, password, remember) {
+            // Simulate login - in real app, this would be an API call
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const user = users.find(u => u.username === username || u.matricNumber === username);
+            
+            if (user && user.password === password) {
+                currentUser = user;
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                
+                // Redirect based on role
+                switch(user.role) {
+                    case 'student':
+                        showView('student-dashboard');
+                        break;
+                    case 'lecturer':
+                        showView('lecturer-dashboard');
+                        break;
+                    case 'admin':
+                        showView('admin-dashboard');
+                        break;
+                    default:
+                        showView('home');
+                }
+                
+                showFlashMessage('Login successful!', 'success');
+                return true;
+            } else {
+                showFlashMessage('Invalid username or password', 'error');
+                return false;
+            }
+        }
+        
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            showView('logout');
+            showFlashMessage('You have been logged out successfully.', 'success');
+        }
+        
+        function signup(userData) {
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            
+            // Check if username exists
+            if (users.find(u => u.username === userData.username)) {
+                showFlashMessage('Username already exists', 'error');
+                return false;
+            }
+            
+            // Check if matric number exists (for students)
+            if (userData.role === 'student' && users.find(u => u.matricNumber === userData.matricNumber)) {
+                showFlashMessage('Matric number already registered', 'error');
+                return false;
+            }
+            
+            // Check for admin restriction
+            if (userData.role === 'admin' && users.find(u => u.role === 'admin')) {
+                showFlashMessage('Only one administrator account is allowed.', 'error');
+                return false;
+            }
+            
+            // Add new user
+            users.push(userData);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Auto-login
+            currentUser = userData;
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+            
+            showFlashMessage('Account created successfully!', 'success');
+            
+            // Redirect based on role
+            switch(userData.role) {
+                case 'student':
+                    showView('student-dashboard');
+                    break;
+                case 'lecturer':
+                    showFlashMessage('Lecturer account created! Please wait for admin approval.', 'warning');
+                    showView('home');
+                    break;
+                case 'admin':
+                    showView('admin-dashboard');
+                    break;
+            }
+            
+            return true;
+        }
+        
+        // Student Dashboard Functions
+        function loadStudentDashboard() {
+            if (!currentUser || currentUser.role !== 'student') {
+                showView('home');
+                return;
+            }
+            
+            document.getElementById('studentName').textContent = `Welcome, ${currentUser.fullName}!`;
+            document.getElementById('studentFullName').textContent = currentUser.fullName;
+            document.getElementById('studentMatric').textContent = currentUser.matricNumber;
+            
+            // Load attendance records
+            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            const studentRecords = records.filter(r => r.studentId === currentUser.id);
+            
+            const recentAttendance = document.getElementById('recentAttendance');
+            if (studentRecords.length > 0) {
+                recentAttendance.innerHTML = studentRecords.slice(0, 5).map(record => `
+                    <div class="border-l-4 border-primary pl-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-900/50 rounded-r-xl">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="font-medium text-slate-900 dark:text-white">${record.courseCode}</p>
+                            <span class="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">Present</span>
+                        </div>
+                        <p class="text-sm text-slate-600 dark:text-slate-400">
+                            ${new Date(record.timestamp).toLocaleDateString()} at ${new Date(record.timestamp).toLocaleTimeString()}
+                        </p>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        // Lecturer Dashboard Functions
+        function loadLecturerDashboard() {
+            if (!currentUser || currentUser.role !== 'lecturer') {
+                showView('home');
+                return;
+            }
+            
+            document.getElementById('lecturerName').textContent = `Welcome, ${currentUser.fullName}!`;
+            
+            // Load statistics (demo data)
+            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            const today = new Date().toDateString();
+            const todayRecords = records.filter(r => new Date(r.timestamp).toDateString() === today);
+            
+            document.getElementById('totalStudents').textContent = '45';
+            document.getElementById('presentToday').textContent = todayRecords.length.toString();
+            document.getElementById('activeSessions').textContent = '2';
+            
+            // Load recent attendance
+            const lecturerRecords = document.getElementById('lecturerRecords');
+            if (records.length > 0) {
+                lecturerRecords.innerHTML = records.slice(0, 5).map(record => `
+                    <tr class="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                        <td class="py-3 px-4">${record.studentName}</td>
+                        <td class="py-3 px-4">
+                            <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">
+                                ${record.courseCode}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div>${new Date(record.timestamp).toLocaleDateString()}</div>
+                            <div class="text-sm text-slate-600 dark:text-slate-400">${new Date(record.timestamp).toLocaleTimeString()}</div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        // Admin Dashboard Functions
+        function loadAdminDashboard() {
+            if (!currentUser || currentUser.role !== 'admin') {
+                showView('home');
+                return;
+            }
+            
+            document.getElementById('adminName').textContent = `Welcome, ${currentUser.fullName}!`;
+            
+            // Load statistics
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            const pendingLecturers = users.filter(u => u.role === 'lecturer' && !u.isApproved);
+            
+            document.getElementById('totalUsers').textContent = users.length;
+            document.getElementById('totalRecords').textContent = records.length;
+            document.getElementById('activePins').textContent = '3';
+            document.getElementById('pendingApprovals').textContent = pendingLecturers.length;
+        }
+        
+        // Student-specific functions
+        function captureLocation() {
+            if (navigator.geolocation) {
+                const btn = document.getElementById('captureLocation');
+                btn.innerHTML = '<span class="material-symbols-outlined mr-2 animate-spin">sync</span>Capturing...';
+                btn.disabled = true;
+                
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        currentLocation = {
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        };
+                        showFlashMessage('Location captured successfully!', 'success');
+                        btn.innerHTML = '<span class="material-symbols-outlined mr-2">location_on</span>Location Captured';
+                        checkAttendanceReady();
+                    },
+                    error => {
+                        showFlashMessage('Error capturing location: ' + error.message, 'error');
+                        btn.innerHTML = '<span class="material-symbols-outlined mr-2">location_on</span>Capture Location';
+                        btn.disabled = false;
+                    }
+                );
+            } else {
+                showFlashMessage('Geolocation not supported', 'error');
+            }
+        }
+        
+        function startCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    } 
+                })
+                .then(stream => {
+                    videoStream = stream;
+                    const video = document.getElementById('video');
+                    video.srcObject = stream;
+                    
+                    document.getElementById('cameraContainer').classList.remove('hidden');
+                    document.getElementById('noCamera').classList.add('hidden');
+                    document.getElementById('captureFace').disabled = false;
+                })
+                .catch(error => {
+                    showFlashMessage('Could not access camera: ' + error.message, 'error');
+                });
+            }
+        }
+        
+        function captureFace() {
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            faceImage = canvas.toDataURL('image/jpeg', 0.8);
+            
+            // Stop camera
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            
+            showFlashMessage('Face captured successfully!', 'success');
+            document.getElementById('captureFace').textContent = 'Face Captured';
+            document.getElementById('captureFace').disabled = true;
+            checkAttendanceReady();
+        }
+        
+        function checkAttendanceReady() {
+            const courseCode = document.getElementById('courseCode');
+            const submitBtn = document.getElementById('submitAttendanceBtn');
+            
+            if (currentLocation && faceImage && courseCode.value) {
+                submitBtn.disabled = false;
+            }
+        }
+        
+        function submitAttendance() {
+            const courseCode = document.getElementById('courseCode').value;
+            
+            if (!currentLocation || !faceImage || !courseCode) {
+                showFlashMessage('Please complete all steps before submitting', 'error');
+                return;
+            }
+            
+            // Save attendance record
+            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            records.push({
+                id: Date.now(),
+                studentId: currentUser.id,
+                studentName: currentUser.fullName,
+                matricNumber: currentUser.matricNumber,
+                courseCode: courseCode,
+                latitude: currentLocation.lat,
+                longitude: currentLocation.lon,
+                faceImage: faceImage,
+                timestamp: new Date().toISOString()
+            });
+            
+            localStorage.setItem('attendanceRecords', JSON.stringify(records));
+            
+            showFlashMessage('Attendance submitted successfully!', 'success');
+            
+            // Reset form
+            currentLocation = null;
+            faceImage = null;
+            document.getElementById('captureLocation').innerHTML = '<span class="material-symbols-outlined mr-2">location_on</span>Capture Location';
+            document.getElementById('captureLocation').disabled = false;
+            document.getElementById('captureFace').innerHTML = '<span class="material-symbols-outlined mr-2">camera</span>Capture Face';
+            document.getElementById('captureFace').disabled = false;
+            document.getElementById('courseCode').value = '';
+            document.getElementById('submitAttendanceBtn').disabled = true;
+            document.getElementById('cameraContainer').classList.add('hidden');
+            document.getElementById('noCamera').classList.remove('hidden');
+            
+            // Reload dashboard
+            loadStudentDashboard();
+        }
+        
+        // Lecturer-specific functions
+        function startSession() {
+            showFlashMessage('Starting new session... (Demo)', 'info');
+        }
+        
+        function generateReport() {
+            showFlashMessage('Generating report... (Demo)', 'info');
+        }
+        
+        // Admin-specific functions
+        function generatePIN() {
+            const lecturerName = document.getElementById('lecturerNameInput').value;
+            const expiryDays = parseInt(document.getElementById('expiryDays').value) || 7;
+            
+            if (!lecturerName) {
+                showFlashMessage('Please enter lecturer name', 'error');
+                return;
+            }
+            
+            // Generate 6-digit PIN
+            const pin = Math.floor(100000 + Math.random() * 900000).toString();
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + expiryDays);
+            
+            // Display PIN
+            document.getElementById('pinDisplay').textContent = pin;
+            document.getElementById('pinDetails').textContent = `For ${lecturerName}, expires ${expiryDate.toLocaleDateString()}`;
+            document.getElementById('generatedPIN').classList.remove('hidden');
+            
+            showFlashMessage('PIN generated successfully!', 'success');
+        }
+        
+        // Utility functions
+        function showFlashMessage(message, type = 'info') {
+            const flashMessages = document.getElementById('flashMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `rounded-xl p-4 mb-3 ${
+                type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 text-green-800 dark:text-green-300' :
+                type === 'error' ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-300' :
+                'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900 text-blue-800 dark:text-blue-300'
+            }`;
+            messageDiv.textContent = message;
+            flashMessages.appendChild(messageDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 5000);
+        }
+        
+        // Signup functions
+        function selectRole(role) {
+            document.getElementById('selectedRole').value = role;
+            
+            // Update button styles
+            ['student', 'lecturer', 'admin'].forEach(r => {
+                const btn = document.getElementById('role' + r.charAt(0).toUpperCase() + r.slice(1));
+                if (r === role) {
+                    btn.classList.add('border-primary', 'bg-primary/10');
+                    btn.classList.remove('border-slate-200', 'dark:border-slate-700');
+                } else {
+                    btn.classList.remove('border-primary', 'bg-primary/10');
+                    btn.classList.add('border-slate-200', 'dark:border-slate-700');
+                }
+            });
+            
+            // Show/hide matric field
+            const matricField = document.getElementById('matricField');
+            if (role === 'student') {
+                matricField.style.display = 'block';
+            } else {
+                matricField.style.display = 'none';
+            }
+        }
+        
+        function togglePassword(inputId, toggleId) {
+            const input = document.getElementById(inputId);
+            const toggle = document.getElementById(toggleId);
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggle.textContent = 'visibility';
+            } else {
+                input.type = 'password';
+                toggle.textContent = 'visibility_off';
+            }
+        }
+        
+        function checkPasswordStrength(password) {
+            const strength = {
+                length: password.length >= 8,
+                hasUpper: /[A-Z]/.test(password),
+                hasLower: /[a-z]/.test(password),
+                hasNumber: /\d/.test(password),
+                hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+            };
+            
+            const score = Object.values(strength).filter(Boolean).length;
+            const strengthDiv = document.getElementById('passwordStrength');
+            const bars = [1, 2, 3, 4].map(i => document.getElementById('strength' + i));
+            
+            bars.forEach((bar, index) => {
+                if (index < score) {
+                    if (score >= 4) bar.className = 'h-1 rounded bg-green-500';
+                    else if (score >= 3) bar.className = 'h-1 rounded bg-blue-500';
+                    else if (score >= 2) bar.className = 'h-1 rounded bg-yellow-500';
+                    else bar.className = 'h-1 rounded bg-red-500';
+                } else {
+                    bar.className = 'h-1 rounded bg-slate-200 dark:bg-slate-700';
+                }
+            });
+            
+            let message = '';
+            let color = '';
+            
+            if (score >= 4) {
+                message = 'Strong password';
+                color = 'text-green-600 dark:text-green-400';
+            } else if (score >= 3) {
+                message = 'Good password';
+                color = 'text-blue-600 dark:text-blue-400';
+            } else if (score >= 2) {
+                message = 'Fair password';
+                color = 'text-yellow-600 dark:text-yellow-400';
+            } else if (password.length > 0) {
+                message = 'Weak password';
+                color = 'text-red-600 dark:text-red-400';
+            }
+            
+            strengthDiv.innerHTML = message ? `<span class="${color} font-medium">${message}</span>` : '';
+        }
+        
+        function checkPasswordMatch() {
+            const password = document.getElementById('signupPassword').value;
+            const confirm = document.getElementById('confirmPassword').value;
+            const matchDiv = document.getElementById('passwordMatch');
+            
+            if (confirm.length === 0) {
+                matchDiv.innerHTML = '';
+                return;
+            }
+            
+            if (password === confirm) {
+                matchDiv.innerHTML = '<span class="text-green-600 dark:text-green-400 font-medium">✓ Passwords match</span>';
+            } else {
+                matchDiv.innerHTML = '<span class="text-red-600 dark:text-red-400 font-medium">✗ Passwords do not match</span>';
+            }
+        }
+        
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTheme();
+            
+            // Check for existing user session
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                updateNavigation();
+                
+                // Redirect to appropriate dashboard
+                switch(currentUser.role) {
+                    case 'student':
+                        showView('student-dashboard');
+                        break;
+                    case 'lecturer':
+                        showView('lecturer-dashboard');
+                        break;
+                    case 'admin':
+                        showView('admin-dashboard');
+                        break;
+                    default:
+                        showView('home');
+                }
+            } else {
+                showView('splash');
+            }
+            
+            // Login form
+            document.getElementById('loginForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const username = document.getElementById('loginUsername').value;
+                const password = document.getElementById('loginPassword').value;
+                const remember = document.getElementById('remember').checked;
+                
+                login(username, password, remember);
+            });
+            
+            // Signup form
+            document.getElementById('signupForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const role = document.getElementById('selectedRole').value;
+                const fullName = document.getElementById('fullName').value;
+                const username = document.getElementById('signupUsername').value;
+                const password = document.getElementById('signupPassword').value;
+                const matricNumber = document.getElementById('matricNumber').value;
+                
+                if (role === 'student' && !matricNumber) {
+                    showFlashMessage('Matric number is required for students', 'error');
+                    return;
+                }
+                
+                if (password !== document.getElementById('confirmPassword').value) {
+                    showFlashMessage('Passwords do not match', 'error');
+                    return;
+                }
+                
+                const userData = {
+                    id: Date.now(),
+                    username: username,
+                    password: password, // In real app, this would be hashed
+                    role: role,
+                    fullName: fullName,
+                    matricNumber: role === 'student' ? matricNumber : null,
+                    isApproved: role !== 'lecturer', // Lecturers need approval
+                    createdAt: new Date().toISOString()
+                };
+                
+                signup(userData);
+            });
+            
+            // Reset form
+            document.getElementById('resetForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                showFlashMessage('Reset instructions have been sent to your email.', 'success');
+            });
+            
+            // Student dashboard buttons
+            document.getElementById('captureLocation')?.addEventListener('click', captureLocation);
+            document.getElementById('startCamera')?.addEventListener('click', startCamera);
+            document.getElementById('captureFace')?.addEventListener('click', captureFace);
+            document.getElementById('attendanceForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitAttendance();
+            });
+            document.getElementById('courseCode')?.addEventListener('change', checkAttendanceReady);
+        });
+    </script>
 </body>
 </html>
