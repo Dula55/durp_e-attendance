@@ -7,7 +7,7 @@
         {% if current_user.role == 'student' %}Student Dashboard
         {% elif current_user.role == 'lecturer' %}Lecturer Dashboard
         {% elif current_user.role == 'admin' %}Admin Dashboard
-        {% else %}NSUK URP E-Attendance System{% endif %}
+        {% else %}Dashboard{% endif %} - NSUK URP E-Attendance System
     </title>
     
     <!-- Google Fonts -->
@@ -57,38 +57,6 @@
             font-family: 'Lexend', sans-serif;
         }
         
-        /* Student Dashboard Styles */
-        #video {
-            transform: scaleX(-1); /* Mirror the video for more natural selfie view */
-            border-radius: 1rem;
-            background: #000;
-        }
-        
-        .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #0f1b3d;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-        
-        /* Lecturer Dashboard Styles */
         .stat-gradient-1 {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
@@ -107,6 +75,20 @@
         
         .stat-gradient-5 {
             background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0f1b3d;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         
         .course-filter-btn {
@@ -203,9 +185,53 @@
             text-align: center;
             padding: 20px;
         }
+        
+        #video {
+            transform: scaleX(-1); /* Mirror the video for more natural selfie view */
+            border-radius: 1rem;
+            background: #000;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display">
+    {% macro get_course_name(course_code) %}
+        {% if course_code == 'URP213' %}Introduction to Land Surveying
+        {% elif course_code == 'URP313' %}Regional Development Planning
+        {% elif course_code == 'URP431' %}Planning Studio VII (Master Plan)
+        {% elif course_code == 'URP435' %}Public Utilities and Services
+        {% elif course_code == 'URP419' %}Pollution Control and Management
+        {% elif course_code == 'URP302' %}Housing and Community Development
+        {% else %}Urban Planning Course{% endif %}
+    {% endmacro %}
+
+    {% macro get_course_attendance_count(course_code) %}
+        {% set ns = namespace(count=0) %}
+        {% for record in records %}
+            {% if record.course_code == course_code %}
+                {% set ns.count = ns.count + 1 %}
+            {% endif %}
+        {% endfor %}
+        {{ ns.count }}
+    {% endmacro %}
+
+    {% macro get_face_image_path(record) %}
+        {% if record.face_image_path and record.face_image_path != 'None' and record.face_image_path != '' %}
+            {{ url_for('static', filename='attendance_faces/' + record.face_image_path) }}
+        {% else %}
+            {{ url_for('static', filename='images/default-face-placeholder.jpg') }}
+        {% endif %}
+    {% endmacro %}
+
     <!-- Navigation Bar -->
     <nav class="bg-surface-light dark:bg-surface-dark shadow-md">
         <div class="container mx-auto px-4 py-3">
@@ -221,7 +247,7 @@
                             {% if current_user.role == 'student' %}Student Dashboard
                             {% elif current_user.role == 'lecturer' %}Lecturer Dashboard
                             {% elif current_user.role == 'admin' %}Admin Dashboard
-                            {% else %}Dashboard{% endif %}
+                            {% endif %}
                         </p>
                     </div>
                 </div>
@@ -230,16 +256,17 @@
                 <div class="flex items-center space-x-4">
                     <div class="flex items-center space-x-3">
                         <span class="text-sm text-slate-700 dark:text-slate-300">
-                            <span class="font-semibold">{{ current_user.full_name }}</span> 
-                            ({{ current_user.role|title }})
+                            <span class="font-semibold">{{ current_user.full_name }}</span> ({{ current_user.role|title }})
                         </span>
-                        
-                        {% if current_user.role == 'lecturer' and not current_user.is_approved and flask_session.get('lecturer_pin_access') %}
+                        {% if current_user.role == 'lecturer' and current_user.is_approved %}
+                        <span class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs px-2 py-1 rounded-full">
+                            Approved
+                        </span>
+                        {% elif current_user.role == 'lecturer' and not current_user.is_approved %}
                         <span class="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300 text-xs px-2 py-1 rounded-full">
-                            PIN Access
+                            Pending Approval
                         </span>
                         {% endif %}
-                        
                         <a href="{{ url_for('home') }}" 
                            class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
                             Back to Home
@@ -277,11 +304,10 @@
         {% endwith %}
     </div>
 
-    <!-- Main Content -->
+    <!-- Main Content - Role-based rendering -->
     <main class="container mx-auto px-4 py-8">
         {% if current_user.role == 'student' %}
-            <!-- STUDENT DASHBOARD CONTENT -->
-            <!-- Welcome Message -->
+            <!-- STUDENT DASHBOARD -->
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 mb-8 border-l-4 border-primary">
                 <div class="flex items-center justify-between">
                     <div>
@@ -586,18 +612,7 @@
             </div>
 
         {% elif current_user.role == 'lecturer' %}
-            <!-- LECTURER DASHBOARD CONTENT -->
-            {% macro get_course_name(course_code) %}
-                {% if course_code == 'URP213' %}Introduction to Land Surveying
-                {% elif course_code == 'URP313' %}Regional Development Planning
-                {% elif course_code == 'URP431' %}Planning Studio VII (Master Plan)
-                {% elif course_code == 'URP435' %}Public Utilities and Services
-                {% elif course_code == 'URP419' %}Pollution Control and Management
-                {% elif course_code == 'URP302' %}Housing and Community Development
-                {% else %}Urban Planning Course{% endif %}
-            {% endmacro %}
-
-            <!-- Welcome Message -->
+            <!-- LECTURER DASHBOARD -->
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 mb-8 border-l-4 border-primary">
                 <div class="flex items-center justify-between">
                     <div>
@@ -865,13 +880,7 @@
                                 </div>
                                 <div class="text-right">
                                     <p class="font-bold text-primary dark:text-blue-400">
-                                        {% set ns = namespace(count=0) %}
-                                        {% for record in records %}
-                                            {% if record.course_code == course.code %}
-                                                {% set ns.count = ns.count + 1 %}
-                                            {% endif %}
-                                        {% endfor %}
-                                        {{ ns.count }}
+                                        {{ get_course_attendance_count(course.code) }}
                                     </p>
                                     <p class="text-xs text-slate-500 dark:text-slate-400">records</p>
                                 </div>
@@ -887,8 +896,7 @@
             </div>
 
         {% elif current_user.role == 'admin' %}
-            <!-- ADMIN DASHBOARD CONTENT -->
-            <!-- Welcome Message -->
+            <!-- ADMIN DASHBOARD -->
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 mb-8 border-l-4 border-primary">
                 <div class="flex items-center justify-between">
                     <div>
@@ -1079,11 +1087,11 @@
                                     Registered: {{ lecturer.created_at.strftime('%Y-%m-%d %H:%M') }}
                                 </p>
                                 <div class="flex space-x-2">
-                                    <button onclick="approveLecturer('{{ lecturer.id }}')" 
+                                    <button onclick="approveLecturer({{ lecturer.id }})" 
                                             class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold text-sm transition-colors">
                                         Approve
                                     </button>
-                                    <button onclick="rejectLecturer('{{ lecturer.id }}')" 
+                                    <button onclick="rejectLecturer({{ lecturer.id }})" 
                                             class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-semibold text-sm transition-colors">
                                         Reject
                                     </button>
@@ -1178,7 +1186,7 @@
                                 {% if current_user.role == 'student' %}Student Dashboard
                                 {% elif current_user.role == 'lecturer' %}Lecturer Dashboard
                                 {% elif current_user.role == 'admin' %}Admin Dashboard
-                                {% else %}Dashboard{% endif %}
+                                {% endif %}
                             </p>
                         </div>
                     </div>
@@ -1197,9 +1205,9 @@
         </div>
     </footer>
 
-    <!-- Modals (Conditional based on role) -->
+    <!-- Modals (Role-specific) -->
     {% if current_user.role == 'lecturer' %}
-    <!-- Record Details Modal -->
+    <!-- Record Details Modal (Lecturer) -->
     <div id="recordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
         <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-auto">
             <div class="p-6">
@@ -1229,7 +1237,7 @@
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
+    <!-- Delete Confirmation Modal (Lecturer) -->
     <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
         <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full">
             <div class="p-6">
@@ -1258,7 +1266,7 @@
     {% endif %}
 
     {% if current_user.role == 'admin' %}
-    <!-- PIN Modal -->
+    <!-- PIN Modal (Admin) -->
     <div id="pinModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
         <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full">
             <div class="p-6">
@@ -1324,6 +1332,7 @@
                 themeIcon.textContent = 'dark_mode';
             }
             
+            // Initialize role-specific functionality
             {% if current_user.role == 'student' %}
             initializeStudentDashboard();
             {% elif current_user.role == 'lecturer' %}
@@ -1333,44 +1342,8 @@
             {% endif %}
         });
         
-        // Prevent auto-redirects and keep session alive
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Dashboard loaded - preventing auto-redirect');
-            
-            // Send heartbeat every 60 seconds to keep session alive
-            setInterval(function() {
-                fetch('/session/heartbeat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'same-origin'
-                }).catch(function(error) {
-                    console.log('Heartbeat error:', error);
-                });
-            }, 60000); // 60 seconds
-            
-            // Prevent any redirects initiated by JavaScript
-            const originalPushState = history.pushState;
-            const originalReplaceState = history.replaceState;
-            
-            history.pushState = function() {
-                console.log('pushState intercepted - preventing redirect');
-                return originalPushState.apply(history, arguments);
-            };
-            
-            history.replaceState = function() {
-                console.log('replaceState intercepted - preventing redirect');
-                return originalReplaceState.apply(history, arguments);
-            };
-            
-            window.addEventListener('beforeunload', function(e) {
-                console.log('User is leaving the dashboard');
-            });
-        });
-        
         {% if current_user.role == 'student' %}
-        // STUDENT DASHBOARD FUNCTIONS
+        // ================= STUDENT DASHBOARD FUNCTIONS =================
         function initializeStudentDashboard() {
             let currentLocation = null;
             let faceImage = null;
@@ -1449,51 +1422,14 @@
                             btn.disabled = false;
                         },
                         function(error) {
-                            // Mock location for demo purposes
-                            currentLocation = {
-                                lat: 8.5060,
-                                lon: 7.6866
-                            };
-                            
-                            document.getElementById('locationStatus').innerHTML = `
-                                <span class="material-symbols-outlined align-middle text-green-600">
-                                    check_circle
-                                </span>
-                                Location captured successfully (Demo Mode)
-                            `;
-                            document.getElementById('locationStatus').className = 'text-green-600 dark:text-green-400 text-sm';
-                            document.getElementById('coordinates').classList.remove('hidden');
-                            document.getElementById('latitude').textContent = currentLocation.lat.toFixed(6);
-                            document.getElementById('longitude').textContent = currentLocation.lon.toFixed(6);
-                            
-                            isLocationCaptured = true;
-                            updateSubmitButton();
-                            
+                            alert('Error capturing location: ' + error.message);
                             btn.innerHTML = originalText;
                             btn.disabled = false;
                         },
                         { timeout: 10000, enableHighAccuracy: true }
                     );
                 } else {
-                    // Mock location for browsers without geolocation
-                    currentLocation = {
-                        lat: 8.5060,
-                        lon: 7.6866
-                    };
-                    
-                    document.getElementById('locationStatus').innerHTML = `
-                        <span class="material-symbols-outlined align-middle text-green-600">
-                            check_circle
-                        </span>
-                        Location captured (Demo Mode)
-                    `;
-                    document.getElementById('locationStatus').className = 'text-green-600 dark:text-green-400 text-sm';
-                    document.getElementById('coordinates').classList.remove('hidden');
-                    document.getElementById('latitude').textContent = currentLocation.lat.toFixed(6);
-                    document.getElementById('longitude').textContent = currentLocation.lon.toFixed(6);
-                    
-                    isLocationCaptured = true;
-                    updateSubmitButton();
+                    alert('Geolocation is not supported by your browser');
                 }
             });
             
@@ -1630,9 +1566,9 @@
                         submitBtn.disabled = false;
                     }
                 } catch (error) {
-                    // For demo purposes, simulate success
-                    alert('Attendance submitted successfully in demo mode! Course: ' + courseCode);
-                    window.location.reload();
+                    alert('Network error: ' + error.message);
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
                 }
             });
             
@@ -1642,7 +1578,7 @@
         {% endif %}
         
         {% if current_user.role == 'lecturer' %}
-        // LECTURER DASHBOARD FUNCTIONS
+        // ================= LECTURER DASHBOARD FUNCTIONS =================
         function initializeLecturerDashboard() {
             let currentRecordId = null;
             let recordToDelete = null;
@@ -1677,6 +1613,8 @@
                     noRecordsRow.style.display = visibleCount === 0 ? '' : 'none';
                 }
             }
+            
+            window.filterByCourse = filterByCourse;
             
             async function viewDetails(recordId) {
                 try {
@@ -1764,6 +1702,8 @@
                     `;
                 }
             }
+            
+            window.viewDetails = viewDetails;
             
             function displayRecordDetails(data) {
                 currentRecordId = data.id;
@@ -1985,22 +1925,33 @@
                 currentRecordData = null;
             }
             
-            function closeDeleteModal() {
-                document.getElementById('deleteModal').classList.add('hidden');
-                recordToDelete = null;
+            window.closeModal = closeModal;
+            
+            function downloadCurrentRecordPDF() {
+                if (currentRecordId) {
+                    downloadRecordPDF(currentRecordId);
+                }
             }
+            
+            window.downloadCurrentRecordPDF = downloadCurrentRecordPDF;
             
             function startSession() {
                 alert('Starting new session feature would be implemented here');
             }
             
+            window.startSession = startSession;
+            
             function generateReport() {
                 alert('Generating report feature would be implemented here');
             }
             
+            window.generateReport = generateReport;
+            
             function viewStudents() {
                 alert('View students feature would be implemented here');
             }
+            
+            window.viewStudents = viewStudents;
             
             function exportData() {
                 // Create CSV content
@@ -2024,6 +1975,8 @@
                 // Show success message
                 showNotification('CSV exported successfully!', 'success');
             }
+            
+            window.exportData = exportData;
             
             function downloadRecordPDF(recordId) {
                 // Show loading state
@@ -2083,6 +2036,8 @@
                     }, 1500);
                 }
             }
+            
+            window.downloadRecordPDF = downloadRecordPDF;
             
             function generateClientSidePDF(data) {
                 // Create a simple HTML page for printing
@@ -2334,12 +2289,6 @@
                 printWindow.document.close();
             }
             
-            function downloadCurrentRecordPDF() {
-                if (currentRecordId) {
-                    downloadRecordPDF(currentRecordId);
-                }
-            }
-            
             function downloadAllPDF() {
                 // Get selected course filter
                 const activeFilter = document.querySelector('.course-filter-btn.active').textContent.trim().toLowerCase();
@@ -2378,6 +2327,8 @@
                     showNotification(`PDF generated for ${visibleRows.length} records!`, 'success');
                 }, 2000);
             }
+            
+            window.downloadAllPDF = downloadAllPDF;
             
             function generateAllRecordsPDF(rows, filter) {
                 const printWindow = window.open('', '_blank');
@@ -2505,6 +2456,15 @@
                 document.getElementById('deleteModal').classList.remove('hidden');
             }
             
+            window.deleteRecord = deleteRecord;
+            
+            function closeDeleteModal() {
+                document.getElementById('deleteModal').classList.add('hidden');
+                recordToDelete = null;
+            }
+            
+            window.closeDeleteModal = closeDeleteModal;
+            
             async function confirmDelete() {
                 if (!recordToDelete) return;
                 
@@ -2559,6 +2519,8 @@
                 }, 1000);
             }
             
+            window.confirmDelete = confirmDelete;
+            
             // Notification system
             function showNotification(message, type = 'info') {
                 // Create notification element
@@ -2592,27 +2554,11 @@
                     }, 300);
                 }, 3000);
             }
-            
-            // Expose functions to global scope for onclick handlers
-            window.filterByCourse = filterByCourse;
-            window.viewDetails = viewDetails;
-            window.closeModal = closeModal;
-            window.downloadCurrentRecordPDF = downloadCurrentRecordPDF;
-            window.startSession = startSession;
-            window.generateReport = generateReport;
-            window.viewStudents = viewStudents;
-            window.exportData = exportData;
-            window.downloadRecordPDF = downloadRecordPDF;
-            window.downloadAllPDF = downloadAllPDF;
-            window.deleteRecord = deleteRecord;
-            window.closeDeleteModal = closeDeleteModal;
-            window.confirmDelete = confirmDelete;
-            window.handleFaceImageError = handleFaceImageError;
         }
         {% endif %}
         
         {% if current_user.role == 'admin' %}
-        // ADMIN DASHBOARD FUNCTIONS
+        // ================= ADMIN DASHBOARD FUNCTIONS =================
         function initializeAdminDashboard() {
             // Toggle custom PIN field
             document.getElementById('autoGenerate').addEventListener('change', function() {
@@ -2682,11 +2628,15 @@
                 });
             }
             
+            window.copyPin = copyPin;
+            
             function closePinModal() {
                 document.getElementById('pinModal').classList.add('hidden');
                 // Reload to show new PIN in recent list
                 window.location.reload();
             }
+            
+            window.closePinModal = closePinModal;
             
             async function viewAllPins() {
                 try {
@@ -2717,6 +2667,8 @@
                 }
             }
             
+            window.viewAllPins = viewAllPins;
+            
             async function approveLecturer(userId) {
                 if (!confirm('Are you sure you want to approve this lecturer?')) {
                     return;
@@ -2745,6 +2697,8 @@
                     showMessage('Network error: ' + error.message, 'error');
                 }
             }
+            
+            window.approveLecturer = approveLecturer;
             
             async function rejectLecturer(userId) {
                 if (!confirm('Are you sure you want to reject this lecturer registration? This action cannot be undone.')) {
@@ -2775,6 +2729,8 @@
                 }
             }
             
+            window.rejectLecturer = rejectLecturer;
+            
             function viewPendingApprovals() {
                 const pendingSection = document.querySelector('.bg-white.rounded-2xl.shadow-soft.p-6:nth-child(2)');
                 if (pendingSection) {
@@ -2782,17 +2738,25 @@
                 }
             }
             
+            window.viewPendingApprovals = viewPendingApprovals;
+            
             function viewAllUsers() {
                 alert('View all users feature would be implemented here');
             }
+            
+            window.viewAllUsers = viewAllUsers;
             
             function viewAllAttendance() {
                 alert('View all attendance feature would be implemented here');
             }
             
+            window.viewAllAttendance = viewAllAttendance;
+            
             function systemSettings() {
                 alert('System settings feature would be implemented here');
             }
+            
+            window.systemSettings = systemSettings;
             
             function showMessage(text, type) {
                 const messageDiv = document.getElementById('pinMessage');
@@ -2813,19 +2777,50 @@
                     messageDiv.classList.add('hidden');
                 }, 5000);
             }
-            
-            // Expose functions to global scope for onclick handlers
-            window.viewAllPins = viewAllPins;
-            window.approveLecturer = approveLecturer;
-            window.rejectLecturer = rejectLecturer;
-            window.viewPendingApprovals = viewPendingApprovals;
-            window.viewAllUsers = viewAllUsers;
-            window.viewAllAttendance = viewAllAttendance;
-            window.systemSettings = systemSettings;
-            window.copyPin = copyPin;
-            window.closePinModal = closePinModal;
         }
         {% endif %}
+        
+        // ================= COMMON FUNCTIONS =================
+        // Prevent auto-redirects and keep session alive
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard loaded - preventing auto-redirect');
+            
+            // Send heartbeat every 60 seconds to keep session alive
+            setInterval(function() {
+                fetch('/session/heartbeat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'same-origin'
+                }).catch(function(error) {
+                    console.log('Heartbeat error:', error);
+                });
+            }, 60000); // 60 seconds
+            
+            // Prevent any redirects initiated by JavaScript
+            const originalPushState = history.pushState;
+            const originalReplaceState = history.replaceState;
+            
+            history.pushState = function() {
+                console.log('pushState intercepted - preventing redirect');
+                // Allow pushState but log it
+                return originalPushState.apply(history, arguments);
+            };
+            
+            history.replaceState = function() {
+                console.log('replaceState intercepted - preventing redirect');
+                // Allow replaceState but log it
+                return originalReplaceState.apply(history, arguments);
+            };
+            
+            // Add confirmation before leaving the dashboard
+            window.addEventListener('beforeunload', function(e) {
+                // Only show confirmation if there are unsaved changes
+                // For now, just log it
+                console.log('User is leaving the dashboard');
+            });
+        });
     </script>
 </body>
 </html>
