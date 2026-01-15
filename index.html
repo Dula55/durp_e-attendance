@@ -204,6 +204,7 @@
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display">
+    {# Jinja2 Macros - These are template functions #}
     {% macro get_course_name(course_code) %}
         {% if course_code == 'URP213' %}Introduction to Land Surveying
         {% elif course_code == 'URP313' %}Regional Development Planning
@@ -580,23 +581,25 @@
                     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
                         <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Recent Attendance</h3>
                         <div class="space-y-4 max-h-[400px] overflow-y-auto">
-                            {% for record in records %}
-                            <div class="border-l-4 border-primary pl-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-900/50 rounded-r-xl transition-colors">
-                                <div class="flex justify-between items-start mb-1">
-                                    <p class="font-medium text-slate-900 dark:text-white">{{ record.course_code }}</p>
-                                    <span class="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
-                                        Present
-                                    </span>
+                            {% if records %}
+                                {% for record in records %}
+                                <div class="border-l-4 border-primary pl-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-900/50 rounded-r-xl transition-colors">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <p class="font-medium text-slate-900 dark:text-white">{{ record.course_code }}</p>
+                                        <span class="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                                            Present
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400">
+                                        {{ record.date.strftime('%b %d, %Y') if record.date else 'N/A' }} at {{ record.time.strftime('%I:%M %p') if record.time else 'N/A' }}
+                                    </p>
+                                    {% if record.latitude and record.longitude %}
+                                    <p class="text-xs text-slate-500 dark:text-slate-500 mt-2">
+                                        Location: {{ "%.4f"|format(record.latitude) }}, {{ "%.4f"|format(record.longitude) }}
+                                    </p>
+                                    {% endif %}
                                 </div>
-                                <p class="text-sm text-slate-600 dark:text-slate-400">
-                                    {{ record.date.strftime('%b %d, %Y') }} at {{ record.time.strftime('%I:%M %p') }}
-                                </p>
-                                {% if record.latitude and record.longitude %}
-                                <p class="text-xs text-slate-500 dark:text-slate-500 mt-2">
-                                    Location: {{ "%.4f"|format(record.latitude) }}, {{ "%.4f"|format(record.longitude) }}
-                                </p>
-                                {% endif %}
-                            </div>
+                                {% endfor %}
                             {% else %}
                             <div class="text-center py-8">
                                 <span class="material-symbols-outlined text-4xl text-slate-400 mb-4">
@@ -605,7 +608,7 @@
                                 <p class="text-slate-500 dark:text-slate-400">No attendance records yet</p>
                                 <p class="text-sm text-slate-500 dark:text-slate-500 mt-2">Submit your first attendance above</p>
                             </div>
-                            {% endfor %}
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -652,7 +655,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm opacity-90">Total Students</p>
-                            <p class="text-3xl font-bold">{{ stats.total_students }}</p>
+                            <p class="text-3xl font-bold">{{ stats.total_students if stats and stats.total_students else 0 }}</p>
                         </div>
                         <span class="material-symbols-outlined text-4xl opacity-80">
                             groups
@@ -664,7 +667,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm opacity-90">Present Today</p>
-                            <p class="text-3xl font-bold">{{ stats.present_today }}</p>
+                            <p class="text-3xl font-bold">{{ stats.present_today if stats and stats.present_today else 0 }}</p>
                         </div>
                         <span class="material-symbols-outlined text-4xl opacity-80">
                             check_circle
@@ -676,7 +679,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm opacity-90">Absent Today</p>
-                            <p class="text-3xl font-bold">{{ stats.absent_today }}</p>
+                            <p class="text-3xl font-bold">{{ stats.absent_today if stats and stats.absent_today else 0 }}</p>
                         </div>
                         <span class="material-symbols-outlined text-4xl opacity-80">
                             cancel
@@ -696,11 +699,13 @@
                                 <button onclick="filterByCourse('all')" class="course-filter-btn active px-3 py-1 rounded-md text-sm">
                                     All
                                 </button>
-                                {% for course in courses %}
-                                <button onclick="filterByCourse('{{ course.code }}')" class="course-filter-btn px-3 py-1 rounded-md text-sm">
-                                    {{ course.code }}
-                                </button>
-                                {% endfor %}
+                                {% if courses %}
+                                    {% for course in courses %}
+                                    <button onclick="filterByCourse('{{ course.code }}')" class="course-filter-btn px-3 py-1 rounded-md text-sm">
+                                        {{ course.code }}
+                                    </button>
+                                    {% endfor %}
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -717,72 +722,74 @@
                                 </tr>
                             </thead>
                             <tbody id="recordsTableBody">
-                                {% for record in records %}
-                                <tr class="record-row border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors" 
-                                    data-course="{{ record.course_code }}" 
-                                    data-record-id="{{ record.id }}"
-                                    data-student-name="{{ record.student_name }}"
-                                    data-matric-number="{{ record.matric_number }}"
-                                    data-course-code="{{ record.course_code }}"
-                                    data-course-name="{{ get_course_name(record.course_code) }}"
-                                    data-date="{{ record.date.strftime('%Y-%m-%d') }}"
-                                    data-time="{{ record.time.strftime('%H:%M:%S') }}"
-                                    data-face-image-path="{{ record.face_image_path if record.face_image_path else '' }}"
-                                    data-face-match-confidence="{{ record.face_match_confidence if record.face_match_confidence else '95%' }}"
-                                    data-verification-timestamp="{{ record.date.strftime('%Y-%m-%d %H:%M:%S') }}"
-                                    data-latitude="{{ record.latitude if record.latitude else '8.5060' }}"
-                                    data-longitude="{{ record.longitude if record.longitude else '7.6866' }}">
-                                    <td class="py-3 px-4">{{ record.student_name }}</td>
-                                    <td class="py-3 px-4 font-mono">{{ record.matric_number }}</td>
-                                    <td class="py-3 px-4">
-                                        <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">
-                                            {{ record.course_code }}
-                                        </span>
-                                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ get_course_name(record.course_code) }}</p>
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        <div>{{ record.date.strftime('%Y-%m-%d') }}</div>
-                                        <div class="text-sm text-slate-600 dark:text-slate-400">{{ record.time.strftime('%H:%M') }}</div>
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        <div class="flex items-center space-x-2">
-                                            <button onclick="viewDetails('{{ record.id }}')" 
-                                                    class="text-primary hover:text-primary-hover transition-colors p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                                    title="View Details">
-                                                <span class="material-symbols-outlined align-middle">
-                                                    visibility
-                                                </span>
-                                            </button>
-                                            <button onclick="downloadRecordPDF('{{ record.id }}')" 
-                                                    class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
-                                                    title="Download PDF">
-                                                <span class="material-symbols-outlined align-middle">
-                                                    download
-                                                </span>
-                                            </button>
-                                            <button onclick="deleteRecord('{{ record.id }}')" 
-                                                    class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
-                                                    title="Delete Record">
-                                                <span class="material-symbols-outlined align-middle">
-                                                    delete
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
+                                {% if records %}
+                                    {% for record in records %}
+                                    <tr class="record-row border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors" 
+                                        data-course="{{ record.course_code }}" 
+                                        data-record-id="{{ record.id }}"
+                                        data-student-name="{{ record.student_name }}"
+                                        data-matric-number="{{ record.matric_number }}"
+                                        data-course-code="{{ record.course_code }}"
+                                        data-course-name="{{ get_course_name(record.course_code) }}"
+                                        data-date="{{ record.date.strftime('%Y-%m-%d') if record.date else '' }}"
+                                        data-time="{{ record.time.strftime('%H:%M:%S') if record.time else '' }}"
+                                        data-face-image-path="{{ record.face_image_path if record.face_image_path else '' }}"
+                                        data-face-match-confidence="{{ record.face_match_confidence if record.face_match_confidence else '95%' }}"
+                                        data-verification-timestamp="{{ record.date.strftime('%Y-%m-%d %H:%M:%S') if record.date else '' }}"
+                                        data-latitude="{{ record.latitude if record.latitude else '8.5060' }}"
+                                        data-longitude="{{ record.longitude if record.longitude else '7.6866' }}">
+                                        <td class="py-3 px-4">{{ record.student_name }}</td>
+                                        <td class="py-3 px-4 font-mono">{{ record.matric_number }}</td>
+                                        <td class="py-3 px-4">
+                                            <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">
+                                                {{ record.course_code }}
+                                            </span>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ get_course_name(record.course_code) }}</p>
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            <div>{{ record.date.strftime('%Y-%m-%d') if record.date else 'N/A' }}</div>
+                                            <div class="text-sm text-slate-600 dark:text-slate-400">{{ record.time.strftime('%H:%M') if record.time else 'N/A' }}</div>
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center space-x-2">
+                                                <button onclick="viewDetails('{{ record.id }}')" 
+                                                        class="text-primary hover:text-primary-hover transition-colors p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                                        title="View Details">
+                                                    <span class="material-symbols-outlined align-middle">
+                                                        visibility
+                                                    </span>
+                                                </button>
+                                                <button onclick="downloadRecordPDF('{{ record.id }}')" 
+                                                        class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
+                                                        title="Download PDF">
+                                                    <span class="material-symbols-outlined align-middle">
+                                                        download
+                                                    </span>
+                                                </button>
+                                                <button onclick="deleteRecord('{{ record.id }}')" 
+                                                        class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                        title="Delete Record">
+                                                    <span class="material-symbols-outlined align-middle">
+                                                        delete
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
                                 {% else %}
                                 <tr id="noRecordsRow">
                                     <td colspan="5" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
                                         No attendance records found
                                     </td>
                                 </tr>
-                                {% endfor %}
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>
                     <div class="mt-4 flex justify-between items-center">
                         <p class="text-sm text-slate-600 dark:text-slate-400">
-                            Showing <span id="recordCount">{{ records|length }}</span> of {{ stats.total_records }} records
+                            Showing <span id="recordCount">{{ records|length if records else 0 }}</span> of {{ stats.total_records if stats and stats.total_records else 0 }} records
                         </p>
                         <div class="flex space-x-2">
                             <button onclick="exportData()" 
@@ -837,34 +844,36 @@
                     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
                         <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Active Sessions</h2>
                         <div class="space-y-4">
-                            {% for session in active_sessions %}
-                            <div class="border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
-                                <div class="flex justify-between items-center mb-2">
-                                    <h3 class="font-semibold text-slate-900 dark:text-white">{{ session.course_name }}</h3>
-                                    <span class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs px-2 py-1 rounded-full">
-                                        Active
-                                    </span>
+                            {% if active_sessions %}
+                                {% for session in active_sessions %}
+                                <div class="border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <h3 class="font-semibold text-slate-900 dark:text-white">{{ session.course_name }}</h3>
+                                        <span class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs px-2 py-1 rounded-full">
+                                            Active
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                                        Session Code: <strong class="font-mono">{{ session.code }}</strong>
+                                    </p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                                        Started: {{ session.started_at.strftime('%Y-%m-%d %H:%M') if session.started_at else 'N/A' }}
+                                    </p>
+                                    <div class="flex space-x-2">
+                                        <button class="text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                                            View Attendance
+                                        </button>
+                                        <button class="text-sm bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 px-3 py-1 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
+                                            End Session
+                                        </button>
+                                    </div>
                                 </div>
-                                <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                                    Session Code: <strong class="font-mono">{{ session.code }}</strong>
-                                </p>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                                    Started: {{ session.started_at.strftime('%Y-%m-%d %H:%M') }}
-                                </p>
-                                <div class="flex space-x-2">
-                                    <button class="text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
-                                        View Attendance
-                                    </button>
-                                    <button class="text-sm bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 px-3 py-1 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
-                                        End Session
-                                    </button>
-                                </div>
-                            </div>
+                                {% endfor %}
                             {% else %}
                             <p class="text-slate-500 dark:text-slate-400 text-center py-4">
                                 No active sessions
                             </p>
-                            {% endfor %}
+                            {% endif %}
                         </div>
                     </div>
 
@@ -872,24 +881,26 @@
                     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
                         <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Course Summary</h2>
                         <div class="space-y-4">
-                            {% for course in courses %}
-                            <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
-                                <div>
-                                    <p class="font-medium text-slate-900 dark:text-white">{{ course.code }}</p>
-                                    <p class="text-xs text-slate-600 dark:text-slate-400">{{ get_course_name(course.code) }}</p>
+                            {% if courses %}
+                                {% for course in courses %}
+                                <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                                    <div>
+                                        <p class="font-medium text-slate-900 dark:text-white">{{ course.code }}</p>
+                                        <p class="text-xs text-slate-600 dark:text-slate-400">{{ get_course_name(course.code) }}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-bold text-primary dark:text-blue-400">
+                                            {{ get_course_attendance_count(course.code) }}
+                                        </p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">records</p>
+                                    </div>
                                 </div>
-                                <div class="text-right">
-                                    <p class="font-bold text-primary dark:text-blue-400">
-                                        {{ get_course_attendance_count(course.code) }}
-                                    </p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">records</p>
-                                </div>
-                            </div>
+                                {% endfor %}
                             {% else %}
                             <p class="text-slate-500 dark:text-slate-400 text-center py-4">
                                 No courses with attendance records
                             </p>
-                            {% endfor %}
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -920,7 +931,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm opacity-90">Total Admins</p>
-                            <p class="text-3xl font-bold">{{ stats.total_admins }}</p>
+                            <p class="text-3xl font-bold">{{ stats.total_admins if stats and stats.total_admins else 0 }}</p>
                         </div>
                         <span class="material-symbols-outlined text-4xl opacity-80">
                             admin_panel_settings
@@ -932,7 +943,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm opacity-90">Attendance Records</p>
-                            <p class="text-3xl font-bold">{{ stats.total_records }}</p>
+                            <p class="text-3xl font-bold">{{ stats.total_records if stats and stats.total_records else 0 }}</p>
                         </div>
                         <span class="material-symbols-outlined text-4xl opacity-80">
                             fact_check
@@ -944,7 +955,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm opacity-90">Active PINs</p>
-                            <p class="text-3xl font-bold">{{ stats.total_pins }}</p>
+                            <p class="text-3xl font-bold">{{ stats.total_pins if stats and stats.total_pins else 0 }}</p>
                         </div>
                         <span class="material-symbols-outlined text-4xl opacity-80">
                             vpn_key
@@ -956,7 +967,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm opacity-90">PIN Usage Today</p>
-                            <p class="text-3xl font-bold">{{ stats.pin_usage_today }}</p>
+                            <p class="text-3xl font-bold">{{ stats.pin_usage_today if stats and stats.pin_usage_today else 0 }}</p>
                         </div>
                         <span class="material-symbols-outlined text-4xl opacity-80">
                             trending_up
@@ -968,7 +979,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm opacity-90">Pending Approvals</p>
-                            <p class="text-3xl font-bold">{{ stats.pending_lecturers }}</p>
+                            <p class="text-3xl font-bold">{{ stats.pending_lecturers if stats and stats.pending_lecturers else 0 }}</p>
                         </div>
                         <span class="material-symbols-outlined text-4xl opacity-80">
                             person_add
@@ -1084,7 +1095,7 @@
                                     Username: <strong>{{ lecturer.username }}</strong>
                                 </p>
                                 <p class="text-xs text-slate-500 dark:text-slate-500 mb-3">
-                                    Registered: {{ lecturer.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    Registered: {{ lecturer.created_at.strftime('%Y-%m-%d %H:%M') if lecturer.created_at else 'N/A' }}
                                 </p>
                                 <div class="flex space-x-2">
                                     <button onclick="approveLecturer({{ lecturer.id }})" 
@@ -1122,24 +1133,26 @@
                 <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
                     <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Recent PINs</h2>
                     <div class="space-y-4 max-h-[500px] overflow-y-auto">
-                        {% for pin in recent_pins %}
-                        <div class="border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                            <div class="flex justify-between items-center mb-2">
-                                <h3 class="font-semibold text-slate-900 dark:text-white">{{ pin.lecturer_name }}</h3>
-                                {% if pin.is_active %}
-                                <span class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs px-2 py-1 rounded-full">Active</span>
-                                {% else %}
-                                <span class="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 text-xs px-2 py-1 rounded-full">Inactive</span>
-                                {% endif %}
+                        {% if recent_pins %}
+                            {% for pin in recent_pins %}
+                            <div class="border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="font-semibold text-slate-900 dark:text-white">{{ pin.lecturer_name }}</h3>
+                                    {% if pin.is_active %}
+                                    <span class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs px-2 py-1 rounded-full">Active</span>
+                                    {% else %}
+                                    <span class="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 text-xs px-2 py-1 rounded-full">Inactive</span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400 mb-1">PIN: <strong class="text-xl tracking-widest font-mono">{{ pin.pin }}</strong></p>
+                                <p class="text-xs text-slate-500 dark:text-slate-500">Generated: {{ pin.generated_at.strftime('%Y-%m-%d %H:%M') if pin.generated_at else 'N/A' }}</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-500">Expires: {{ pin.expiry_date.strftime('%Y-%m-%d') if pin.expiry_date else 'N/A' }}</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-500">Usage: {{ pin.usage_count }} times</p>
                             </div>
-                            <p class="text-sm text-slate-600 dark:text-slate-400 mb-1">PIN: <strong class="text-xl tracking-widest font-mono">{{ pin.pin }}</strong></p>
-                            <p class="text-xs text-slate-500 dark:text-slate-500">Generated: {{ pin.generated_at.strftime('%Y-%m-%d %H:%M') }}</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-500">Expires: {{ pin.expiry_date.strftime('%Y-%m-%d') }}</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-500">Usage: {{ pin.usage_count }} times</p>
-                        </div>
+                            {% endfor %}
                         {% else %}
                         <p class="text-slate-500 dark:text-slate-400 text-center py-8">No PINs generated yet</p>
-                        {% endfor %}
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -1342,7 +1355,6 @@
             {% endif %}
         });
         
-        {% if current_user.role == 'student' %}
         // ================= STUDENT DASHBOARD FUNCTIONS =================
         function initializeStudentDashboard() {
             let currentLocation = null;
@@ -1575,9 +1587,7 @@
             // Initialize
             updateSubmitButton();
         }
-        {% endif %}
         
-        {% if current_user.role == 'lecturer' %}
         // ================= LECTURER DASHBOARD FUNCTIONS =================
         function initializeLecturerDashboard() {
             let currentRecordId = null;
@@ -1957,9 +1967,23 @@
                 // Create CSV content
                 let csv = 'Student Name,Matric Number,Course Code,Course Name,Date,Time,Latitude,Longitude,Status,Face Verified,Face Match Confidence\n';
                 
-                {% for record in records %}
-                csv += `"{{ record.student_name }}","{{ record.matric_number }}","{{ record.course_code }}","{{ get_course_name(record.course_code) }}","{{ record.date }}","{{ record.time }}",{{ record.latitude if record.latitude else '8.5060' }},{{ record.longitude if record.longitude else '7.6866' }},present,{{ 'Yes' if record.face_image_path else 'No' }},{{ record.face_match_confidence if record.face_match_confidence else '95%' }}\n`;
-                {% endfor %}
+                // This would be populated with actual data from the server
+                // For now, we'll create a demo CSV
+                const rows = document.querySelectorAll('.record-row');
+                rows.forEach(row => {
+                    const studentName = row.dataset.studentName;
+                    const matricNumber = row.dataset.matricNumber;
+                    const courseCode = row.dataset.courseCode;
+                    const courseName = row.dataset.courseName;
+                    const date = row.dataset.date;
+                    const time = row.dataset.time;
+                    const latitude = row.dataset.latitude;
+                    const longitude = row.dataset.longitude;
+                    const faceImagePath = row.dataset.faceImagePath;
+                    const faceMatchConfidence = row.dataset.faceMatchConfidence;
+                    
+                    csv += `"${studentName}","${matricNumber}","${courseCode}","${courseName}","${date}","${time}",${latitude},${longitude},present,${faceImagePath && faceImagePath.trim() !== '' ? 'Yes' : 'No'},"${faceMatchConfidence}"\n`;
+                });
                 
                 // Create download link
                 const blob = new Blob([csv], { type: 'text/csv' });
@@ -2555,9 +2579,7 @@
                 }, 3000);
             }
         }
-        {% endif %}
         
-        {% if current_user.role == 'admin' %}
         // ================= ADMIN DASHBOARD FUNCTIONS =================
         function initializeAdminDashboard() {
             // Toggle custom PIN field
@@ -2778,7 +2800,6 @@
                 }, 5000);
             }
         }
-        {% endif %}
         
         // ================= COMMON FUNCTIONS =================
         // Prevent auto-redirects and keep session alive
