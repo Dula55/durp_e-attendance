@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Login – NSUK URP E-Attendance</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Noto+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap" rel="stylesheet"/>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0f1b3d",
+                        "primary-hover": "#0a1430",
+                    },
+                    fontFamily: {
+                        display: ["Lexend", "sans-serif"],
+                        body: ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {
+                        xl: "1.5rem"
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            font-family: 'Lexend', sans-serif;
+        }
+        .dark body {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+        }
+        .card {
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+        }
+        .dark .card {
+            background: #1e293b;
+        }
+    </style>
+</head>
+
+<body class="text-slate-900 dark:text-white">
+
+<!-- Navigation -->
+<nav class="bg-white dark:bg-slate-800 shadow-sm">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <img src="{{ url_for('static', filename='NSUK-logo.jpg') }}" class="h-10 w-10 rounded-lg">
+            <div>
+                <h1 class="font-bold text-primary dark:text-white">NSUK URP</h1>
+                <p class="text-xs text-slate-500">E-Attendance System</p>
+            </div>
+        </div>
+        <a href="{{ url_for('index') }}" class="text-sm font-semibold hover:underline">Home</a>
+    </div>
+</nav>
+
+<!-- Main -->
+<main class="container mx-auto px-4 py-12">
+    <div class="max-w-md mx-auto card p-8">
+
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <span class="material-symbols-outlined text-primary text-5xl mb-2">lock</span>
+            <h2 class="text-2xl font-bold">Sign In</h2>
+            <p class="text-slate-500 text-sm mt-1">
+                Enter your credentials to access the system
+            </p>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="mb-4 px-4 py-3 rounded-lg text-sm
+                {% if category == 'success' %} bg-green-100 text-green-700
+                {% else %} bg-red-100 text-red-700 {% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Login Form -->
+        <form method="POST" action="{{ url_for('login') }}" class="space-y-5">
+            <div>
+                <label class="block text-sm font-semibold mb-1">Username / Matric No.</label>
+                <input
+                    type="text"
+                    name="username"
+                    required
+                    class="w-full rounded-xl border-slate-300 focus:border-primary focus:ring-primary"
+                    placeholder="Enter username or matric number">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold mb-1">Password</label>
+                <input
+                    type="password"
+                    name="password"
+                    required
+                    class="w-full rounded-xl border-slate-300 focus:border-primary focus:ring-primary"
+                    placeholder="Enter your password">
+            </div>
+
+            <button
+                type="submit"
+                class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition">
+                <span class="material-symbols-outlined align-middle mr-1">login</span>
+                Login
+            </button>
+        </form>
+
+        <!-- Footer Links -->
+        <div class="mt-6 text-center text-sm text-slate-500">
+            Don’t have an account?
+            <a href="{{ url_for('signup') }}" class="text-primary font-semibold hover:underline">
+                Sign up
+            </a>
+        </div>
+    </div>
+</main>
+
+<!-- Footer -->
+<footer class="mt-10 text-center text-xs text-slate-500">
+    Department of Urban & Regional Planning – NSUK<br>
+    © {{ current_year }}
+</footer>
+
+<script>
+    const savedTheme = localStorage.getItem('theme');
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+</script>
+
+</body>
+</html>
