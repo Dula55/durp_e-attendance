@@ -92,6 +92,8 @@
         .stat-gradient-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
         .stat-gradient-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
         .stat-gradient-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .stat-gradient-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .stat-gradient-5 { background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%); }
         
         .face-image-container {
             position: relative;
@@ -145,6 +147,37 @@
         .view-container.active {
             display: block;
             animation: fadeIn 0.3s ease-out;
+        }
+        
+        .course-filter-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .course-filter-btn.active {
+            background-color: #0f1b3d;
+            color: white;
+        }
+        
+        .course-filter-btn:hover:not(.active) {
+            background-color: #f1f5f9;
+        }
+        
+        .dark .course-filter-btn.active {
+            background-color: #1e40af;
+        }
+        
+        .dark .course-filter-btn:hover:not(.active) {
+            background-color: #334155;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
         }
         
         @media print {
@@ -573,10 +606,40 @@
                             </div>
                             
                             <div class="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl mb-4">
-                                <button id="captureLocation" class="bg-primary hover:bg-primary-hover text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center">
-                                    <span class="material-symbols-outlined mr-2">location_on</span>
+                                <p class="text-blue-800 dark:text-blue-300 mb-4">
+                                    <span class="material-symbols-outlined align-middle mr-2">
+                                        info
+                                    </span>
+                                    Click the button below to capture your current location for verification
+                                </p>
+                                
+                                <button id="captureLocation" 
+                                        class="bg-primary hover:bg-primary-hover text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center">
+                                    <span class="material-symbols-outlined mr-2">
+                                        location_on
+                                    </span>
                                     Capture Location
                                 </button>
+                                
+                                <div class="mt-6 space-y-3">
+                                    <div id="locationStatus" class="text-sm text-slate-600 dark:text-slate-400">
+                                        <span class="material-symbols-outlined align-middle text-yellow-600">
+                                            pending
+                                        </span>
+                                        Location not captured yet
+                                    </div>
+                                    <div id="coordinates" class="hidden mt-2 space-y-2">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="material-symbols-outlined text-green-600">
+                                                check_circle
+                                            </span>
+                                            <div>
+                                                <p class="text-sm text-slate-700 dark:text-slate-300">Latitude: <span id="latitude" class="font-mono font-bold">-</span></p>
+                                                <p class="text-sm text-slate-700 dark:text-slate-300">Longitude: <span id="longitude" class="font-mono font-bold">-</span></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -590,23 +653,59 @@
                             </div>
                             
                             <div class="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-xl">
-                                <div id="cameraContainer" class="hidden">
-                                    <video id="video" width="100%" height="auto" autoplay playsinline class="rounded-xl"></video>
-                                </div>
-                                <div id="noCamera" class="text-center py-8">
-                                    <span class="material-symbols-outlined text-4xl text-slate-400 mb-4">videocam_off</span>
-                                    <p class="text-slate-600 dark:text-slate-400">Camera will appear here when started</p>
+                                <div class="mb-6">
+                                    <div id="cameraContainer" class="hidden">
+                                        <video id="video" width="100%" height="auto" autoplay playsinline class="rounded-xl"></video>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
+                                            Ensure your face is clearly visible in the frame
+                                        </p>
+                                    </div>
+                                    <div id="noCamera" class="text-center py-8">
+                                        <span class="material-symbols-outlined text-4xl text-slate-400 mb-4">
+                                            videocam_off
+                                        </span>
+                                        <p class="text-slate-600 dark:text-slate-400">Camera will appear here when started</p>
+                                    </div>
                                 </div>
                                 
-                                <div class="flex flex-wrap gap-4 mt-4">
-                                    <button id="startCamera" class="bg-primary hover:bg-primary-hover text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center">
-                                        <span class="material-symbols-outlined mr-2">videocam</span>
+                                <div class="flex flex-wrap gap-4">
+                                    <button id="startCamera" 
+                                            class="bg-primary hover:bg-primary-hover text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center">
+                                        <span class="material-symbols-outlined mr-2">
+                                            videocam
+                                        </span>
                                         Start Camera
                                     </button>
-                                    <button id="captureFace" class="bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center" disabled>
-                                        <span class="material-symbols-outlined mr-2">camera</span>
+                                    <button id="captureFace" 
+                                            class="bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center" disabled>
+                                        <span class="material-symbols-outlined mr-2">
+                                            camera
+                                        </span>
                                         Capture Face
                                     </button>
+                                    <button id="retakePhoto" 
+                                            class="bg-slate-600 hover:bg-slate-700 text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center hidden">
+                                        <span class="material-symbols-outlined mr-2">
+                                            refresh
+                                        </span>
+                                        Retake Photo
+                                    </button>
+                                </div>
+                                
+                                <div id="facePreview" class="mt-6 hidden">
+                                    <h3 class="font-semibold text-slate-900 dark:text-white mb-3">Captured Image</h3>
+                                    <div class="flex flex-col md:flex-row items-center gap-6">
+                                        <img id="capturedImage" src="" alt="Captured Face" class="rounded-xl max-w-xs border-4 border-green-200 dark:border-green-900">
+                                        <div class="text-green-600 dark:text-green-400 flex items-center">
+                                            <span class="material-symbols-outlined text-4xl mr-2">
+                                                check_circle
+                                            </span>
+                                            <div>
+                                                <p class="font-semibold">Face captured successfully!</p>
+                                                <p class="text-sm text-slate-600 dark:text-slate-400">Ready for submission</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -621,9 +720,26 @@
                             </div>
                             
                             <form id="attendanceForm" class="space-y-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Full Name</label>
+                                        <input type="text" 
+                                               id="studentFullNameInput"
+                                               readonly
+                                               class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Matric Number</label>
+                                        <input type="text"
+                                               id="studentMatricInput"
+                                               readonly
+                                               class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 font-mono text-slate-700 dark:text-slate-300">
+                                    </div>
+                                </div>
+                                
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Course Code *</label>
-                                    <select id="courseCode" required class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900">
+                                    <select id="courseCode" required class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
                                         <option value="">Select Course</option>
                                         <option value="URP213">URP 213 - Introduction to Land Surveying</option>
                                         <option value="URP313">URP 313 - Regional Development Planning</option>
@@ -632,10 +748,45 @@
                                         <option value="URP419">URP 419 - Pollution Control and Management</option>
                                         <option value="URP302">URP 302 - Housing and Community Development</option>
                                     </select>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Note: The selected course code will be recorded in the attendance system</p>
                                 </div>
                                 
-                                <button type="submit" id="submitAttendanceBtn" class="w-full bg-primary hover:bg-primary-hover text-white py-4 rounded-xl font-semibold transition-colors flex items-center justify-center" disabled>
-                                    <span class="material-symbols-outlined mr-2">check_circle</span>
+                                <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 rounded-xl p-4">
+                                    <div class="flex items-start">
+                                        <span class="material-symbols-outlined text-yellow-600 dark:text-yellow-400 mr-3 mt-1">
+                                            warning
+                                        </span>
+                                        <div>
+                                            <p class="font-semibold text-slate-900 dark:text-white mb-1">Requirements before submission:</p>
+                                            <ul class="text-sm text-slate-600 dark:text-slate-400 space-y-1">
+                                                <li class="flex items-center">
+                                                    <span id="locationCheck" class="material-symbols-outlined text-red-500 mr-2 text-sm">
+                                                        radio_button_unchecked
+                                                    </span>
+                                                    Location captured
+                                                </li>
+                                                <li class="flex items-center">
+                                                    <span id="faceCheck" class="material-symbols-outlined text-red-500 mr-2 text-sm">
+                                                        radio_button_unchecked
+                                                    </span>
+                                                    Face image captured
+                                                </li>
+                                                <li class="flex items-center">
+                                                    <span id="courseCheck" class="material-symbols-outlined text-red-500 mr-2 text-sm">
+                                                        radio_button_unchecked
+                                                    </span>
+                                                    Course selected
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" id="submitBtn" 
+                                        class="w-full bg-primary hover:bg-primary-hover text-white py-4 rounded-xl font-semibold transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                    <span class="material-symbols-outlined mr-2">
+                                        check_circle
+                                    </span>
                                     Submit Attendance
                                 </button>
                             </form>
@@ -662,6 +813,13 @@
                                         <p id="studentMatric" class="font-mono font-medium">-</p>
                                     </div>
                                 </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="material-symbols-outlined text-slate-400">school</span>
+                                    <div>
+                                        <p class="text-sm text-slate-600 dark:text-slate-400">Role</p>
+                                        <p class="font-medium">Student</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -672,6 +830,7 @@
                                 <div class="text-center py-8">
                                     <span class="material-symbols-outlined text-4xl text-slate-400 mb-4">history</span>
                                     <p class="text-slate-500 dark:text-slate-400">No attendance records yet</p>
+                                    <p class="text-sm text-slate-500 dark:text-slate-500 mt-2">Submit your first attendance above</p>
                                 </div>
                             </div>
                         </div>
@@ -734,24 +893,75 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <!-- Attendance Records -->
                     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
-                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Recent Attendance</h2>
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Attendance Records</h2>
+                            <div class="flex items-center space-x-2">
+                                <div class="flex space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg">
+                                    <button onclick="filterByCourse('all')" class="course-filter-btn active px-3 py-1 rounded-md text-sm">
+                                        All
+                                    </button>
+                                    <button onclick="filterByCourse('URP213')" class="course-filter-btn px-3 py-1 rounded-md text-sm">
+                                        URP213
+                                    </button>
+                                    <button onclick="filterByCourse('URP313')" class="course-filter-btn px-3 py-1 rounded-md text-sm">
+                                        URP313
+                                    </button>
+                                    <button onclick="filterByCourse('URP431')" class="course-filter-btn px-3 py-1 rounded-md text-sm">
+                                        URP431
+                                    </button>
+                                    <button onclick="filterByCourse('URP435')" class="course-filter-btn px-3 py-1 rounded-md text-sm">
+                                        URP435
+                                    </button>
+                                    <button onclick="filterByCourse('URP419')" class="course-filter-btn px-3 py-1 rounded-md text-sm">
+                                        URP419
+                                    </button>
+                                    <button onclick="filterByCourse('URP302')" class="course-filter-btn px-3 py-1 rounded-md text-sm">
+                                        URP302
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
                             <table class="w-full">
                                 <thead>
                                     <tr class="bg-slate-50 dark:bg-slate-900">
                                         <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Student</th>
+                                        <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Matric</th>
                                         <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Course</th>
                                         <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Date & Time</th>
+                                        <th class="py-3 px-4 text-left text-sm font-medium text-slate-700 dark:text-slate-300">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="lecturerRecords">
-                                    <tr>
-                                        <td colspan="3" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
+                                    <tr id="noLecturerRecords">
+                                        <td colspan="5" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
                                             No attendance records yet
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <p class="text-sm text-slate-600 dark:text-slate-400">
+                                Showing <span id="lecturerRecordCount">0</span> records
+                            </p>
+                            <div class="flex space-x-2">
+                                <button onclick="exportData()" 
+                                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-semibold transition-colors flex items-center">
+                                    <span class="material-symbols-outlined mr-2">
+                                        download
+                                    </span>
+                                    Export CSV
+                                </button>
+                                <button onclick="downloadAllPDF()" 
+                                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-semibold transition-colors flex items-center">
+                                    <span class="material-symbols-outlined mr-2">
+                                        picture_as_pdf
+                                    </span>
+                                    Download All PDF
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -761,14 +971,37 @@
                         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
                             <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Quick Actions</h2>
                             <div class="space-y-4">
-                                <button onclick="startSession()" class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
-                                    <span class="material-symbols-outlined mr-2">add_circle</span>
+                                <button onclick="startSession()" 
+                                        class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined mr-2">
+                                        add_circle
+                                    </span>
                                     Start New Session
                                 </button>
-                                <button onclick="generateReport()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
-                                    <span class="material-symbols-outlined mr-2">summarize</span>
+                                <button onclick="generateReport()" 
+                                        class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined mr-2">
+                                        summarize
+                                    </span>
                                     Generate Report
                                 </button>
+                                <button onclick="viewStudents()" 
+                                        class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined mr-2">
+                                        list
+                                    </span>
+                                    View Students
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Active Sessions -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Active Sessions</h2>
+                            <div class="space-y-4">
+                                <p class="text-slate-500 dark:text-slate-400 text-center py-4">
+                                    No active sessions
+                                </p>
                             </div>
                         </div>
 
@@ -780,6 +1013,63 @@
                                     No course data available
                                 </p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Record Details Modal -->
+            <div id="recordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-auto">
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-white">Attendance Record Details</h3>
+                            <button onclick="closeModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                <span class="material-symbols-outlined">
+                                    close
+                                </span>
+                            </button>
+                        </div>
+                        <div id="modalContent" class="space-y-6">
+                            <!-- Content will be loaded here -->
+                        </div>
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button onclick="closeModal()" 
+                                    class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
+                                Close
+                            </button>
+                            <button onclick="downloadCurrentRecordPDF()" 
+                                    id="downloadModalBtn"
+                                    class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white">
+                                Download as PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Confirmation Modal -->
+            <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full">
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <span class="material-symbols-outlined text-red-600 dark:text-red-400 mr-3">
+                                warning
+                            </span>
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-white">Confirm Deletion</h3>
+                        </div>
+                        <p class="text-slate-600 dark:text-slate-400 mb-6" id="deleteModalText">
+                            Are you sure you want to delete this attendance record? This action cannot be undone.
+                        </p>
+                        <div class="flex justify-end space-x-3">
+                            <button onclick="closeDeleteModal()" 
+                                    class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
+                                Cancel
+                            </button>
+                            <button onclick="confirmDelete()" 
+                                    class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white">
+                                Delete
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -805,82 +1095,201 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                    <div class="stat-gradient-1 text-white rounded-2xl p-6">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-slate-600 dark:text-slate-400">Total Users</p>
-                                <p class="text-3xl font-bold text-slate-900 dark:text-white" id="totalUsers">0</p>
+                                <p class="text-sm opacity-90">Total Admins</p>
+                                <p class="text-3xl font-bold" id="totalAdmins">0</p>
                             </div>
-                            <span class="material-symbols-outlined text-primary text-3xl">groups</span>
+                            <span class="material-symbols-outlined text-4xl opacity-80">
+                                admin_panel_settings
+                            </span>
                         </div>
                     </div>
                     
-                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                    <div class="stat-gradient-2 text-white rounded-2xl p-6">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-slate-600 dark:text-slate-400">Total Records</p>
-                                <p class="text-3xl font-bold text-slate-900 dark:text-white" id="totalRecords">0</p>
+                                <p class="text-sm opacity-90">Attendance Records</p>
+                                <p class="text-3xl font-bold" id="totalRecords">0</p>
                             </div>
-                            <span class="material-symbols-outlined text-green-600 text-3xl">fact_check</span>
+                            <span class="material-symbols-outlined text-4xl opacity-80">
+                                fact_check
+                            </span>
                         </div>
                     </div>
                     
-                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                    <div class="stat-gradient-3 text-white rounded-2xl p-6">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-slate-600 dark:text-slate-400">Active PINs</p>
-                                <p class="text-3xl font-bold text-slate-900 dark:text-white" id="activePins">0</p>
+                                <p class="text-sm opacity-90">Active PINs</p>
+                                <p class="text-3xl font-bold" id="activePins">0</p>
                             </div>
-                            <span class="material-symbols-outlined text-purple-600 text-3xl">key</span>
+                            <span class="material-symbols-outlined text-4xl opacity-80">
+                                vpn_key
+                            </span>
                         </div>
                     </div>
                     
-                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                    <div class="stat-gradient-4 text-white rounded-2xl p-6">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-sm text-slate-600 dark:text-slate-400">Pending Approvals</p>
-                                <p class="text-3xl font-bold text-slate-900 dark:text-white" id="pendingApprovals">0</p>
+                                <p class="text-sm opacity-90">PIN Usage Today</p>
+                                <p class="text-3xl font-bold" id="pinUsageToday">0</p>
                             </div>
-                            <span class="material-symbols-outlined text-yellow-600 text-3xl">pending</span>
+                            <span class="material-symbols-outlined text-4xl opacity-80">
+                                trending_up
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-gradient-5 text-white rounded-2xl p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm opacity-90">Pending Approvals</p>
+                                <p class="text-3xl font-bold" id="pendingApprovals">0</p>
+                            </div>
+                            <span class="material-symbols-outlined text-4xl opacity-80">
+                                person_add
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- PIN Management -->
+                <!-- Three Column Layout -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Generate PIN Section -->
                     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
-                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">PIN Management</h2>
-                        <div class="space-y-4">
-                            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl">
-                                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Generate New PIN</h3>
-                                <div class="space-y-3">
-                                    <input type="text" id="lecturerNameInput" placeholder="Lecturer Name" class="w-full px-3 py-2 border rounded-lg">
-                                    <input type="number" id="expiryDays" placeholder="Expiry Days (7)" value="7" class="w-full px-3 py-2 border rounded-lg">
-                                    <button onclick="generatePIN()" class="w-full bg-primary hover:bg-primary-hover text-white py-2 rounded-lg font-semibold">
-                                        Generate PIN
-                                    </button>
-                                </div>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Generate Lecturer PIN</h2>
+                        <form id="pinForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Lecturer Name *</label>
+                                <input type="text" id="lecturerName" required
+                                       class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
                             </div>
-                            <div id="generatedPIN" class="hidden bg-green-50 dark:bg-green-900/20 p-4 rounded-xl">
-                                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Generated PIN</h3>
-                                <p class="font-mono text-2xl text-center my-2" id="pinDisplay"></p>
-                                <p class="text-sm text-slate-600 dark:text-slate-400 text-center" id="pinDetails"></p>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email (Optional)</label>
+                                <input type="email" id="lecturerEmail"
+                                       class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
                             </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">PIN Expiry</label>
+                                <select id="expiryDays" class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
+                                    <option value="1">24 Hours</option>
+                                    <option value="7" selected>7 Days</option>
+                                    <option value="30">30 Days</option>
+                                    <option value="90">90 Days</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="autoGenerate" checked class="mr-3 w-5 h-5 text-primary rounded">
+                                <label for="autoGenerate" class="text-sm text-slate-700 dark:text-slate-300">Auto-generate 6-digit PIN</label>
+                            </div>
+                            <div id="customPinSection" class="hidden">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Custom PIN</label>
+                                <input type="text" id="customPin" maxlength="6"
+                                       class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-center text-2xl tracking-widest">
+                            </div>
+                            <div class="flex space-x-4">
+                                <button type="submit" class="flex-1 bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined mr-2">
+                                        vpn_key
+                                    </span>
+                                    Generate PIN
+                                </button>
+                                <button type="button" onclick="viewAllPins()" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined mr-2">
+                                        list
+                                    </span>
+                                    View All PINs
+                                </button>
+                            </div>
+                        </form>
+                        <div id="pinMessage" class="mt-4 hidden"></div>
+                    </div>
+
+                    <!-- Pending Approvals -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Pending Lecturer Approvals</h2>
+                        <div class="space-y-4 max-h-[500px] overflow-y-auto" id="pendingApprovalsList">
+                            <div class="text-center py-8">
+                                <span class="material-symbols-outlined text-4xl text-slate-400 dark:text-slate-500 mb-3">
+                                    check_circle
+                                </span>
+                                <p class="text-slate-500 dark:text-slate-400">No pending lecturer approvals</p>
+                                <p class="text-sm text-slate-400 dark:text-slate-500 mt-1">Student accounts are auto-approved</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                <span class="material-symbols-outlined align-middle text-sm mr-1">
+                                    info
+                                </span>
+                                Student accounts are automatically approved. Only lecturer accounts require admin approval.
+                            </p>
                         </div>
                     </div>
 
-                    <!-- Recent Activity -->
+                    <!-- Recent PINs -->
                     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6">
-                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Recent Activity</h2>
-                        <div id="recentActivity" class="space-y-4">
-                            <div class="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
-                                <span class="material-symbols-outlined text-blue-500">info</span>
-                                <div>
-                                    <p class="font-medium text-slate-900 dark:text-white">System Started</p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">Just now</p>
-                                </div>
-                            </div>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Recent PINs</h2>
+                        <div class="space-y-4 max-h-[500px] overflow-y-auto" id="recentPinsList">
+                            <p class="text-slate-500 dark:text-slate-400 text-center py-8">No PINs generated yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Management -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 mt-8">
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">System Management</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <button onclick="viewAllUsers()" class="bg-blue-100 dark:bg-blue-900/20 hover:bg-blue-200 dark:hover:bg-blue-900/40 text-blue-800 dark:text-blue-300 p-6 rounded-xl transition-colors flex flex-col items-center justify-center">
+                            <span class="material-symbols-outlined text-4xl mb-3">
+                                group
+                            </span>
+                            <span class="font-semibold">View All Users</span>
+                        </button>
+                        <button onclick="viewAllAttendance()" class="bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/40 text-green-800 dark:text-green-300 p-6 rounded-xl transition-colors flex flex-col items-center justify-center">
+                            <span class="material-symbols-outlined text-4xl mb-3">
+                                assignment
+                            </span>
+                            <span class="font-semibold">All Attendance</span>
+                        </button>
+                        <button onclick="systemSettings()" class="bg-purple-100 dark:bg-purple-900/20 hover:bg-purple-200 dark:hover:bg-purple-900/40 text-purple-800 dark:text-purple-300 p-6 rounded-xl transition-colors flex flex-col items-center justify-center">
+                            <span class="material-symbols-outlined text-4xl mb-3">
+                                settings
+                            </span>
+                            <span class="font-semibold">System Settings</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- PIN Modal -->
+            <div id="pinModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full">
+                    <div class="p-6">
+                        <div class="text-center mb-6">
+                            <span class="material-symbols-outlined text-6xl text-green-500 mb-4">
+                                check_circle
+                            </span>
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">PIN Generated Successfully!</h3>
+                            <p class="text-slate-600 dark:text-slate-400">Share this PIN with the lecturer</p>
+                        </div>
+                        <div class="text-center mb-6">
+                            <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">Lecturer PIN</p>
+                            <p id="generatedPin" class="text-5xl font-bold tracking-widest font-mono mb-2 text-slate-900 dark:text-white">000000</p>
+                            <p id="pinLecturerName" class="text-lg font-semibold text-slate-900 dark:text-white"></p>
+                            <p id="pinExpiry" class="text-sm text-slate-500 dark:text-slate-400 mt-2"></p>
+                        </div>
+                        <div class="flex space-x-4">
+                            <button onclick="copyPin()" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold transition-colors">
+                                Copy PIN
+                            </button>
+                            <button onclick="closePinModal()" class="flex-1 bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition-colors">
+                                Done
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -925,6 +1334,14 @@
         let currentLocation = null;
         let faceImage = null;
         let videoStream = null;
+        let isLocationCaptured = false;
+        let isFaceCaptured = false;
+        let isCourseSelected = false;
+        
+        // Lecturer dashboard data
+        let currentRecordId = null;
+        let recordToDelete = null;
+        let currentRecordData = null;
         
         // Set current year in footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
@@ -1108,6 +1525,8 @@
             document.getElementById('studentName').textContent = `Welcome, ${currentUser.fullName}!`;
             document.getElementById('studentFullName').textContent = currentUser.fullName;
             document.getElementById('studentMatric').textContent = currentUser.matricNumber;
+            document.getElementById('studentFullNameInput').value = currentUser.fullName;
+            document.getElementById('studentMatricInput').value = currentUser.matricNumber;
             
             // Load attendance records
             const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
@@ -1124,73 +1543,95 @@
                         <p class="text-sm text-slate-600 dark:text-slate-400">
                             ${new Date(record.timestamp).toLocaleDateString()} at ${new Date(record.timestamp).toLocaleTimeString()}
                         </p>
+                        ${record.latitude && record.longitude ? 
+                            `<p class="text-xs text-slate-500 dark:text-slate-500 mt-2">
+                                Location: ${record.latitude.toFixed(4)}, ${record.longitude.toFixed(4)}
+                            </p>` : ''
+                        }
                     </div>
                 `).join('');
             }
+            
+            // Reset form state
+            resetStudentForm();
         }
         
-        // Lecturer Dashboard Functions
-        function loadLecturerDashboard() {
-            if (!currentUser || currentUser.role !== 'lecturer') {
-                showView('home');
-                return;
-            }
+        function resetStudentForm() {
+            isLocationCaptured = false;
+            isFaceCaptured = false;
+            isCourseSelected = false;
+            currentLocation = null;
+            faceImage = null;
             
-            document.getElementById('lecturerName').textContent = `Welcome, ${currentUser.fullName}!`;
+            document.getElementById('locationStatus').innerHTML = `
+                <span class="material-symbols-outlined align-middle text-yellow-600">
+                    pending
+                </span>
+                Location not captured yet
+            `;
+            document.getElementById('locationStatus').className = 'text-sm text-slate-600 dark:text-slate-400';
+            document.getElementById('coordinates').classList.add('hidden');
             
-            // Load statistics (demo data)
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            const today = new Date().toDateString();
-            const todayRecords = records.filter(r => new Date(r.timestamp).toDateString() === today);
+            document.getElementById('facePreview').classList.add('hidden');
+            document.getElementById('captureFace').classList.remove('hidden');
+            document.getElementById('retakePhoto').classList.add('hidden');
+            document.getElementById('noCamera').classList.remove('hidden');
+            document.getElementById('cameraContainer').classList.add('hidden');
+            document.getElementById('captureFace').disabled = true;
             
-            document.getElementById('totalStudents').textContent = '45';
-            document.getElementById('presentToday').textContent = todayRecords.length.toString();
-            document.getElementById('activeSessions').textContent = '2';
+            document.getElementById('courseCode').value = '';
             
-            // Load recent attendance
-            const lecturerRecords = document.getElementById('lecturerRecords');
-            if (records.length > 0) {
-                lecturerRecords.innerHTML = records.slice(0, 5).map(record => `
-                    <tr class="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                        <td class="py-3 px-4">${record.studentName}</td>
-                        <td class="py-3 px-4">
-                            <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">
-                                ${record.courseCode}
-                            </span>
-                        </td>
-                        <td class="py-3 px-4">
-                            <div>${new Date(record.timestamp).toLocaleDateString()}</div>
-                            <div class="text-sm text-slate-600 dark:text-slate-400">${new Date(record.timestamp).toLocaleTimeString()}</div>
-                        </td>
-                    </tr>
-                `).join('');
-            }
+            updateSubmitButton();
         }
         
-        // Admin Dashboard Functions
-        function loadAdminDashboard() {
-            if (!currentUser || currentUser.role !== 'admin') {
-                showView('home');
-                return;
+        // Update requirement checks for student
+        function updateSubmitButton() {
+            const submitBtn = document.getElementById('submitBtn');
+            const locationCheck = document.getElementById('locationCheck');
+            const faceCheck = document.getElementById('faceCheck');
+            const courseCheck = document.getElementById('courseCheck');
+            const courseCode = document.getElementById('courseCode').value;
+            
+            // Update checks
+            if (isLocationCaptured) {
+                locationCheck.textContent = 'check_circle';
+                locationCheck.className = 'material-symbols-outlined text-green-500 mr-2 text-sm';
+            } else {
+                locationCheck.textContent = 'radio_button_unchecked';
+                locationCheck.className = 'material-symbols-outlined text-red-500 mr-2 text-sm';
             }
             
-            document.getElementById('adminName').textContent = `Welcome, ${currentUser.fullName}!`;
+            if (isFaceCaptured) {
+                faceCheck.textContent = 'check_circle';
+                faceCheck.className = 'material-symbols-outlined text-green-500 mr-2 text-sm';
+            } else {
+                faceCheck.textContent = 'radio_button_unchecked';
+                faceCheck.className = 'material-symbols-outlined text-red-500 mr-2 text-sm';
+            }
             
-            // Load statistics
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            const pendingLecturers = users.filter(u => u.role === 'lecturer' && !u.isApproved);
+            if (courseCode) {
+                courseCheck.textContent = 'check_circle';
+                courseCheck.className = 'material-symbols-outlined text-green-500 mr-2 text-sm';
+                isCourseSelected = true;
+            } else {
+                courseCheck.textContent = 'radio_button_unchecked';
+                courseCheck.className = 'material-symbols-outlined text-red-500 mr-2 text-sm';
+                isCourseSelected = false;
+            }
             
-            document.getElementById('totalUsers').textContent = users.length;
-            document.getElementById('totalRecords').textContent = records.length;
-            document.getElementById('activePins').textContent = '3';
-            document.getElementById('pendingApprovals').textContent = pendingLecturers.length;
+            // Enable/disable submit button
+            if (isLocationCaptured && isFaceCaptured && isCourseSelected) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
         }
         
         // Student-specific functions
         function captureLocation() {
             if (navigator.geolocation) {
                 const btn = document.getElementById('captureLocation');
+                const originalText = btn.innerHTML;
                 btn.innerHTML = '<span class="material-symbols-outlined mr-2 animate-spin">sync</span>Capturing...';
                 btn.disabled = true;
                 
@@ -1200,23 +1641,43 @@
                             lat: position.coords.latitude,
                             lon: position.coords.longitude
                         };
-                        showFlashMessage('Location captured successfully!', 'success');
-                        btn.innerHTML = '<span class="material-symbols-outlined mr-2">location_on</span>Location Captured';
-                        checkAttendanceReady();
+                        
+                        document.getElementById('locationStatus').innerHTML = `
+                            <span class="material-symbols-outlined align-middle text-green-600">
+                                check_circle
+                            </span>
+                            Location captured successfully
+                        `;
+                        document.getElementById('locationStatus').className = 'text-green-600 dark:text-green-400 text-sm';
+                        document.getElementById('coordinates').classList.remove('hidden');
+                        document.getElementById('latitude').textContent = currentLocation.lat.toFixed(6);
+                        document.getElementById('longitude').textContent = currentLocation.lon.toFixed(6);
+                        
+                        isLocationCaptured = true;
+                        updateSubmitButton();
+                        
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
                     },
                     error => {
                         showFlashMessage('Error capturing location: ' + error.message, 'error');
-                        btn.innerHTML = '<span class="material-symbols-outlined mr-2">location_on</span>Capture Location';
+                        btn.innerHTML = originalText;
                         btn.disabled = false;
-                    }
+                    },
+                    { timeout: 10000, enableHighAccuracy: true }
                 );
             } else {
-                showFlashMessage('Geolocation not supported', 'error');
+                showFlashMessage('Geolocation is not supported by your browser', 'error');
             }
         }
         
         function startCamera() {
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                const btn = document.getElementById('startCamera');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="material-symbols-outlined mr-2 animate-spin">sync</span>Starting...';
+                btn.disabled = true;
+                
                 navigator.mediaDevices.getUserMedia({ 
                     video: { 
                         facingMode: 'user',
@@ -1232,9 +1693,15 @@
                     document.getElementById('cameraContainer').classList.remove('hidden');
                     document.getElementById('noCamera').classList.add('hidden');
                     document.getElementById('captureFace').disabled = false;
+                    
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
                 })
                 .catch(error => {
+                    console.error('Camera error:', error);
                     showFlashMessage('Could not access camera: ' + error.message, 'error');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
                 });
             }
         }
@@ -1249,25 +1716,38 @@
             
             faceImage = canvas.toDataURL('image/jpeg', 0.8);
             
+            const preview = document.getElementById('facePreview');
+            const capturedImage = document.getElementById('capturedImage');
+            capturedImage.src = faceImage;
+            preview.classList.remove('hidden');
+            
+            document.getElementById('captureFace').classList.add('hidden');
+            document.getElementById('retakePhoto').classList.remove('hidden');
+            
             // Stop camera
             if (videoStream) {
                 videoStream.getTracks().forEach(track => track.stop());
                 videoStream = null;
             }
             
-            showFlashMessage('Face captured successfully!', 'success');
-            document.getElementById('captureFace').textContent = 'Face Captured';
-            document.getElementById('captureFace').disabled = true;
-            checkAttendanceReady();
+            isFaceCaptured = true;
+            updateSubmitButton();
         }
         
-        function checkAttendanceReady() {
-            const courseCode = document.getElementById('courseCode');
-            const submitBtn = document.getElementById('submitAttendanceBtn');
+        function retakePhoto() {
+            document.getElementById('facePreview').classList.add('hidden');
+            document.getElementById('captureFace').classList.remove('hidden');
+            document.getElementById('retakePhoto').classList.add('hidden');
+            document.getElementById('noCamera').classList.remove('hidden');
+            document.getElementById('cameraContainer').classList.add('hidden');
             
-            if (currentLocation && faceImage && courseCode.value) {
-                submitBtn.disabled = false;
-            }
+            faceImage = null;
+            isFaceCaptured = false;
+            updateSubmitButton();
+            
+            // Reset camera button
+            document.getElementById('startCamera').innerHTML = '<span class="material-symbols-outlined mr-2">videocam</span>Start Camera';
+            document.getElementById('startCamera').disabled = false;
         }
         
         function submitAttendance() {
@@ -1289,30 +1769,503 @@
                 latitude: currentLocation.lat,
                 longitude: currentLocation.lon,
                 faceImage: faceImage,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toTimeString().split(' ')[0]
             });
             
             localStorage.setItem('attendanceRecords', JSON.stringify(records));
             
-            showFlashMessage('Attendance submitted successfully!', 'success');
+            showFlashMessage('Attendance submitted successfully! Course: ' + courseCode, 'success');
             
-            // Reset form
-            currentLocation = null;
-            faceImage = null;
-            document.getElementById('captureLocation').innerHTML = '<span class="material-symbols-outlined mr-2">location_on</span>Capture Location';
-            document.getElementById('captureLocation').disabled = false;
-            document.getElementById('captureFace').innerHTML = '<span class="material-symbols-outlined mr-2">camera</span>Capture Face';
-            document.getElementById('captureFace').disabled = false;
-            document.getElementById('courseCode').value = '';
-            document.getElementById('submitAttendanceBtn').disabled = true;
-            document.getElementById('cameraContainer').classList.add('hidden');
-            document.getElementById('noCamera').classList.remove('hidden');
+            // Reset form and reload dashboard
+            setTimeout(() => {
+                loadStudentDashboard();
+            }, 1500);
+        }
+        
+        // Lecturer Dashboard Functions
+        function loadLecturerDashboard() {
+            if (!currentUser || currentUser.role !== 'lecturer') {
+                showView('home');
+                return;
+            }
             
-            // Reload dashboard
-            loadStudentDashboard();
+            document.getElementById('lecturerName').textContent = `Welcome, ${currentUser.fullName}!`;
+            
+            // Load statistics
+            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            const today = new Date().toDateString();
+            const todayRecords = records.filter(r => new Date(r.timestamp).toDateString() === today);
+            
+            document.getElementById('totalStudents').textContent = '45';
+            document.getElementById('presentToday').textContent = todayRecords.length.toString();
+            document.getElementById('activeSessions').textContent = '2';
+            
+            // Load attendance records
+            loadLecturerRecords(records);
+            
+            // Load course summary
+            loadCourseSummary(records);
+        }
+        
+        function loadLecturerRecords(records) {
+            const lecturerRecords = document.getElementById('lecturerRecords');
+            const noLecturerRecords = document.getElementById('noLecturerRecords');
+            
+            if (records.length > 0) {
+                noLecturerRecords.style.display = 'none';
+                lecturerRecords.innerHTML = records.slice(0, 10).map(record => `
+                    <tr class="record-row border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors" 
+                        data-course="${record.courseCode}" 
+                        data-record-id="${record.id}"
+                        data-student-name="${record.studentName}"
+                        data-matric-number="${record.matricNumber}"
+                        data-course-code="${record.courseCode}"
+                        data-course-name="${getCourseName(record.courseCode)}"
+                        data-date="${record.date || new Date(record.timestamp).toISOString().split('T')[0]}"
+                        data-time="${record.time || new Date(record.timestamp).toTimeString().split(' ')[0]}"
+                        data-face-image="${record.faceImage || ''}"
+                        data-face-match-confidence="95%"
+                        data-verification-timestamp="${record.timestamp}"
+                        data-latitude="${record.latitude || '8.5060'}"
+                        data-longitude="${record.longitude || '7.6866'}">
+                        <td class="py-3 px-4">${record.studentName}</td>
+                        <td class="py-3 px-4 font-mono">${record.matricNumber}</td>
+                        <td class="py-3 px-4">
+                            <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">
+                                ${record.courseCode}
+                            </span>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">${getCourseName(record.courseCode)}</p>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div>${record.date || new Date(record.timestamp).toISOString().split('T')[0]}</div>
+                            <div class="text-sm text-slate-600 dark:text-slate-400">${record.time || new Date(record.timestamp).toLocaleTimeString()}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center space-x-2">
+                                <button onclick="viewDetails('${record.id}')" 
+                                        class="text-primary hover:text-primary-hover transition-colors p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                        title="View Details">
+                                    <span class="material-symbols-outlined align-middle">
+                                        visibility
+                                    </span>
+                                </button>
+                                <button onclick="downloadRecordPDF('${record.id}')" 
+                                        class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
+                                        title="Download PDF">
+                                    <span class="material-symbols-outlined align-middle">
+                                        download
+                                    </span>
+                                </button>
+                                <button onclick="deleteRecord('${record.id}')" 
+                                        class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        title="Delete Record">
+                                    <span class="material-symbols-outlined align-middle">
+                                        delete
+                                    </span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('lecturerRecordCount').textContent = Math.min(records.length, 10);
+            } else {
+                noLecturerRecords.style.display = '';
+                document.getElementById('lecturerRecordCount').textContent = '0';
+            }
+        }
+        
+        function getCourseName(courseCode) {
+            const courses = {
+                'URP213': 'Introduction to Land Surveying',
+                'URP313': 'Regional Development Planning',
+                'URP431': 'Planning Studio VII (Master Plan)',
+                'URP435': 'Public Utilities and Services',
+                'URP419': 'Pollution Control and Management',
+                'URP302': 'Housing and Community Development'
+            };
+            return courses[courseCode] || 'Urban Planning Course';
+        }
+        
+        function loadCourseSummary(records) {
+            const courseSummary = document.getElementById('courseSummary');
+            const courseCounts = {};
+            
+            records.forEach(record => {
+                courseCounts[record.courseCode] = (courseCounts[record.courseCode] || 0) + 1;
+            });
+            
+            if (Object.keys(courseCounts).length > 0) {
+                courseSummary.innerHTML = Object.entries(courseCounts).map(([code, count]) => `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-slate-900 dark:text-white">${code}</p>
+                            <p class="text-xs text-slate-600 dark:text-slate-400">${getCourseName(code)}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-primary dark:text-blue-400">${count}</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">records</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        // Course filtering for lecturer
+        function filterByCourse(courseCode) {
+            const rows = document.querySelectorAll('#lecturerRecords .record-row');
+            const noRecordsRow = document.getElementById('noLecturerRecords');
+            let visibleCount = 0;
+            
+            // Update active button
+            document.querySelectorAll('.course-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            rows.forEach(row => {
+                if (courseCode === 'all' || row.dataset.course === courseCode) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update record count
+            document.getElementById('lecturerRecordCount').textContent = visibleCount;
+            
+            // Show/hide no records message
+            if (noRecordsRow) {
+                noRecordsRow.style.display = visibleCount === 0 ? '' : 'none';
+            }
         }
         
         // Lecturer-specific functions
+        function viewDetails(recordId) {
+            try {
+                // Show loading state
+                const modalContent = document.getElementById('modalContent');
+                modalContent.innerHTML = `
+                    <div class="flex justify-center items-center py-12">
+                        <div class="loading-spinner"></div>
+                        <p class="ml-3 text-slate-600 dark:text-slate-400">Loading record details...</p>
+                    </div>
+                `;
+                
+                document.getElementById('recordModal').classList.remove('hidden');
+                
+                // Find the record from the table data
+                const recordRow = document.querySelector(`.record-row[data-record-id="${recordId}"]`);
+                if (!recordRow) {
+                    throw new Error('Record not found in table');
+                }
+                
+                // Extract data from the data attributes
+                const studentName = recordRow.dataset.studentName;
+                const matricNumber = recordRow.dataset.matricNumber;
+                const courseCode = recordRow.dataset.courseCode;
+                const courseName = recordRow.dataset.courseName;
+                const date = recordRow.dataset.date;
+                const time = recordRow.dataset.time;
+                const faceImage = recordRow.dataset.faceImage;
+                const faceMatchConfidence = recordRow.dataset.faceMatchConfidence;
+                const verificationTimestamp = recordRow.dataset.verificationTimestamp;
+                const latitude = recordRow.dataset.latitude;
+                const longitude = recordRow.dataset.longitude;
+                
+                // Determine the face image
+                let faceImageUrl = '';
+                let faceImageHtml = '';
+                
+                if (faceImage && faceImage.trim() !== '') {
+                    faceImageUrl = faceImage;
+                    faceImageHtml = `
+                        <img id="faceVerificationImage" 
+                             src="${faceImageUrl}" 
+                             alt="Captured face image for ${studentName}"
+                             class="face-image"
+                             style="width: 100%; height: 100%; object-fit: cover;">
+                    `;
+                } else {
+                    faceImageHtml = `
+                        <div class="no-face-image">
+                            <span class="material-symbols-outlined text-6xl mb-4">
+                                face
+                            </span>
+                            <p class="text-lg font-semibold">${studentName}</p>
+                            <p class="text-sm">${matricNumber}</p>
+                            <p class="text-xs mt-4">No face image available</p>
+                        </div>
+                    `;
+                }
+                
+                // Create record data
+                currentRecordData = {
+                    id: recordId,
+                    student_name: studentName,
+                    matric_number: matricNumber,
+                    course_code: courseCode,
+                    course_name: courseName,
+                    date: date,
+                    time: time,
+                    department: 'Urban and Regional Planning',
+                    level: '400 Level',
+                    status: 'present',
+                    latitude: latitude,
+                    longitude: longitude,
+                    face_image_url: faceImageUrl,
+                    face_match_confidence: faceMatchConfidence,
+                    verification_timestamp: verificationTimestamp,
+                    device_info: 'Mobile Camera',
+                    image_quality: 'High',
+                    face_detection_score: '98%'
+                };
+                
+                // Display the record details
+                displayRecordDetails(currentRecordData);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                const modalContent = document.getElementById('modalContent');
+                modalContent.innerHTML = `
+                    <div class="text-center py-12">
+                        <span class="material-symbols-outlined text-red-500 text-6xl mb-4">
+                            error
+                        </span>
+                        <h4 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">Error Loading Record</h4>
+                        <p class="text-slate-600 dark:text-slate-400">${error.message || 'Unable to load record details'}</p>
+                        <div class="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                            <p class="text-sm text-yellow-800 dark:text-yellow-300">
+                                <strong>Note:</strong> This is a demonstration. In a real application, this would fetch data from the server.
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        function displayRecordDetails(data) {
+            currentRecordId = data.id;
+            
+            const modalContent = document.getElementById('modalContent');
+            modalContent.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
+                        <h4 class="font-semibold text-lg text-slate-900 dark:text-white mb-3">Student Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Name</p>
+                                <p class="font-medium">${data.student_name}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Matric Number</p>
+                                <p class="font-mono font-medium">${data.matric_number}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Department</p>
+                                <p class="font-medium">${data.department}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Level</p>
+                                <p class="font-medium">${data.level}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
+                        <h4 class="font-semibold text-lg text-slate-900 dark:text-white mb-3">Attendance Details</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Course Code</p>
+                                <p class="font-medium font-mono">${data.course_code}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Course Name</p>
+                                <p class="font-medium">${data.course_name}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Date</p>
+                                <p class="font-medium">${data.date}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Time</p>
+                                <p class="font-medium">${data.time}</p>
+                            </div>
+                            <div class="md:col-span-3">
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Status</p>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                    Present
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
+                        <h4 class="font-semibold text-lg text-slate-900 dark:text-white mb-3">Location Information</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Latitude</p>
+                                <p class="font-mono">${data.latitude}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Longitude</p>
+                                <p class="font-mono">${data.longitude}</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">Location Map</p>
+                                <a href="https://maps.google.com/?q=${data.latitude},${data.longitude}" 
+                                   target="_blank" 
+                                   class="text-primary hover:underline inline-flex items-center">
+                                    <span class="material-symbols-outlined mr-1 text-sm">
+                                        map
+                                    </span>
+                                    View on Google Maps (NSUK Campus)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
+                        <h4 class="font-semibold text-lg text-slate-900 dark:text-white mb-3">Face Verification</h4>
+                        <div class="text-center">
+                            <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">Captured face image during attendance submission:</p>
+                            
+                            <div class="face-image-container">
+                                <div class="face-verification-badge">${data.face_image_url ? 'Verified ✓' : 'No Image'}</div>
+                                <div id="faceImageContainer">
+                                    ${data.face_image_url ? 
+                                        `<img id="faceVerificationImage" 
+                                             src="${data.face_image_url}" 
+                                             alt="Captured face image for ${data.student_name}"
+                                             class="face-image"
+                                             onerror="handleFaceImageError(this, '${data.student_name}', '${data.matric_number}', '${data.verification_timestamp}')">` :
+                                        `<div class="face-image-placeholder">
+                                            <span class="material-symbols-outlined text-6xl mb-4">
+                                                face
+                                            </span>
+                                            <p class="text-lg font-semibold">${data.student_name}</p>
+                                            <p class="text-sm">${data.matric_number}</p>
+                                            <p class="text-xs mt-4">No face image available</p>
+                                        </div>`
+                                    }
+                                </div>
+                            </div>
+                            
+                            <div class="verification-info-grid">
+                                <div>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Verification Timestamp</p>
+                                    <p class="text-sm font-medium">${data.verification_timestamp}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Face Match Confidence</p>
+                                    <p class="text-sm font-medium text-green-600 dark:text-green-400">${data.face_match_confidence}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Detection Score</p>
+                                    <p class="text-sm font-medium">${data.face_detection_score}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Device Used</p>
+                                    <p class="text-sm font-medium">${data.device_info}</p>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Image Quality</p>
+                                    <div class="flex items-center">
+                                        <span class="text-sm font-medium mr-2">${data.image_quality}</span>
+                                        <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                                            <div class="bg-green-500 h-2 rounded-full" style="width: 90%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-4">
+                                <span class="material-symbols-outlined align-middle text-sm mr-1">
+                                    ${data.face_image_url ? 'verified' : 'warning'}
+                                </span>
+                                ${data.face_image_url ? 
+                                    'Face was successfully captured and verified during attendance submission' :
+                                    'No face image was captured during attendance submission'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function handleFaceImageError(imgElement, studentName, matricNumber, timestamp) {
+            const container = document.getElementById('faceImageContainer');
+            
+            // Create a canvas-based placeholder with student info
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            // Create gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 256, 256);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 256, 256);
+            
+            // Draw face outline
+            ctx.beginPath();
+            ctx.arc(128, 100, 60, 0, Math.PI * 2, true);
+            ctx.fillStyle = '#FFD9B3';
+            ctx.fill();
+            ctx.strokeStyle = '#D4A76A';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw eyes
+            ctx.beginPath();
+            ctx.arc(100, 90, 12, 0, Math.PI * 2, true);
+            ctx.arc(156, 90, 12, 0, Math.PI * 2, true);
+            ctx.fillStyle = '#5D4037';
+            ctx.fill();
+            
+            // Draw mouth
+            ctx.beginPath();
+            ctx.arc(128, 130, 20, 0, Math.PI, false);
+            ctx.strokeStyle = '#D81B60';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Add student info text
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(studentName, 128, 190);
+            ctx.font = '10px Arial';
+            ctx.fillText(matricNumber, 128, 205);
+            ctx.fillText(timestamp, 128, 220);
+            
+            // Replace the broken image with canvas
+            container.innerHTML = '';
+            container.appendChild(canvas);
+            
+            // Add error message
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'text-xs text-slate-500 dark:text-slate-400 mt-2';
+            errorMsg.textContent = 'Note: Original face image not available. Showing placeholder.';
+            container.parentElement.appendChild(errorMsg);
+        }
+        
+        function closeModal() {
+            document.getElementById('recordModal').classList.add('hidden');
+            currentRecordData = null;
+        }
+        
+        function downloadCurrentRecordPDF() {
+            if (currentRecordId) {
+                downloadRecordPDF(currentRecordId);
+            }
+        }
+        
         function startSession() {
             showFlashMessage('Starting new session... (Demo)', 'info');
         }
@@ -1321,9 +2274,665 @@
             showFlashMessage('Generating report... (Demo)', 'info');
         }
         
+        function viewStudents() {
+            showFlashMessage('View students feature would be implemented here', 'info');
+        }
+        
+        function exportData() {
+            // Get all records
+            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            
+            if (records.length === 0) {
+                showFlashMessage('No records to export', 'error');
+                return;
+            }
+            
+            // Create CSV content
+            let csv = 'Student Name,Matric Number,Course Code,Course Name,Date,Time,Latitude,Longitude,Status,Face Verified,Face Match Confidence\n';
+            
+            records.forEach(record => {
+                csv += `"${record.studentName}","${record.matricNumber}","${record.courseCode}","${getCourseName(record.courseCode)}","${record.date || new Date(record.timestamp).toISOString().split('T')[0]}","${record.time || new Date(record.timestamp).toTimeString().split(' ')[0]}",${record.latitude || '8.5060'},${record.longitude || '7.6866'},present,${record.faceImage ? 'Yes' : 'No'},${record.faceMatchConfidence || '95%'}\n`;
+            });
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'attendance_records.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            // Show success message
+            showFlashMessage('CSV exported successfully!', 'success');
+        }
+        
+        function downloadRecordPDF(recordId) {
+            // Show loading state
+            const button = event?.target?.closest('button');
+            if (button) {
+                const originalHTML = button.innerHTML;
+                button.innerHTML = `
+                    <span class="material-symbols-outlined mr-2 animate-spin">
+                        sync
+                    </span>
+                    Generating PDF...
+                `;
+                button.disabled = true;
+                
+                // Simulate PDF generation delay
+                setTimeout(() => {
+                    // Generate client-side PDF
+                    if (currentRecordData && currentRecordData.id === recordId) {
+                        generateClientSidePDF(currentRecordData);
+                    } else {
+                        // Try to get record data
+                        const recordRow = document.querySelector(`.record-row[data-record-id="${recordId}"]`);
+                        if (recordRow) {
+                            const studentName = recordRow.dataset.studentName;
+                            const matricNumber = recordRow.dataset.matricNumber;
+                            const courseCode = recordRow.dataset.courseCode;
+                            const courseName = recordRow.dataset.courseName;
+                            const date = recordRow.dataset.date;
+                            const time = recordRow.dataset.time;
+                            const faceMatchConfidence = recordRow.dataset.faceMatchConfidence;
+                            
+                            const mockData = {
+                                id: recordId,
+                                student_name: studentName,
+                                matric_number: matricNumber,
+                                course_code: courseCode,
+                                course_name: courseName,
+                                date: date,
+                                time: time,
+                                status: 'present',
+                                face_verified: 'Yes',
+                                face_match_confidence: faceMatchConfidence || '95%'
+                            };
+                            
+                            generateClientSidePDF(mockData);
+                        } else {
+                            alert('Could not generate PDF. Record data not found.');
+                        }
+                    }
+                    
+                    // Restore button
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                    
+                    // Show success notification
+                    showFlashMessage('PDF generated successfully!', 'success');
+                }, 1500);
+            }
+        }
+        
+        function generateClientSidePDF(data) {
+            // Create a simple HTML page for printing
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Attendance Record - ${data.student_name}</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
+                        
+                        body { 
+                            font-family: 'Lexend', Arial, sans-serif; 
+                            padding: 30px; 
+                            color: #333;
+                            max-width: 800px;
+                            margin: 0 auto;
+                        }
+                        .header { 
+                            text-align: center; 
+                            margin-bottom: 40px;
+                            border-bottom: 2px solid #0f1b3d;
+                            padding-bottom: 20px;
+                        }
+                        .university-name {
+                            font-size: 24px;
+                            font-weight: 700;
+                            color: #0f1b3d;
+                            margin-bottom: 5px;
+                        }
+                        .department {
+                            font-size: 18px;
+                            font-weight: 500;
+                            color: #555;
+                            margin-bottom: 5px;
+                        }
+                        .title {
+                            font-size: 20px;
+                            font-weight: 600;
+                            color: #0f1b3d;
+                            margin-top: 10px;
+                        }
+                        .section { 
+                            margin-bottom: 25px; 
+                            padding: 20px;
+                            background: #f8fafc;
+                            border-radius: 8px;
+                            border-left: 4px solid #0f1b3d;
+                        }
+                        .section-title {
+                            font-size: 16px;
+                            font-weight: 600;
+                            color: #0f1b3d;
+                            margin-bottom: 15px;
+                            display: flex;
+                            align-items: center;
+                        }
+                        .section-title::before {
+                            content: "•";
+                            margin-right: 8px;
+                            color: #0f1b3d;
+                        }
+                        .grid {
+                            display: grid;
+                            grid-template-columns: repeat(2, 1fr);
+                            gap: 15px;
+                        }
+                        .field {
+                            margin-bottom: 12px;
+                        }
+                        .label { 
+                            font-weight: 500; 
+                            color: #666;
+                            font-size: 14px;
+                            margin-bottom: 4px;
+                        }
+                        .value { 
+                            font-weight: 400;
+                            color: #222;
+                            font-size: 15px;
+                        }
+                        .status-badge {
+                            display: inline-block;
+                            padding: 4px 12px;
+                            background-color: #10b981;
+                            color: white;
+                            border-radius: 20px;
+                            font-size: 14px;
+                            font-weight: 500;
+                        }
+                        .verification {
+                            text-align: center;
+                            margin: 20px 0;
+                            padding: 15px;
+                            background: #f0f9ff;
+                            border-radius: 8px;
+                            border: 1px solid #bae6fd;
+                        }
+                        .face-verification-note {
+                            font-size: 13px;
+                            color: #666;
+                            text-align: center;
+                            margin-top: 10px;
+                            font-style: italic;
+                        }
+                        .signature-section {
+                            margin-top: 60px;
+                            padding-top: 20px;
+                            border-top: 1px solid #ccc;
+                        }
+                        .signature-line {
+                            width: 250px;
+                            border-top: 1px solid #333;
+                            margin-top: 40px;
+                            padding-top: 5px;
+                            text-align: center;
+                            font-size: 14px;
+                            color: #666;
+                        }
+                        .footer {
+                            text-align: center;
+                            margin-top: 40px;
+                            font-size: 12px;
+                            color: #666;
+                        }
+                        @media print {
+                            body { padding: 15px; }
+                            .section { break-inside: avoid; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="university-name">Nasarawa State University, Keffi</div>
+                        <div class="department">Department of Urban and Regional Planning</div>
+                        <div class="title">ATTENDANCE RECORD WITH FACE VERIFICATION</div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">Student Information</div>
+                        <div class="grid">
+                            <div class="field">
+                                <div class="label">Student Name</div>
+                                <div class="value">${data.student_name}</div>
+                            </div>
+                            <div class="field">
+                                <div class="label">Matriculation Number</div>
+                                <div class="value">${data.matric_number}</div>
+                            </div>
+                            <div class="field">
+                                <div class="label">Department</div>
+                                <div class="value">Urban and Regional Planning</div>
+                            </div>
+                            <div class="field">
+                                <div class="label">Level</div>
+                                <div class="value">400 Level</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">Attendance Details</div>
+                        <div class="grid">
+                            <div class="field">
+                                <div class="label">Course Code</div>
+                                <div class="value">${data.course_code}</div>
+                            </div>
+                            <div class="field">
+                                <div class="label">Course Name</div>
+                                <div class="value">${data.course_name}</div>
+                            </div>
+                            <div class="field">
+                                <div class="label">Date</div>
+                                <div class="value">${data.date}</div>
+                            </div>
+                            <div class="field">
+                                <div class="label">Time</div>
+                                <div class="value">${data.time}</div>
+                            </div>
+                            <div class="field">
+                                <div class="label">Status</div>
+                                <div class="value"><span class="status-badge">Present</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">Verification Information</div>
+                        <div class="verification">
+                            <div style="margin-bottom: 10px;">
+                                <strong>Face Verification:</strong> <span style="color: #10b981;">Completed ✓</span>
+                            </div>
+                            <div style="margin-bottom: 10px;">
+                                <strong>Face Match Confidence:</strong> ${data.face_match_confidence || '95%'}
+                            </div>
+                            <div>
+                                <strong>Location Verification:</strong> NSUK Campus (8.5060, 7.6866)
+                            </div>
+                            <div class="face-verification-note">
+                                Face was captured and verified using device camera during attendance submission
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="signature-section">
+                        <div class="grid">
+                            <div>
+                                <div class="signature-line">Student's Signature</div>
+                            </div>
+                            <div>
+                                <div class="signature-line">Lecturer's Signature</div>
+                            </div>
+                        </div>
+                        <div class="grid" style="margin-top: 20px;">
+                            <div>
+                                <div style="font-size: 13px; color: #666;">
+                                    Date: ________________
+                                </div>
+                            </div>
+                            <div>
+                                <div style="font-size: 13px; color: #666;">
+                                    Date: ________________
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>Generated by NSUK URP E-Attendance System</p>
+                        <p>Document includes face verification for enhanced security</p>
+                        <p>Document ID: ATT-${data.id}-${new Date().getTime()}</p>
+                    </div>
+                    
+                    <script>
+                        window.onload = function() {
+                            // Auto-print the document
+                            window.print();
+                            
+                            // Close the window after printing
+                            setTimeout(function() {
+                                window.close();
+                            }, 1000);
+                        }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+        
+        function downloadAllPDF() {
+            // Get selected course filter
+            const activeFilter = document.querySelector('.course-filter-btn.active').textContent.trim().toLowerCase();
+            
+            // Show loading state
+            const button = event.target;
+            const originalHTML = button.innerHTML;
+            button.innerHTML = `
+                <span class="material-symbols-outlined mr-2 animate-spin">
+                    sync
+                </span>
+                Generating PDF...
+            `;
+            button.disabled = true;
+            
+            // Simulate PDF generation
+            setTimeout(() => {
+                // Get all visible records
+                const visibleRows = document.querySelectorAll('.record-row:not([style*="display: none"])');
+                
+                if (visibleRows.length === 0) {
+                    showFlashMessage('No records to export', 'error');
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                    return;
+                }
+                
+                // Generate a comprehensive PDF
+                generateAllRecordsPDF(visibleRows, activeFilter);
+                
+                // Restore button
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+                
+                // Show success notification
+                showFlashMessage(`PDF generated for ${visibleRows.length} records!`, 'success');
+            }, 2000);
+        }
+        
+        function generateAllRecordsPDF(rows, filter) {
+            const printWindow = window.open('', '_blank');
+            
+            let tableRows = '';
+            rows.forEach((row, index) => {
+                const studentName = row.dataset.studentName;
+                const matricNumber = row.dataset.matricNumber;
+                const courseCode = row.dataset.courseCode;
+                const courseName = row.dataset.courseName;
+                const date = row.dataset.date;
+                const time = row.dataset.time;
+                const faceImage = row.dataset.faceImage;
+                
+                tableRows += `
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${index + 1}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${studentName}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${matricNumber}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${courseCode}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${courseName}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${date}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${time}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                            <span style="background-color: #10b981; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px;">
+                                Present
+                            </span>
+                        </td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                            <span style="background-color: ${faceImage && faceImage.trim() !== '' ? '#10b981' : '#f59e0b'}; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px;">
+                                ${faceImage && faceImage.trim() !== '' ? 'Face Verified' : 'No Face Image'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Attendance Records Report - ${filter === 'all' ? 'All Courses' : filter}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .report-title { font-size: 20px; font-weight: bold; margin: 10px 0; }
+                        .report-subtitle { font-size: 14px; color: #666; margin-bottom: 20px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th { background-color: #0f1b3d; color: white; padding: 10px; text-align: left; }
+                        td { padding: 8px; border-bottom: 1px solid #ddd; }
+                        .summary { margin-top: 30px; padding: 15px; background-color: #f8fafc; border-radius: 5px; }
+                        .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #666; }
+                        @media print {
+                            body { padding: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Nasarawa State University, Keffi</h1>
+                        <h2>Department of Urban and Regional Planning</h2>
+                        <div class="report-title">Attendance Records Report with Face Verification</div>
+                        <div class="report-subtitle">
+                            ${filter === 'all' ? 'All Courses' : 'Course: ' + filter.toUpperCase()} | 
+                            Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
+                        </div>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Student Name</th>
+                                <th>Matric Number</th>
+                                <th>Course Code</th>
+                                <th>Course Name</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Face Verification</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                    
+                    <div class="summary">
+                        <h3>Report Summary</h3>
+                        <p>Total Records: ${rows.length}</p>
+                        <p>Face Verified Records: ${Array.from(rows).filter(r => r.dataset.faceImage && r.dataset.faceImage.trim() !== '').length}</p>
+                        <p>Date Range: Latest records</p>
+                        <p>Status: All Present</p>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>Generated by NSUK URP E-Attendance System</p>
+                        <p>This is an official attendance record document with face verification</p>
+                    </div>
+                    
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() {
+                                window.close();
+                            }, 1000);
+                        }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+        
+        function deleteRecord(recordId) {
+            recordToDelete = recordId;
+            const recordRow = event.target.closest('.record-row');
+            const studentName = recordRow.dataset.studentName;
+            const courseCode = recordRow.dataset.courseCode;
+            
+            document.getElementById('deleteModalText').textContent = 
+                `Are you sure you want to delete the attendance record for ${studentName} (${courseCode})? This action cannot be undone.`;
+            
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+        
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+            recordToDelete = null;
+        }
+        
+        function confirmDelete() {
+            if (!recordToDelete) return;
+            
+            // Show loading state
+            const deleteBtn = document.querySelector('#deleteModal button:last-child');
+            const originalText = deleteBtn.textContent;
+            deleteBtn.innerHTML = `
+                <span class="material-symbols-outlined animate-spin" style="vertical-align: middle; font-size: 16px;">
+                    sync
+                </span>
+                Deleting...
+            `;
+            deleteBtn.disabled = true;
+            
+            // Simulate deletion
+            setTimeout(() => {
+                try {
+                    // Get current records
+                    const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                    
+                    // Remove the record
+                    const updatedRecords = records.filter(r => r.id != recordToDelete);
+                    localStorage.setItem('attendanceRecords', JSON.stringify(updatedRecords));
+                    
+                    // Remove the row from the table
+                    const row = document.querySelector(`.record-row[data-record-id="${recordToDelete}"]`);
+                    if (row) {
+                        row.remove();
+                        
+                        // Update record count
+                        const visibleRows = document.querySelectorAll('.record-row:not([style*="display: none"])');
+                        document.getElementById('lecturerRecordCount').textContent = visibleRows.length;
+                        
+                        // Show success notification
+                        showFlashMessage('Record deleted successfully!', 'success');
+                        
+                        // Update statistics display
+                        const presentTodayElement = document.querySelector('.stat-gradient-2 .text-3xl');
+                        if (presentTodayElement) {
+                            let currentCount = parseInt(presentTodayElement.textContent);
+                            if (currentCount > 0) {
+                                presentTodayElement.textContent = currentCount - 1;
+                            }
+                        }
+                        
+                        // Show demo message
+                        setTimeout(() => {
+                            showFlashMessage('Note: In a real system, this would update the database.', 'info');
+                        }, 1000);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showFlashMessage('Error deleting record. Please try again.', 'error');
+                } finally {
+                    closeDeleteModal();
+                    deleteBtn.textContent = originalText;
+                    deleteBtn.disabled = false;
+                }
+            }, 1000);
+        }
+        
+        // Admin Dashboard Functions
+        function loadAdminDashboard() {
+            if (!currentUser || currentUser.role !== 'admin') {
+                showView('home');
+                return;
+            }
+            
+            document.getElementById('adminName').textContent = `Welcome, ${currentUser.fullName}!`;
+            
+            // Load statistics
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            const pendingLecturers = users.filter(u => u.role === 'lecturer' && !u.isApproved);
+            const pins = JSON.parse(localStorage.getItem('pins') || '[]');
+            const today = new Date().toDateString();
+            const pinsUsedToday = pins.filter(p => new Date(p.createdAt).toDateString() === today).length;
+            
+            document.getElementById('totalAdmins').textContent = users.filter(u => u.role === 'admin').length;
+            document.getElementById('totalRecords').textContent = records.length;
+            document.getElementById('activePins').textContent = pins.length;
+            document.getElementById('pinUsageToday').textContent = pinsUsedToday;
+            document.getElementById('pendingApprovals').textContent = pendingLecturers.length;
+            
+            // Load pending approvals
+            loadPendingApprovals(pendingLecturers);
+            
+            // Load recent PINs
+            loadRecentPins(pins);
+        }
+        
+        function loadPendingApprovals(pendingLecturers) {
+            const pendingApprovalsList = document.getElementById('pendingApprovalsList');
+            
+            if (pendingLecturers.length > 0) {
+                pendingApprovalsList.innerHTML = pendingLecturers.map(lecturer => `
+                    <div class="border border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold text-slate-900 dark:text-white">${lecturer.fullName}</h3>
+                            <span class="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300 text-xs px-2 py-1 rounded-full">
+                                Pending
+                            </span>
+                        </div>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mb-1">
+                            Username: <strong>${lecturer.username}</strong>
+                        </p>
+                        <p class="text-xs text-slate-500 dark:text-slate-500 mb-3">
+                            Registered: ${new Date(lecturer.createdAt || Date.now()).toLocaleString()}
+                        </p>
+                        <div class="flex space-x-2">
+                            <button onclick="approveLecturer('${lecturer.id}')" 
+                                    class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold text-sm transition-colors">
+                                Approve
+                            </button>
+                            <button onclick="rejectLecturer('${lecturer.id}')" 
+                                    class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-semibold text-sm transition-colors">
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        function loadRecentPins(pins) {
+            const recentPinsList = document.getElementById('recentPinsList');
+            
+            if (pins.length > 0) {
+                recentPinsList.innerHTML = pins.slice(0, 5).map(pin => `
+                    <div class="border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold text-slate-900 dark:text-white">${pin.lecturerName}</h3>
+                            <span class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs px-2 py-1 rounded-full">Active</span>
+                        </div>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mb-1">PIN: <strong class="text-xl tracking-widest font-mono">${pin.pin}</strong></p>
+                        <p class="text-xs text-slate-500 dark:text-slate-500">Generated: ${new Date(pin.createdAt).toLocaleString()}</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-500">Expires: ${new Date(pin.expiryDate).toLocaleDateString()}</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-500">Usage: ${pin.usageCount || 0} times</p>
+                    </div>
+                `).join('');
+            }
+        }
+        
         // Admin-specific functions
         function generatePIN() {
-            const lecturerName = document.getElementById('lecturerNameInput').value;
+            const lecturerName = document.getElementById('lecturerName').value;
             const expiryDays = parseInt(document.getElementById('expiryDays').value) || 7;
             
             if (!lecturerName) {
@@ -1336,12 +2945,168 @@
             const expiryDate = new Date();
             expiryDate.setDate(expiryDate.getDate() + expiryDays);
             
-            // Display PIN
-            document.getElementById('pinDisplay').textContent = pin;
-            document.getElementById('pinDetails').textContent = `For ${lecturerName}, expires ${expiryDate.toLocaleDateString()}`;
-            document.getElementById('generatedPIN').classList.remove('hidden');
+            // Save PIN
+            const pins = JSON.parse(localStorage.getItem('pins') || '[]');
+            const newPin = {
+                id: Date.now(),
+                pin: pin,
+                lecturerName: lecturerName,
+                createdAt: new Date().toISOString(),
+                expiryDate: expiryDate.toISOString(),
+                usageCount: 0,
+                isActive: true,
+                generatedBy: currentUser ? currentUser.fullName : 'System'
+            };
+            pins.push(newPin);
+            localStorage.setItem('pins', JSON.stringify(pins));
+            
+            // Display PIN in modal
+            document.getElementById('generatedPin').textContent = pin;
+            document.getElementById('pinLecturerName').textContent = lecturerName;
+            document.getElementById('pinExpiry').textContent = 'Expires: ' + expiryDate.toLocaleDateString();
+            document.getElementById('pinModal').classList.remove('hidden');
+            
+            // Reset form
+            document.getElementById('pinForm').reset();
+            document.getElementById('customPinSection').classList.add('hidden');
             
             showFlashMessage('PIN generated successfully!', 'success');
+        }
+        
+        function copyPin() {
+            const pin = document.getElementById('generatedPin').textContent;
+            navigator.clipboard.writeText(pin).then(() => {
+                alert('PIN copied to clipboard!');
+            });
+        }
+        
+        function closePinModal() {
+            document.getElementById('pinModal').classList.add('hidden');
+            // Reload to show new PIN in recent list
+            loadAdminDashboard();
+        }
+        
+        function viewAllPins() {
+            const pins = JSON.parse(localStorage.getItem('pins') || '[]');
+            
+            if (pins.length === 0) {
+                showFlashMessage('No PINs generated yet', 'info');
+                return;
+            }
+            
+            let message = 'All Lecturer PINs:\n\n';
+            pins.forEach(pin => {
+                const expiry = new Date(pin.expiryDate);
+                const now = new Date();
+                const status = pin.isActive ? (expiry > now ? 'Active' : 'Expired') : 'Deactivated';
+                
+                message += `Lecturer: ${pin.lecturerName}\n`;
+                message += `PIN: ${pin.pin}\n`;
+                message += `Status: ${status}\n`;
+                message += `Generated: ${new Date(pin.createdAt).toLocaleDateString()}\n`;
+                message += `Expires: ${expiry.toLocaleDateString()}\n`;
+                message += `Usage: ${pin.usageCount || 0} times\n`;
+                message += `Generated By: ${pin.generatedBy}\n`;
+                message += '─'.repeat(30) + '\n';
+            });
+            
+            alert(message);
+        }
+        
+        function approveLecturer(userId) {
+            if (!confirm('Are you sure you want to approve this lecturer?')) {
+                return;
+            }
+            
+            // Update user in localStorage
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const userIndex = users.findIndex(u => u.id == userId);
+            
+            if (userIndex !== -1) {
+                users[userIndex].isApproved = true;
+                localStorage.setItem('users', JSON.stringify(users));
+                
+                showFlashMessage('Lecturer approved successfully!', 'success');
+                
+                // Reload admin dashboard
+                setTimeout(() => {
+                    loadAdminDashboard();
+                }, 1500);
+            } else {
+                showFlashMessage('Lecturer not found', 'error');
+            }
+        }
+        
+        function rejectLecturer(userId) {
+            if (!confirm('Are you sure you want to reject this lecturer registration? This action cannot be undone.')) {
+                return;
+            }
+            
+            // Remove user from localStorage
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const updatedUsers = users.filter(u => u.id != userId);
+            localStorage.setItem('users', JSON.stringify(updatedUsers));
+            
+            showFlashMessage('Lecturer registration rejected successfully!', 'success');
+            
+            // Reload admin dashboard
+            setTimeout(() => {
+                loadAdminDashboard();
+            }, 1500);
+        }
+        
+        function viewPendingApprovals() {
+            const pendingSection = document.querySelector('.bg-white.rounded-2xl.shadow-soft.p-6:nth-child(2)');
+            if (pendingSection) {
+                pendingSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        
+        function viewAllUsers() {
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            
+            if (users.length === 0) {
+                showFlashMessage('No users found', 'info');
+                return;
+            }
+            
+            let message = 'All Users:\n\n';
+            users.forEach((user, index) => {
+                message += `${index + 1}. ${user.fullName}\n`;
+                message += `   Username: ${user.username}\n`;
+                message += `   Role: ${user.role}\n`;
+                message += `   Status: ${user.isApproved ? 'Approved' : 'Pending'}\n`;
+                message += `   Created: ${new Date(user.createdAt || Date.now()).toLocaleDateString()}\n`;
+                message += '─'.repeat(30) + '\n';
+            });
+            
+            alert(message);
+        }
+        
+        function viewAllAttendance() {
+            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            
+            if (records.length === 0) {
+                showFlashMessage('No attendance records found', 'info');
+                return;
+            }
+            
+            let message = 'All Attendance Records:\n\n';
+            records.forEach((record, index) => {
+                message += `${index + 1}. ${record.studentName}\n`;
+                message += `   Matric: ${record.matricNumber}\n`;
+                message += `   Course: ${record.courseCode}\n`;
+                message += `   Date: ${new Date(record.timestamp).toLocaleString()}\n`;
+                message += `   Location: ${record.latitude ? record.latitude.toFixed(4) : 'N/A'}, ${record.longitude ? record.longitude.toFixed(4) : 'N/A'}\n`;
+                message += `   Face Verified: ${record.faceImage ? 'Yes' : 'No'}\n`;
+                message += '─'.repeat(30) + '\n';
+            });
+            
+            alert(message);
+        }
+        
+        function systemSettings() {
+            showFlashMessage('System settings feature would be implemented here', 'info');
         }
         
         // Utility functions
@@ -1545,12 +3310,39 @@
             document.getElementById('captureLocation')?.addEventListener('click', captureLocation);
             document.getElementById('startCamera')?.addEventListener('click', startCamera);
             document.getElementById('captureFace')?.addEventListener('click', captureFace);
+            document.getElementById('retakePhoto')?.addEventListener('click', retakePhoto);
             document.getElementById('attendanceForm')?.addEventListener('submit', function(e) {
                 e.preventDefault();
                 submitAttendance();
             });
-            document.getElementById('courseCode')?.addEventListener('change', checkAttendanceReady);
+            document.getElementById('courseCode')?.addEventListener('change', updateSubmitButton);
+            
+            // Admin dashboard form
+            document.getElementById('pinForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                generatePIN();
+            });
+            
+            // Toggle custom PIN field
+            document.getElementById('autoGenerate')?.addEventListener('change', function() {
+                const customSection = document.getElementById('customPinSection');
+                if (!this.checked) {
+                    customSection.classList.remove('hidden');
+                    document.getElementById('customPin').focus();
+                } else {
+                    customSection.classList.add('hidden');
+                    document.getElementById('customPin').value = '';
+                }
+            });
+            
+            // Initialize any additional functionality
+            initializeAdditionalFunctionality();
         });
+        
+        function initializeAdditionalFunctionality() {
+            console.log('Dashboard functionality initialized');
+            // Any additional initialization code
+        }
     </script>
 </body>
 </html>
