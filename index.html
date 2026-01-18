@@ -16,6 +16,11 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -93,6 +98,10 @@
                         <a href="#" onclick="logout()" class="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">Logout</a>
                     </div>
                     
+                    <div id="connectionStatus" class="hidden">
+                        <span class="material-symbols-outlined text-green-500 text-sm" title="Online">wifi</span>
+                    </div>
+                    
                     <button onclick="toggleTheme()" class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700">
                         <span id="themeIcon" class="material-symbols-outlined text-slate-700 dark:text-slate-300">dark_mode</span>
                     </button>
@@ -113,13 +122,18 @@
                 <h1 class="text-3xl font-bold text-slate-900 dark:text-white">NSUK URP</h1>
                 <p class="text-slate-600 dark:text-slate-400 mt-2 mb-8">E-Attendance System</p>
                 
-                <div class="flex flex-col gap-4">
+                <div id="splashLoading" class="mb-6">
+                    <div class="loading-spinner mx-auto"></div>
+                    <p class="text-sm text-slate-500 mt-2">Initializing cloud system...</p>
+                </div>
+                
+                <div id="splashButtons" class="flex flex-col gap-4 hidden">
                     <button onclick="showView('home')" class="bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition">Enter System</button>
                     <button onclick="showView('login')" class="border border-primary text-primary py-3 rounded-xl font-semibold hover:bg-primary/10 transition">Login</button>
                     <button onclick="showView('signup')" class="text-sm text-slate-500 hover:text-primary transition">Create Account</button>
                 </div>
                 
-                <p class="mt-8 text-xs text-slate-500">Version 1.0.0 • Multi-Device Support</p>
+                <p class="mt-8 text-xs text-slate-500">Version 2.0.0 • Cloud Sync Enabled</p>
             </div>
         </div>
 
@@ -132,7 +146,11 @@
                         <img src="static/NSUK-logo.jpg" alt="NSUK Logo" class="h-24 w-24 rounded-2xl shadow-lg object-cover">
                     </div>
                     <h1 class="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">NSUK URP E-Attendance System</h1>
-                    <p class="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Streamline attendance tracking for Urban and Regional Planning Department with multi-device support</p>
+                    <p class="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Cloud-powered attendance tracking with cross-device synchronization</p>
+                    <div class="inline-flex items-center mt-4 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 px-4 py-2 rounded-full">
+                        <span class="material-symbols-outlined mr-2">cloud_sync</span>
+                        <span class="text-sm font-medium">Cloud Sync: Active</span>
+                    </div>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -163,7 +181,7 @@
                 
                 <div class="bg-gradient-to-r from-primary to-primary-hover rounded-2xl p-8 text-center text-white fade-in" style="animation-delay: 0.4s">
                     <h2 class="text-2xl font-bold mb-4">Ready to Get Started?</h2>
-                    <p class="mb-6 opacity-90">Join thousands of students and lecturers using our modern attendance system</p>
+                    <p class="mb-6 opacity-90">Access your account from any browser or device with cloud synchronization</p>
                     <div class="flex flex-col sm:flex-row gap-4 justify-center">
                         <button onclick="showView('signup')" class="bg-white text-primary hover:bg-slate-100 px-6 py-3 rounded-xl font-semibold transition-colors">Create Account</button>
                         <button onclick="showView('login')" class="bg-transparent border-2 border-white hover:bg-white/10 px-6 py-3 rounded-xl font-semibold transition-colors">Sign In</button>
@@ -198,7 +216,7 @@
                             <label for="remember" class="ml-2 text-sm text-slate-600">Remember me</label>
                         </div>
 
-                        <button type="submit" class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition">
+                        <button type="submit" id="loginBtn" class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition">
                             <span class="material-symbols-outlined align-middle mr-1">login</span>Login
                         </button>
                     </form>
@@ -301,7 +319,7 @@
                             </label>
                         </div>
 
-                        <button type="submit" class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition-colors">Create Account</button>
+                        <button type="submit" id="signupBtn" class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition-colors">Create Account</button>
 
                         <div class="text-center pt-4 border-t border-slate-200 dark:border-slate-700">
                             <p class="text-slate-600 dark:text-slate-400">Already have an account? <button onclick="showView('login')" class="text-primary hover:text-primary-hover font-semibold">Sign in here</button></p>
@@ -493,6 +511,13 @@
                                 <div>
                                     <p class="text-sm text-slate-600 dark:text-slate-400">Matric Number</p>
                                     <p id="studentMatric" class="font-mono font-medium">-</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="material-symbols-outlined text-slate-400">cloud</span>
+                                <div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400">Sync Status</p>
+                                    <p id="syncStatus" class="text-green-600 dark:text-green-400 font-medium">Online</p>
                                 </div>
                             </div>
                         </div>
@@ -758,6 +783,23 @@
 
     <!-- JavaScript -->
     <script>
+        // Firebase configuration - UPDATED WITH PROVIDED CREDENTIALS
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjJ2TYIO1OjLL0T12b4WO0G9YIWts_LkM",
+            authDomain: "zippy-bee-429916-p1.firebaseapp.com",
+            projectId: "zippy-bee-429916-p1",
+            storageBucket: "zippy-bee-429916-p1.firebasestorage.app",
+            messagingSenderId: "616957337837",
+            appId: "1:616957337837:web:d0173d87a663108e28ace4",
+            measurementId: "G-934DLBZTD8"
+        };
+
+        // Initialize Firebase
+        let firebaseApp;
+        let db;
+        let auth;
+        let isFirebaseInitialized = false;
+
         // Current user data
         let currentUser = null;
         let currentLocation = null;
@@ -775,6 +817,367 @@
         
         // Set current year in footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
+        
+        // Initialize Firebase
+        async function initializeFirebase() {
+            try {
+                showFlashMessage('Connecting to cloud database...', 'info');
+                
+                // Initialize Firebase
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                auth = firebase.auth();
+                
+                // Enable offline persistence
+                await db.enablePersistence()
+                    .catch((err) => {
+                        if (err.code === 'failed-precondition') {
+                            console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+                        } else if (err.code === 'unimplemented') {
+                            console.log('The current browser does not support persistence.');
+                        }
+                    });
+                
+                isFirebaseInitialized = true;
+                console.log('Firebase initialized successfully');
+                
+                // Show connection status
+                document.getElementById('connectionStatus').classList.remove('hidden');
+                
+                // Hide loading and show buttons on splash screen
+                document.getElementById('splashLoading').classList.add('hidden');
+                document.getElementById('splashButtons').classList.remove('hidden');
+                
+                // Check for existing session
+                checkExistingSession();
+                
+                showFlashMessage('Cloud sync enabled! You can now access your account from any device.', 'success');
+                
+            } catch (error) {
+                console.error('Error initializing Firebase:', error);
+                showFlashMessage('Failed to connect to cloud service. Running in offline mode.', 'warning');
+                
+                // Fall back to localStorage
+                document.getElementById('splashLoading').classList.add('hidden');
+                document.getElementById('splashButtons').classList.remove('hidden');
+                checkExistingSession();
+            }
+        }
+        
+        // Check for existing user session
+        async function checkExistingSession() {
+            if (isFirebaseInitialized) {
+                // Check Firebase Auth session
+                auth.onAuthStateChanged(async (user) => {
+                    if (user) {
+                        // User is signed in via Firebase
+                        const userDoc = await db.collection('users').doc(user.uid).get();
+                        if (userDoc.exists) {
+                            currentUser = userDoc.data();
+                            currentUser.id = user.uid;
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                            
+                            // Redirect to appropriate dashboard
+                            setTimeout(() => {
+                                switch(currentUser.role) {
+                                    case 'student':
+                                        showView('studentDashboard');
+                                        break;
+                                    case 'lecturer':
+                                        showView('lecturerDashboard');
+                                        break;
+                                    case 'admin':
+                                        showView('adminDashboard');
+                                        break;
+                                    default:
+                                        showView('home');
+                                }
+                            }, 100);
+                        }
+                    } else {
+                        // Check localStorage as fallback
+                        const savedUser = localStorage.getItem('currentUser');
+                        if (savedUser) {
+                            try {
+                                currentUser = JSON.parse(savedUser);
+                                updateNavigation();
+                            } catch (e) {
+                                console.error('Error parsing saved user:', e);
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Fallback to localStorage only
+                const savedUser = localStorage.getItem('currentUser');
+                if (savedUser) {
+                    try {
+                        currentUser = JSON.parse(savedUser);
+                        updateNavigation();
+                        
+                        setTimeout(() => {
+                            switch(currentUser.role) {
+                                case 'student':
+                                    showView('studentDashboard');
+                                    break;
+                                case 'lecturer':
+                                    showView('lecturerDashboard');
+                                    break;
+                                case 'admin':
+                                    showView('adminDashboard');
+                                    break;
+                                default:
+                                    showView('home');
+                            }
+                        }, 100);
+                    } catch (e) {
+                        console.error('Error parsing saved user:', e);
+                    }
+                }
+            }
+        }
+        
+        // Cloud-based authentication functions
+        async function cloudLogin(username, password) {
+            try {
+                const loginBtn = document.getElementById('loginBtn');
+                const originalText = loginBtn.innerHTML;
+                loginBtn.innerHTML = '<span class="material-symbols-outlined align-middle mr-1 animate-spin">sync</span>Signing in...';
+                loginBtn.disabled = true;
+                
+                // First, try to find user in Firestore
+                const usersSnapshot = await db.collection('users')
+                    .where('username', '==', username)
+                    .get();
+                
+                let userData = null;
+                let userId = null;
+                
+                usersSnapshot.forEach(doc => {
+                    userData = doc.data();
+                    userId = doc.id;
+                });
+                
+                // Also check matric number for students
+                if (!userData) {
+                    const matricSnapshot = await db.collection('users')
+                        .where('matricNumber', '==', username)
+                        .get();
+                    
+                    matricSnapshot.forEach(doc => {
+                        userData = doc.data();
+                        userId = doc.id;
+                    });
+                }
+                
+                if (userData && userData.password === password) {
+                    // Check if lecturer is approved
+                    if (userData.role === 'lecturer' && !userData.isApproved) {
+                        showFlashMessage('Your account is pending approval by administrator', 'error');
+                        loginBtn.innerHTML = originalText;
+                        loginBtn.disabled = false;
+                        return false;
+                    }
+                    
+                    // Create a custom token or store user data
+                    currentUser = userData;
+                    currentUser.id = userId;
+                    
+                    // Store in localStorage for session persistence
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    // Update navigation
+                    updateNavigation();
+                    
+                    showFlashMessage('Login successful! Redirecting to dashboard...', 'success');
+                    
+                    // Redirect to appropriate dashboard
+                    let dashboardView = '';
+                    switch(currentUser.role) {
+                        case 'student':
+                            dashboardView = 'studentDashboard';
+                            break;
+                        case 'lecturer':
+                            dashboardView = 'lecturerDashboard';
+                            break;
+                        case 'admin':
+                            dashboardView = 'adminDashboard';
+                            break;
+                        default:
+                            dashboardView = 'home';
+                    }
+                    
+                    setTimeout(() => {
+                        showView(dashboardView);
+                        loginBtn.innerHTML = originalText;
+                        loginBtn.disabled = false;
+                    }, 1500);
+                    
+                    return true;
+                } else {
+                    showFlashMessage('Invalid username or password', 'error');
+                    loginBtn.innerHTML = originalText;
+                    loginBtn.disabled = false;
+                    return false;
+                }
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showFlashMessage('Login failed. Please try again.', 'error');
+                document.getElementById('loginBtn').innerHTML = '<span class="material-symbols-outlined align-middle mr-1">login</span>Login';
+                document.getElementById('loginBtn').disabled = false;
+                return false;
+            }
+        }
+        
+        async function cloudSignup(userData) {
+            try {
+                const signupBtn = document.getElementById('signupBtn');
+                const originalText = signupBtn.innerHTML;
+                signupBtn.innerHTML = '<span class="material-symbols-outlined align-middle mr-1 animate-spin">sync</span>Creating account...';
+                signupBtn.disabled = true;
+                
+                // Check if username already exists
+                const usernameCheck = await db.collection('users')
+                    .where('username', '==', userData.username)
+                    .get();
+                
+                if (!usernameCheck.empty) {
+                    showFlashMessage('Username already exists', 'error');
+                    signupBtn.innerHTML = originalText;
+                    signupBtn.disabled = false;
+                    return false;
+                }
+                
+                // Check if matric number already exists for students
+                if (userData.role === 'student' && userData.matricNumber) {
+                    const matricCheck = await db.collection('users')
+                        .where('matricNumber', '==', userData.matricNumber)
+                        .get();
+                    
+                    if (!matricCheck.empty) {
+                        showFlashMessage('Matric number already registered', 'error');
+                        signupBtn.innerHTML = originalText;
+                        signupBtn.disabled = false;
+                        return false;
+                    }
+                }
+                
+                // Add timestamp
+                userData.createdAt = new Date().toISOString();
+                userData.lastLogin = new Date().toISOString();
+                
+                // Save to Firestore
+                const docRef = await db.collection('users').add(userData);
+                
+                currentUser = userData;
+                currentUser.id = docRef.id;
+                
+                // Store in localStorage
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                showFlashMessage('Account created successfully!', 'success');
+                
+                // Auto-login after signup
+                setTimeout(() => {
+                    if (userData.role === 'lecturer') {
+                        showFlashMessage('Your account is pending approval by administrator', 'info');
+                        showView('login');
+                    } else {
+                        // Redirect to appropriate dashboard
+                        let dashboardView = '';
+                        switch(userData.role) {
+                            case 'student':
+                                dashboardView = 'studentDashboard';
+                                break;
+                            case 'admin':
+                                dashboardView = 'adminDashboard';
+                                break;
+                            default:
+                                dashboardView = 'home';
+                        }
+                        showView(dashboardView);
+                    }
+                    signupBtn.innerHTML = originalText;
+                    signupBtn.disabled = false;
+                }, 1500);
+                
+                return true;
+                
+            } catch (error) {
+                console.error('Signup error:', error);
+                showFlashMessage('Failed to create account. Please try again.', 'error');
+                document.getElementById('signupBtn').innerHTML = 'Create Account';
+                document.getElementById('signupBtn').disabled = false;
+                return false;
+            }
+        }
+        
+        async function cloudSubmitAttendance(attendanceRecord) {
+            try {
+                // Save to Firestore
+                await db.collection('attendance').add(attendanceRecord);
+                
+                // Also save to localStorage for offline access
+                const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                records.push(attendanceRecord);
+                localStorage.setItem('attendanceRecords', JSON.stringify(records));
+                
+                return true;
+            } catch (error) {
+                console.error('Error saving attendance:', error);
+                // Fallback to localStorage
+                const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                records.push(attendanceRecord);
+                localStorage.setItem('attendanceRecords', JSON.stringify(records));
+                return true;
+            }
+        }
+        
+        async function cloudGetAttendanceRecords() {
+            try {
+                // Try to get from Firestore first
+                const snapshot = await db.collection('attendance')
+                    .orderBy('timestamp', 'desc')
+                    .get();
+                
+                const records = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.id = doc.id;
+                    records.push(data);
+                });
+                
+                // Also update localStorage
+                localStorage.setItem('attendanceRecords', JSON.stringify(records));
+                
+                return records;
+            } catch (error) {
+                console.error('Error fetching attendance:', error);
+                // Fallback to localStorage
+                return JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            }
+        }
+        
+        async function cloudGetUsers() {
+            try {
+                const snapshot = await db.collection('users').get();
+                const users = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.id = doc.id;
+                    users.push(data);
+                });
+                
+                // Also update localStorage
+                localStorage.setItem('users', JSON.stringify(users));
+                
+                return users;
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                return JSON.parse(localStorage.getItem('users') || '[]');
+            }
+        }
         
         // Theme toggle function
         function toggleTheme() {
@@ -808,7 +1211,7 @@
             }
         }
         
-        // View management - FIXED
+        // View management
         function showView(viewName) {
             console.log('Showing view:', viewName);
             // Hide all views
@@ -867,89 +1270,33 @@
             }
         }
         
-        // Authentication functions - FIXED
+        // Authentication functions
         function login(username, password) {
-            console.log('Login attempt for:', username);
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const user = users.find(u => u.username === username || u.matricNumber === username);
-            
-            if (user && user.password === password) {
-                // Check if lecturer is approved
-                if (user.role === 'lecturer' && !user.isApproved) {
-                    showFlashMessage('Your account is pending approval by administrator', 'error');
-                    return false;
-                }
-                
-                currentUser = user;
-                localStorage.setItem('currentUser', JSON.stringify(user));
-                console.log('User logged in:', user.role);
-                
-                // Redirect to appropriate dashboard
-                let dashboardView = '';
-                switch(user.role) {
-                    case 'student':
-                        dashboardView = 'studentDashboard';
-                        break;
-                    case 'lecturer':
-                        dashboardView = 'lecturerDashboard';
-                        break;
-                    case 'admin':
-                        dashboardView = 'adminDashboard';
-                        break;
-                    default:
-                        dashboardView = 'home';
-                }
-                
-                showFlashMessage('Login successful! Redirecting to dashboard...', 'success');
-                console.log('Redirecting to:', dashboardView);
-                showView(dashboardView);
-                return true;
+            if (isFirebaseInitialized) {
+                return cloudLogin(username, password);
             } else {
-                showFlashMessage('Invalid username or password', 'error');
-                return false;
-            }
-        }
-        
-        function logout() {
-            currentUser = null;
-            localStorage.removeItem('currentUser');
-            showView('home');
-            showFlashMessage('You have been logged out successfully.', 'success');
-        }
-        
-        function signup(userData) {
-            console.log('Signup attempt for:', userData.username);
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            
-            if (users.find(u => u.username === userData.username)) {
-                showFlashMessage('Username already exists', 'error');
-                return false;
-            }
-            
-            if (userData.role === 'student' && users.find(u => u.matricNumber === userData.matricNumber)) {
-                showFlashMessage('Matric number already registered', 'error');
-                return false;
-            }
-            
-            users.push(userData);
-            localStorage.setItem('users', JSON.stringify(users));
-            
-            currentUser = userData;
-            localStorage.setItem('currentUser', JSON.stringify(userData));
-            
-            showFlashMessage('Account created successfully!', 'success');
-            
-            // Auto-login after signup
-            setTimeout(() => {
-                if (userData.role === 'lecturer') {
-                    showFlashMessage('Your account is pending approval by administrator', 'info');
-                    showView('login');
-                } else {
-                    // Redirect to appropriate dashboard
+                // Fallback to localStorage
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                const user = users.find(u => u.username === username || u.matricNumber === username);
+                
+                if (user && user.password === password) {
+                    if (user.role === 'lecturer' && !user.isApproved) {
+                        showFlashMessage('Your account is pending approval by administrator', 'error');
+                        return false;
+                    }
+                    
+                    currentUser = user;
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+                    
+                    showFlashMessage('Login successful! Redirecting to dashboard...', 'success');
+                    
                     let dashboardView = '';
-                    switch(userData.role) {
+                    switch(user.role) {
                         case 'student':
                             dashboardView = 'studentDashboard';
+                            break;
+                        case 'lecturer':
+                            dashboardView = 'lecturerDashboard';
                             break;
                         case 'admin':
                             dashboardView = 'adminDashboard';
@@ -957,16 +1304,82 @@
                         default:
                             dashboardView = 'home';
                     }
-                    console.log('Redirecting new user to:', dashboardView);
-                    showView(dashboardView);
+                    
+                    setTimeout(() => {
+                        showView(dashboardView);
+                    }, 1500);
+                    
+                    return true;
+                } else {
+                    showFlashMessage('Invalid username or password', 'error');
+                    return false;
                 }
-            }, 1500);
+            }
+        }
+        
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
             
-            return true;
+            if (isFirebaseInitialized) {
+                auth.signOut();
+            }
+            
+            showView('home');
+            showFlashMessage('You have been logged out successfully.', 'success');
+        }
+        
+        function signup(userData) {
+            if (isFirebaseInitialized) {
+                return cloudSignup(userData);
+            } else {
+                // Fallback to localStorage
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                
+                if (users.find(u => u.username === userData.username)) {
+                    showFlashMessage('Username already exists', 'error');
+                    return false;
+                }
+                
+                if (userData.role === 'student' && users.find(u => u.matricNumber === userData.matricNumber)) {
+                    showFlashMessage('Matric number already registered', 'error');
+                    return false;
+                }
+                
+                users.push(userData);
+                localStorage.setItem('users', JSON.stringify(users));
+                
+                currentUser = userData;
+                localStorage.setItem('currentUser', JSON.stringify(userData));
+                
+                showFlashMessage('Account created successfully!', 'success');
+                
+                setTimeout(() => {
+                    if (userData.role === 'lecturer') {
+                        showFlashMessage('Your account is pending approval by administrator', 'info');
+                        showView('login');
+                    } else {
+                        let dashboardView = '';
+                        switch(userData.role) {
+                            case 'student':
+                                dashboardView = 'studentDashboard';
+                                break;
+                            case 'admin':
+                                dashboardView = 'adminDashboard';
+                                break;
+                            default:
+                                dashboardView = 'home';
+                        }
+                        showView(dashboardView);
+                    }
+                }, 1500);
+                
+                return true;
+            }
         }
         
         // Student Dashboard Functions
-        function loadStudentDashboard() {
+        async function loadStudentDashboard() {
             console.log('Loading student dashboard...');
             if (!currentUser || currentUser.role !== 'student') {
                 showFlashMessage('Access denied. Please login as student.', 'error');
@@ -980,8 +1393,9 @@
             document.getElementById('studentFullNameInput').value = currentUser.fullName;
             document.getElementById('studentMatricInput').value = currentUser.matricNumber;
             
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            const studentRecords = records.filter(r => r.studentId === currentUser.id);
+            // Get attendance records from cloud or localStorage
+            const records = await cloudGetAttendanceRecords();
+            const studentRecords = records.filter(r => r.studentId === currentUser.id || r.matricNumber === currentUser.matricNumber);
             
             const recentAttendance = document.getElementById('recentAttendance');
             if (studentRecords.length > 0) {
@@ -1174,7 +1588,7 @@
             document.getElementById('startCamera').disabled = false;
         }
         
-        function submitAttendance() {
+        async function submitAttendance() {
             const courseCode = document.getElementById('courseCode').value;
             
             if (!currentLocation || !faceImage || !courseCode) {
@@ -1182,7 +1596,11 @@
                 return;
             }
             
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="material-symbols-outlined mr-2 animate-spin">sync</span>Submitting...';
+            submitBtn.disabled = true;
+            
             const recordId = Date.now();
             const timestamp = new Date().toISOString();
             
@@ -1197,16 +1615,26 @@
                 faceImage: faceImage,
                 timestamp: timestamp,
                 date: new Date().toISOString().split('T')[0],
-                time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
+                time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+                deviceInfo: navigator.userAgent,
+                syncStatus: isFirebaseInitialized ? 'cloud' : 'local'
             };
             
-            records.push(attendanceRecord);
-            localStorage.setItem('attendanceRecords', JSON.stringify(records));
+            if (isFirebaseInitialized) {
+                await cloudSubmitAttendance(attendanceRecord);
+            } else {
+                // Save to localStorage only
+                const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                records.push(attendanceRecord);
+                localStorage.setItem('attendanceRecords', JSON.stringify(records));
+            }
             
             showFlashMessage(`Attendance submitted successfully! Course: ${courseCode}`, 'success');
             
             // Clear form
             resetStudentForm();
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
             
             // Reload student dashboard to show updated records
             setTimeout(() => {
@@ -1214,8 +1642,8 @@
             }, 1500);
         }
         
-        // Lecturer Dashboard Functions - UPDATED to show actual attendance data
-        function loadLecturerDashboard() {
+        // Lecturer Dashboard Functions
+        async function loadLecturerDashboard() {
             console.log('Loading lecturer dashboard...');
             if (!currentUser || currentUser.role !== 'lecturer') {
                 showFlashMessage('Access denied. Please login as lecturer.', 'error');
@@ -1225,8 +1653,8 @@
             
             document.getElementById('lecturerName').textContent = `Welcome, ${currentUser.fullName}!`;
             
-            // Get all attendance records from localStorage
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            // Get all attendance records from cloud or localStorage
+            const records = await cloudGetAttendanceRecords();
             
             // Calculate statistics
             const today = new Date().toISOString().split('T')[0];
@@ -1254,7 +1682,6 @@
         
         function filterAttendanceByCourse(courseCode = null) {
             const filterValue = courseCode || document.getElementById('courseFilter').value;
-            const allRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
             
             if (filterValue === 'all') {
                 filteredRecords = [...allRecords];
@@ -1342,8 +1769,8 @@
             }
         }
         
-        function refreshAttendanceTable() {
-            const allRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+        async function refreshAttendanceTable() {
+            const allRecords = await cloudGetAttendanceRecords();
             filterAttendanceByCourse(currentFilter, allRecords);
             showFlashMessage('Attendance table refreshed!', 'success');
         }
@@ -1390,11 +1817,20 @@
             }
         }
         
-        function deleteRecord(recordId) {
+        async function deleteRecord(recordId) {
             if (confirm('Are you sure you want to delete this attendance record?')) {
+                if (isFirebaseInitialized) {
+                    try {
+                        await db.collection('attendance').doc(recordId).delete();
+                    } catch (error) {
+                        console.error('Error deleting from cloud:', error);
+                    }
+                }
+                
                 const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
                 const updatedRecords = records.filter(r => r.id != recordId);
                 localStorage.setItem('attendanceRecords', JSON.stringify(updatedRecords));
+                
                 showFlashMessage('Record deleted successfully!', 'success');
                 refreshAttendanceTable();
             }
@@ -1404,8 +1840,8 @@
             showFlashMessage('Starting new session... (Demo)', 'info');
         }
         
-        function generateReport() {
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+        async function generateReport() {
+            const records = await cloudGetAttendanceRecords();
             
             if (records.length === 0) {
                 showFlashMessage('No attendance records to generate report from', 'error');
@@ -1438,8 +1874,8 @@
             showFlashMessage('Report generated successfully!', 'success');
         }
         
-        function exportData() {
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+        async function exportData() {
+            const records = await cloudGetAttendanceRecords();
             
             if (records.length === 0) {
                 showFlashMessage('No records to export', 'error');
@@ -1465,7 +1901,7 @@
         }
         
         // Admin Dashboard Functions
-        function loadAdminDashboard() {
+        async function loadAdminDashboard() {
             console.log('Loading admin dashboard...');
             if (!currentUser || currentUser.role !== 'admin') {
                 showFlashMessage('Access denied. Please login as administrator.', 'error');
@@ -1475,8 +1911,8 @@
             
             document.getElementById('adminName').textContent = `Welcome, ${currentUser.fullName}!`;
             
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            const users = await cloudGetUsers();
+            const records = await cloudGetAttendanceRecords();
             const pendingLecturers = users.filter(u => u.role === 'lecturer' && !u.isApproved);
             const today = new Date().toISOString().split('T')[0];
             const todayRecords = records.filter(r => r.date === today);
@@ -1513,46 +1949,64 @@
             }
         }
         
-        function approveLecturer(userId) {
+        async function approveLecturer(userId) {
             if (!confirm('Are you sure you want to approve this lecturer?')) {
                 return;
             }
             
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const userIndex = users.findIndex(u => u.id == userId);
-            
-            if (userIndex !== -1) {
-                users[userIndex].isApproved = true;
-                localStorage.setItem('users', JSON.stringify(users));
+            try {
+                if (isFirebaseInitialized) {
+                    await db.collection('users').doc(userId).update({
+                        isApproved: true,
+                        approvedAt: new Date().toISOString()
+                    });
+                }
+                
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                const userIndex = users.findIndex(u => u.id == userId);
+                
+                if (userIndex !== -1) {
+                    users[userIndex].isApproved = true;
+                    users[userIndex].approvedAt = new Date().toISOString();
+                    localStorage.setItem('users', JSON.stringify(users));
+                }
                 
                 showFlashMessage('Lecturer approved successfully!', 'success');
                 
                 setTimeout(() => {
                     loadAdminDashboard();
                 }, 1500);
-            } else {
-                showFlashMessage('Lecturer not found', 'error');
+            } catch (error) {
+                showFlashMessage('Error approving lecturer', 'error');
             }
         }
         
-        function rejectLecturer(userId) {
+        async function rejectLecturer(userId) {
             if (!confirm('Are you sure you want to reject this lecturer registration?')) {
                 return;
             }
             
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const updatedUsers = users.filter(u => u.id != userId);
-            localStorage.setItem('users', JSON.stringify(updatedUsers));
-            
-            showFlashMessage('Lecturer registration rejected successfully!', 'success');
-            
-            setTimeout(() => {
-                loadAdminDashboard();
-            }, 1500);
+            try {
+                if (isFirebaseInitialized) {
+                    await db.collection('users').doc(userId).delete();
+                }
+                
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                const updatedUsers = users.filter(u => u.id != userId);
+                localStorage.setItem('users', JSON.stringify(updatedUsers));
+                
+                showFlashMessage('Lecturer registration rejected successfully!', 'success');
+                
+                setTimeout(() => {
+                    loadAdminDashboard();
+                }, 1500);
+            } catch (error) {
+                showFlashMessage('Error rejecting lecturer', 'error');
+            }
         }
         
-        function viewAllUsers() {
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
+        async function viewAllUsers() {
+            const users = await cloudGetUsers();
             
             if (users.length === 0) {
                 showFlashMessage('No users found', 'info');
@@ -1571,8 +2025,8 @@
             alert(message);
         }
         
-        function viewAllAttendance() {
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+        async function viewAllAttendance() {
+            const records = await cloudGetAttendanceRecords();
             
             if (records.length === 0) {
                 showFlashMessage('No attendance records found', 'info');
@@ -1711,44 +2165,13 @@
             }
         }
         
-        // Event Listeners - FIXED initialization
+        // Event Listeners
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');
             initializeTheme();
             
-            // Check for existing user session
-            const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
-                try {
-                    currentUser = JSON.parse(savedUser);
-                    console.log('Found saved user:', currentUser.role);
-                    updateNavigation();
-                    
-                    // Redirect to appropriate dashboard based on user role
-                    setTimeout(() => {
-                        switch(currentUser.role) {
-                            case 'student':
-                                showView('studentDashboard');
-                                break;
-                            case 'lecturer':
-                                showView('lecturerDashboard');
-                                break;
-                            case 'admin':
-                                showView('adminDashboard');
-                                break;
-                            default:
-                                console.log('Unknown role, showing home');
-                                showView('home');
-                        }
-                    }, 100);
-                } catch (e) {
-                    console.error('Error parsing saved user:', e);
-                    showView('splash');
-                }
-            } else {
-                console.log('No saved user, showing splash');
-                showView('splash');
-            }
+            // Initialize Firebase
+            initializeFirebase();
             
             // Login form
             const loginForm = document.getElementById('loginForm');
@@ -1784,14 +2207,12 @@
                     }
                     
                     const userData = {
-                        id: Date.now(),
                         username: username,
                         password: password,
                         role: role,
                         fullName: fullName,
                         matricNumber: role === 'student' ? matricNumber : null,
-                        isApproved: role !== 'lecturer',
-                        createdAt: new Date().toISOString()
+                        isApproved: role !== 'lecturer'
                     };
                     
                     signup(userData);
