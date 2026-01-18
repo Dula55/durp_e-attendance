@@ -13,6 +13,11 @@
     <!-- Material Symbols -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     
@@ -66,9 +71,33 @@
         .view-container { display: none; }
         .view-container.active { display: block; animation: fadeIn 0.3s ease-out; }
         @media print { .no-print { display: none !important; } body { background: #fff !important; } }
+        
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .loading-overlay.dark {
+            background: rgba(15, 23, 42, 0.95);
+        }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display" data-view="home">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner mb-4"></div>
+        <p id="loadingText" class="text-slate-700 dark:text-slate-300">Loading...</p>
+    </div>
+    
     <!-- Navigation Bar -->
     <nav class="bg-surface-light dark:bg-surface-dark shadow-md">
         <div class="container mx-auto px-4 py-3">
@@ -119,7 +148,7 @@
                     <button onclick="showView('signup')" class="text-sm text-slate-500 hover:text-primary transition">Create Account</button>
                 </div>
                 
-                <p class="mt-8 text-xs text-slate-500">Version 1.0.0 • Multi-Device Support</p>
+                <p class="mt-8 text-xs text-slate-500">Version 1.0.0 • Multi-Device Support • Cloud Sync</p>
             </div>
         </div>
 
@@ -184,8 +213,8 @@
 
                     <form id="loginForm" class="space-y-5">
                         <div>
-                            <label class="block text-sm font-semibold mb-1">Username / Matric No.</label>
-                            <input type="text" id="loginUsername" required class="w-full rounded-xl border-slate-300 focus:border-primary focus:ring-primary" placeholder="Enter username or matric number">
+                            <label class="block text-sm font-semibold mb-1">Email Address</label>
+                            <input type="email" id="loginEmail" required class="w-full rounded-xl border-slate-300 focus:border-primary focus:ring-primary" placeholder="Enter your email address">
                         </div>
 
                         <div>
@@ -259,9 +288,9 @@
                         </div>
 
                         <div>
-                            <label for="signupUsername" class="block text-sm font-semibold text-slate-900 dark:text-white mb-2">Username *</label>
-                            <input type="text" id="signupUsername" required class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl form-input" placeholder="Choose a username">
-                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">This will be used for login</p>
+                            <label for="signupEmail" class="block text-sm font-semibold text-slate-900 dark:text-white mb-2">Email Address *</label>
+                            <input type="email" id="signupEmail" required class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl form-input" placeholder="Enter your email address">
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">This will be used for login across all devices</p>
                         </div>
 
                         <div>
@@ -493,6 +522,13 @@
                                 <div>
                                     <p class="text-sm text-slate-600 dark:text-slate-400">Matric Number</p>
                                     <p id="studentMatric" class="font-mono font-medium">-</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="material-symbols-outlined text-slate-400">email</span>
+                                <div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400">Email</p>
+                                    <p id="studentEmail" class="font-medium text-sm">-</p>
                                 </div>
                             </div>
                         </div>
@@ -758,6 +794,28 @@
 
     <!-- JavaScript -->
     <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCwL6Dqy5Y4Y4y4y4y4y4y4y4y4y4y4y4y4",
+            authDomain: "nsuk-urp-attendance.firebaseapp.com",
+            projectId: "nsuk-urp-attendance",
+            storageBucket: "nsuk-urp-attendance.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef1234567890abcdef"
+        };
+        
+        // Initialize Firebase
+        let auth, db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log("Firebase initialized successfully");
+        } catch (error) {
+            console.error("Firebase initialization error:", error);
+            showFlashMessage("Warning: Cloud sync is not available. Using local storage only.", "warning");
+        }
+        
         // Current user data
         let currentUser = null;
         let currentLocation = null;
@@ -775,6 +833,22 @@
         
         // Set current year in footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
+        
+        // Loading overlay functions
+        function showLoading(message = "Loading...") {
+            const overlay = document.getElementById('loadingOverlay');
+            const text = document.getElementById('loadingText');
+            text.textContent = message;
+            overlay.classList.remove('hidden');
+            if (document.documentElement.classList.contains('dark')) {
+                overlay.classList.add('dark');
+            }
+        }
+        
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.add('hidden');
+        }
         
         // Theme toggle function
         function toggleTheme() {
@@ -808,7 +882,7 @@
             }
         }
         
-        // View management - FIXED
+        // View management
         function showView(viewName) {
             console.log('Showing view:', viewName);
             // Hide all views
@@ -867,14 +941,91 @@
             }
         }
         
-        // Authentication functions - FIXED
-        function login(username, password) {
-            console.log('Login attempt for:', username);
+        // Cloud-based Authentication functions
+        async function login(email, password) {
+            showLoading("Signing in...");
+            
+            try {
+                // Try Firebase authentication first
+                if (auth) {
+                    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                    const firebaseUser = userCredential.user;
+                    
+                    // Get user data from Firestore
+                    const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
+                    
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        
+                        // Check if lecturer is approved
+                        if (userData.role === 'lecturer' && !userData.isApproved) {
+                            hideLoading();
+                            showFlashMessage('Your account is pending approval by administrator', 'error');
+                            return false;
+                        }
+                        
+                        currentUser = {
+                            id: firebaseUser.uid,
+                            email: firebaseUser.email,
+                            ...userData
+                        };
+                        
+                        // Save to localStorage as fallback
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        
+                        hideLoading();
+                        showFlashMessage('Login successful! Redirecting to dashboard...', 'success');
+                        
+                        // Redirect to appropriate dashboard
+                        let dashboardView = '';
+                        switch(userData.role) {
+                            case 'student':
+                                dashboardView = 'studentDashboard';
+                                break;
+                            case 'lecturer':
+                                dashboardView = 'lecturerDashboard';
+                                break;
+                            case 'admin':
+                                dashboardView = 'adminDashboard';
+                                break;
+                            default:
+                                dashboardView = 'home';
+                        }
+                        
+                        console.log('Redirecting to:', dashboardView);
+                        showView(dashboardView);
+                        return true;
+                    } else {
+                        hideLoading();
+                        showFlashMessage('User data not found in system', 'error');
+                        return false;
+                    }
+                } else {
+                    // Fallback to local storage
+                    hideLoading();
+                    return loginLocal(email, password);
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('Login error:', error);
+                
+                // Fallback to local storage
+                if (error.code === 'auth/network-request-failed') {
+                    showFlashMessage('Network error. Using offline mode...', 'warning');
+                    return loginLocal(email, password);
+                }
+                
+                showFlashMessage('Login failed: ' + error.message, 'error');
+                return false;
+            }
+        }
+        
+        // Local storage fallback login
+        function loginLocal(email, password) {
             const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const user = users.find(u => u.username === username || u.matricNumber === username);
+            const user = users.find(u => u.email === email);
             
             if (user && user.password === password) {
-                // Check if lecturer is approved
                 if (user.role === 'lecturer' && !user.isApproved) {
                     showFlashMessage('Your account is pending approval by administrator', 'error');
                     return false;
@@ -882,9 +1033,9 @@
                 
                 currentUser = user;
                 localStorage.setItem('currentUser', JSON.stringify(user));
-                console.log('User logged in:', user.role);
                 
-                // Redirect to appropriate dashboard
+                showFlashMessage('Login successful! (Offline Mode)', 'success');
+                
                 let dashboardView = '';
                 switch(user.role) {
                     case 'student':
@@ -900,29 +1051,118 @@
                         dashboardView = 'home';
                 }
                 
-                showFlashMessage('Login successful! Redirecting to dashboard...', 'success');
-                console.log('Redirecting to:', dashboardView);
                 showView(dashboardView);
                 return true;
             } else {
-                showFlashMessage('Invalid username or password', 'error');
+                showFlashMessage('Invalid email or password', 'error');
                 return false;
             }
         }
         
-        function logout() {
-            currentUser = null;
-            localStorage.removeItem('currentUser');
-            showView('home');
-            showFlashMessage('You have been logged out successfully.', 'success');
+        async function logout() {
+            showLoading("Signing out...");
+            
+            try {
+                // Sign out from Firebase
+                if (auth) {
+                    await auth.signOut();
+                }
+                
+                // Clear local data
+                currentUser = null;
+                localStorage.removeItem('currentUser');
+                
+                hideLoading();
+                showView('home');
+                showFlashMessage('You have been logged out successfully.', 'success');
+            } catch (error) {
+                hideLoading();
+                console.error('Logout error:', error);
+                showFlashMessage('Error during logout', 'error');
+            }
         }
         
-        function signup(userData) {
-            console.log('Signup attempt for:', userData.username);
+        async function signup(userData) {
+            showLoading("Creating account...");
+            
+            try {
+                if (auth && db) {
+                    // Create Firebase auth user
+                    const userCredential = await auth.createUserWithEmailAndPassword(userData.email, userData.password);
+                    const firebaseUser = userCredential.user;
+                    
+                    // Prepare user data for Firestore
+                    const cloudUserData = {
+                        uid: firebaseUser.uid,
+                        email: userData.email,
+                        fullName: userData.fullName,
+                        role: userData.role,
+                        matricNumber: userData.role === 'student' ? userData.matricNumber : null,
+                        isApproved: userData.role !== 'lecturer',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    // Save to Firestore
+                    await db.collection('users').doc(firebaseUser.uid).set(cloudUserData);
+                    
+                    // Update current user
+                    currentUser = {
+                        id: firebaseUser.uid,
+                        ...cloudUserData
+                    };
+                    
+                    // Also save locally as backup
+                    const localUserData = {
+                        ...userData,
+                        id: firebaseUser.uid
+                    };
+                    const users = JSON.parse(localStorage.getItem('users') || '[]');
+                    users.push(localUserData);
+                    localStorage.setItem('users', JSON.stringify(users));
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    hideLoading();
+                    showFlashMessage('Account created successfully!', 'success');
+                    
+                    // Auto-login after signup
+                    setTimeout(() => {
+                        if (userData.role === 'lecturer') {
+                            showFlashMessage('Your account is pending approval by administrator', 'info');
+                            showView('login');
+                        } else {
+                            showView(userData.role === 'student' ? 'studentDashboard' : 'adminDashboard');
+                        }
+                    }, 1500);
+                    
+                    return true;
+                } else {
+                    // Fallback to local storage
+                    hideLoading();
+                    return signupLocal(userData);
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('Signup error:', error);
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    showFlashMessage('Email already registered', 'error');
+                } else if (error.code === 'auth/network-request-failed') {
+                    showFlashMessage('Network error. Creating account in offline mode...', 'warning');
+                    return signupLocal(userData);
+                } else {
+                    showFlashMessage('Account creation failed: ' + error.message, 'error');
+                }
+                return false;
+            }
+        }
+        
+        // Local storage fallback signup
+        function signupLocal(userData) {
             const users = JSON.parse(localStorage.getItem('users') || '[]');
             
-            if (users.find(u => u.username === userData.username)) {
-                showFlashMessage('Username already exists', 'error');
+            if (users.find(u => u.email === userData.email)) {
+                showFlashMessage('Email already registered', 'error');
                 return false;
             }
             
@@ -931,34 +1171,26 @@
                 return false;
             }
             
-            users.push(userData);
+            const localUserData = {
+                ...userData,
+                id: Date.now().toString(),
+                createdAt: new Date().toISOString()
+            };
+            
+            users.push(localUserData);
             localStorage.setItem('users', JSON.stringify(users));
             
-            currentUser = userData;
-            localStorage.setItem('currentUser', JSON.stringify(userData));
+            currentUser = localUserData;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
-            showFlashMessage('Account created successfully!', 'success');
+            showFlashMessage('Account created successfully! (Offline Mode)', 'success');
             
-            // Auto-login after signup
             setTimeout(() => {
                 if (userData.role === 'lecturer') {
                     showFlashMessage('Your account is pending approval by administrator', 'info');
                     showView('login');
                 } else {
-                    // Redirect to appropriate dashboard
-                    let dashboardView = '';
-                    switch(userData.role) {
-                        case 'student':
-                            dashboardView = 'studentDashboard';
-                            break;
-                        case 'admin':
-                            dashboardView = 'adminDashboard';
-                            break;
-                        default:
-                            dashboardView = 'home';
-                    }
-                    console.log('Redirecting new user to:', dashboardView);
-                    showView(dashboardView);
+                    showView(userData.role === 'student' ? 'studentDashboard' : 'adminDashboard');
                 }
             }, 1500);
             
@@ -966,39 +1198,68 @@
         }
         
         // Student Dashboard Functions
-        function loadStudentDashboard() {
+        async function loadStudentDashboard() {
             console.log('Loading student dashboard...');
-            if (!currentUser || currentUser.role !== 'student') {
-                showFlashMessage('Access denied. Please login as student.', 'error');
-                showView('home');
-                return;
-            }
+            showLoading("Loading dashboard...");
             
-            document.getElementById('studentName').textContent = `Welcome, ${currentUser.fullName}!`;
-            document.getElementById('studentFullName').textContent = currentUser.fullName;
-            document.getElementById('studentMatric').textContent = currentUser.matricNumber;
-            document.getElementById('studentFullNameInput').value = currentUser.fullName;
-            document.getElementById('studentMatricInput').value = currentUser.matricNumber;
-            
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            const studentRecords = records.filter(r => r.studentId === currentUser.id);
-            
-            const recentAttendance = document.getElementById('recentAttendance');
-            if (studentRecords.length > 0) {
-                recentAttendance.innerHTML = studentRecords.slice(0, 5).map(record => `
-                    <div class="border-l-4 border-primary pl-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-900/50 rounded-r-xl">
-                        <div class="flex justify-between items-start mb-1">
-                            <p class="font-medium text-slate-900 dark:text-white">${record.courseCode}</p>
-                            <span class="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">Present</span>
+            try {
+                if (!currentUser || currentUser.role !== 'student') {
+                    hideLoading();
+                    showFlashMessage('Access denied. Please login as student.', 'error');
+                    showView('home');
+                    return;
+                }
+                
+                document.getElementById('studentName').textContent = `Welcome, ${currentUser.fullName}!`;
+                document.getElementById('studentFullName').textContent = currentUser.fullName;
+                document.getElementById('studentMatric').textContent = currentUser.matricNumber;
+                document.getElementById('studentEmail').textContent = currentUser.email;
+                document.getElementById('studentFullNameInput').value = currentUser.fullName;
+                document.getElementById('studentMatricInput').value = currentUser.matricNumber;
+                
+                // Load attendance records
+                let records = [];
+                if (db && currentUser.id) {
+                    try {
+                        const querySnapshot = await db.collection('attendance')
+                            .where('studentId', '==', currentUser.id)
+                            .orderBy('timestamp', 'desc')
+                            .limit(5)
+                            .get();
+                        
+                        records = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    } catch (error) {
+                        console.log('Using local attendance records:', error.message);
+                        records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                        records = records.filter(r => r.studentId === currentUser.id);
+                    }
+                } else {
+                    records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                    records = records.filter(r => r.studentId === currentUser.id);
+                }
+                
+                const recentAttendance = document.getElementById('recentAttendance');
+                if (records.length > 0) {
+                    recentAttendance.innerHTML = records.slice(0, 5).map(record => `
+                        <div class="border-l-4 border-primary pl-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-900/50 rounded-r-xl">
+                            <div class="flex justify-between items-start mb-1">
+                                <p class="font-medium text-slate-900 dark:text-white">${record.courseCode}</p>
+                                <span class="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">Present</span>
+                            </div>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">
+                                ${new Date(record.timestamp).toLocaleDateString()} at ${new Date(record.timestamp).toLocaleTimeString()}
+                            </p>
                         </div>
-                        <p class="text-sm text-slate-600 dark:text-slate-400">
-                            ${new Date(record.timestamp).toLocaleDateString()} at ${new Date(record.timestamp).toLocaleTimeString()}
-                        </p>
-                    </div>
-                `).join('');
+                    `).join('');
+                }
+                
+                hideLoading();
+                resetStudentForm();
+            } catch (error) {
+                hideLoading();
+                console.error('Error loading student dashboard:', error);
+                showFlashMessage('Error loading dashboard', 'error');
             }
-            
-            resetStudentForm();
         }
         
         function resetStudentForm() {
@@ -1174,7 +1435,7 @@
             document.getElementById('startCamera').disabled = false;
         }
         
-        function submitAttendance() {
+        async function submitAttendance() {
             const courseCode = document.getElementById('courseCode').value;
             
             if (!currentLocation || !faceImage || !courseCode) {
@@ -1182,8 +1443,9 @@
                 return;
             }
             
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            const recordId = Date.now();
+            showLoading("Submitting attendance...");
+            
+            const recordId = Date.now().toString();
             const timestamp = new Date().toISOString();
             
             const attendanceRecord = {
@@ -1200,45 +1462,95 @@
                 time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
             };
             
-            records.push(attendanceRecord);
-            localStorage.setItem('attendanceRecords', JSON.stringify(records));
-            
-            showFlashMessage(`Attendance submitted successfully! Course: ${courseCode}`, 'success');
-            
-            // Clear form
-            resetStudentForm();
-            
-            // Reload student dashboard to show updated records
-            setTimeout(() => {
-                loadStudentDashboard();
-            }, 1500);
+            try {
+                // Try to save to Firestore
+                if (db) {
+                    await db.collection('attendance').doc(recordId).set(attendanceRecord);
+                    console.log('Attendance saved to cloud');
+                }
+                
+                // Also save locally
+                const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                records.push(attendanceRecord);
+                localStorage.setItem('attendanceRecords', JSON.stringify(records));
+                
+                hideLoading();
+                showFlashMessage(`Attendance submitted successfully! Course: ${courseCode}`, 'success');
+                
+                // Clear form
+                resetStudentForm();
+                
+                // Reload student dashboard to show updated records
+                setTimeout(() => {
+                    loadStudentDashboard();
+                }, 1500);
+            } catch (error) {
+                hideLoading();
+                console.error('Error submitting attendance:', error);
+                showFlashMessage('Attendance submitted locally (offline mode)', 'warning');
+                
+                // Save locally only
+                const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                records.push(attendanceRecord);
+                localStorage.setItem('attendanceRecords', JSON.stringify(records));
+                
+                resetStudentForm();
+                setTimeout(() => {
+                    loadStudentDashboard();
+                }, 1500);
+            }
         }
         
-        // Lecturer Dashboard Functions - UPDATED to show actual attendance data
-        function loadLecturerDashboard() {
+        // Lecturer Dashboard Functions
+        async function loadLecturerDashboard() {
             console.log('Loading lecturer dashboard...');
-            if (!currentUser || currentUser.role !== 'lecturer') {
-                showFlashMessage('Access denied. Please login as lecturer.', 'error');
-                showView('home');
-                return;
+            showLoading("Loading dashboard...");
+            
+            try {
+                if (!currentUser || currentUser.role !== 'lecturer') {
+                    hideLoading();
+                    showFlashMessage('Access denied. Please login as lecturer.', 'error');
+                    showView('home');
+                    return;
+                }
+                
+                document.getElementById('lecturerName').textContent = `Welcome, ${currentUser.fullName}!`;
+                
+                // Get all attendance records
+                let records = [];
+                if (db) {
+                    try {
+                        const querySnapshot = await db.collection('attendance')
+                            .orderBy('timestamp', 'desc')
+                            .get();
+                        
+                        records = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    } catch (error) {
+                        console.log('Using local attendance records:', error.message);
+                        records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                    }
+                } else {
+                    records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                }
+                
+                // Calculate statistics
+                const today = new Date().toISOString().split('T')[0];
+                const todayRecords = records.filter(r => r.date === today);
+                
+                // Update dashboard stats
+                document.getElementById('totalStudents').textContent = '45';
+                document.getElementById('presentToday').textContent = todayRecords.length.toString();
+                document.getElementById('activeSessions').textContent = '2';
+                
+                // Load attendance table
+                loadSubmittedAttendanceTable(records);
+                
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                console.error('Error loading lecturer dashboard:', error);
+                showFlashMessage('Error loading dashboard', 'error');
             }
-            
-            document.getElementById('lecturerName').textContent = `Welcome, ${currentUser.fullName}!`;
-            
-            // Get all attendance records from localStorage
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            
-            // Calculate statistics
-            const today = new Date().toISOString().split('T')[0];
-            const todayRecords = records.filter(r => r.date === today);
-            
-            // Update dashboard stats
-            document.getElementById('totalStudents').textContent = '45'; // Mock data
-            document.getElementById('presentToday').textContent = todayRecords.length.toString();
-            document.getElementById('activeSessions').textContent = '2'; // Mock data
-            
-            // Load attendance table
-            loadSubmittedAttendanceTable(records);
         }
         
         function loadSubmittedAttendanceTable(allRecords) {
@@ -1254,7 +1566,10 @@
         
         function filterAttendanceByCourse(courseCode = null) {
             const filterValue = courseCode || document.getElementById('courseFilter').value;
-            const allRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            
+            // Get records from localStorage (fallback)
+            const localRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            const allRecords = filteredRecords.length > 0 ? filteredRecords : localRecords;
             
             if (filterValue === 'all') {
                 filteredRecords = [...allRecords];
@@ -1343,14 +1658,14 @@
         }
         
         function refreshAttendanceTable() {
-            const allRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            filterAttendanceByCourse(currentFilter, allRecords);
+            // Reload from cloud
+            loadLecturerDashboard();
             showFlashMessage('Attendance table refreshed!', 'success');
         }
         
         function viewFaceImage(recordId) {
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            const record = records.find(r => r.id == recordId);
+            // Try to get from filtered records first
+            const record = filteredRecords.find(r => r.id == recordId);
             
             if (record && record.faceImage) {
                 const newWindow = window.open();
@@ -1372,8 +1687,7 @@
         }
         
         function downloadRecord(recordId) {
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            const record = records.find(r => r.id == recordId);
+            const record = filteredRecords.find(r => r.id == recordId);
             
             if (record) {
                 const data = `Student Name: ${record.studentName}\nMatric Number: ${record.matricNumber}\nCourse: ${record.courseCode}\nDate: ${record.date}\nTime: ${record.time}\nLatitude: ${record.latitude}\nLongitude: ${record.longitude}\n\nDownloaded on: ${new Date().toLocaleString()}`;
@@ -1390,13 +1704,42 @@
             }
         }
         
-        function deleteRecord(recordId) {
-            if (confirm('Are you sure you want to delete this attendance record?')) {
+        async function deleteRecord(recordId) {
+            if (!confirm('Are you sure you want to delete this attendance record?')) {
+                return;
+            }
+            
+            showLoading("Deleting record...");
+            
+            try {
+                // Try to delete from cloud
+                if (db) {
+                    await db.collection('attendance').doc(recordId).delete();
+                }
+                
+                // Also delete locally
                 const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
                 const updatedRecords = records.filter(r => r.id != recordId);
                 localStorage.setItem('attendanceRecords', JSON.stringify(updatedRecords));
+                
+                // Update filtered records
+                filteredRecords = filteredRecords.filter(r => r.id != recordId);
+                
+                hideLoading();
                 showFlashMessage('Record deleted successfully!', 'success');
-                refreshAttendanceTable();
+                renderAttendanceTable();
+            } catch (error) {
+                hideLoading();
+                console.error('Error deleting record:', error);
+                showFlashMessage('Record deleted locally only', 'warning');
+                
+                // Delete locally only
+                const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                const updatedRecords = records.filter(r => r.id != recordId);
+                localStorage.setItem('attendanceRecords', JSON.stringify(updatedRecords));
+                
+                filteredRecords = filteredRecords.filter(r => r.id != recordId);
+                renderAttendanceTable();
             }
         }
         
@@ -1405,16 +1748,14 @@
         }
         
         function generateReport() {
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            
-            if (records.length === 0) {
+            if (filteredRecords.length === 0) {
                 showFlashMessage('No attendance records to generate report from', 'error');
                 return;
             }
             
             // Group by course
             const courseSummary = {};
-            records.forEach(record => {
+            filteredRecords.forEach(record => {
                 if (!courseSummary[record.courseCode]) {
                     courseSummary[record.courseCode] = {
                         total: 0,
@@ -1427,7 +1768,7 @@
             
             let report = 'ATTENDANCE REPORT\n';
             report += 'Generated: ' + new Date().toLocaleString() + '\n';
-            report += 'Total Records: ' + records.length + '\n\n';
+            report += 'Total Records: ' + filteredRecords.length + '\n\n';
             report += 'By Course:\n';
             
             for (const [course, data] of Object.entries(courseSummary)) {
@@ -1439,15 +1780,13 @@
         }
         
         function exportData() {
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            
-            if (records.length === 0) {
+            if (filteredRecords.length === 0) {
                 showFlashMessage('No records to export', 'error');
                 return;
             }
             
             let csv = 'Student Name,Matric Number,Course Code,Date,Time,Latitude,Longitude\n';
-            records.forEach(record => {
+            filteredRecords.forEach(record => {
                 csv += `"${record.studentName}","${record.matricNumber}","${record.courseCode}","${record.date}","${record.time}",${record.latitude},${record.longitude}\n`;
             });
             
@@ -1465,29 +1804,60 @@
         }
         
         // Admin Dashboard Functions
-        function loadAdminDashboard() {
+        async function loadAdminDashboard() {
             console.log('Loading admin dashboard...');
-            if (!currentUser || currentUser.role !== 'admin') {
-                showFlashMessage('Access denied. Please login as administrator.', 'error');
-                showView('home');
-                return;
+            showLoading("Loading dashboard...");
+            
+            try {
+                if (!currentUser || currentUser.role !== 'admin') {
+                    hideLoading();
+                    showFlashMessage('Access denied. Please login as administrator.', 'error');
+                    showView('home');
+                    return;
+                }
+                
+                document.getElementById('adminName').textContent = `Welcome, ${currentUser.fullName}!`;
+                
+                let users = [];
+                let records = [];
+                let pendingLecturers = [];
+                
+                if (db) {
+                    try {
+                        // Get users from Firestore
+                        const usersSnapshot = await db.collection('users').get();
+                        users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        
+                        // Get attendance records
+                        const recordsSnapshot = await db.collection('attendance').get();
+                        records = recordsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    } catch (error) {
+                        console.log('Using local data:', error.message);
+                        users = JSON.parse(localStorage.getItem('users') || '[]');
+                        records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                    }
+                } else {
+                    users = JSON.parse(localStorage.getItem('users') || '[]');
+                    records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                }
+                
+                pendingLecturers = users.filter(u => u.role === 'lecturer' && !u.isApproved);
+                const today = new Date().toISOString().split('T')[0];
+                const todayRecords = records.filter(r => r.date === today);
+                
+                document.getElementById('totalAdmins').textContent = users.filter(u => u.role === 'admin').length;
+                document.getElementById('totalUsers').textContent = users.length;
+                document.getElementById('activeSessionsAdmin').textContent = '3';
+                document.getElementById('attendanceToday').textContent = todayRecords.length;
+                document.getElementById('pendingApprovals').textContent = pendingLecturers.length;
+                
+                loadLecturerApprovals(pendingLecturers);
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                console.error('Error loading admin dashboard:', error);
+                showFlashMessage('Error loading dashboard', 'error');
             }
-            
-            document.getElementById('adminName').textContent = `Welcome, ${currentUser.fullName}!`;
-            
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            const pendingLecturers = users.filter(u => u.role === 'lecturer' && !u.isApproved);
-            const today = new Date().toISOString().split('T')[0];
-            const todayRecords = records.filter(r => r.date === today);
-            
-            document.getElementById('totalAdmins').textContent = users.filter(u => u.role === 'admin').length;
-            document.getElementById('totalUsers').textContent = users.length;
-            document.getElementById('activeSessionsAdmin').textContent = '3';
-            document.getElementById('attendanceToday').textContent = todayRecords.length;
-            document.getElementById('pendingApprovals').textContent = pendingLecturers.length;
-            
-            loadLecturerApprovals(pendingLecturers);
         }
         
         function loadLecturerApprovals(pendingLecturers) {
@@ -1500,9 +1870,9 @@
                             <h3 class="font-semibold text-slate-900 dark:text-white">${lecturer.fullName}</h3>
                             <span class="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300 text-xs px-2 py-1 rounded-full">Pending</span>
                         </div>
-                        <p class="text-sm text-slate-600 dark:text-slate-400 mb-1">Username: <strong>${lecturer.username}</strong></p>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mb-1">Email: <strong>${lecturer.email}</strong></p>
                         <p class="text-xs text-slate-500 dark:text-slate-500 mb-3">
-                            Registered: ${new Date(lecturer.createdAt || Date.now()).toLocaleString()}
+                            Registered: ${new Date(lecturer.createdAt?.toDate?.() || lecturer.createdAt || Date.now()).toLocaleString()}
                         </p>
                         <div class="flex space-x-2">
                             <button onclick="approveLecturer('${lecturer.id}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold text-sm transition-colors">Approve</button>
@@ -1513,42 +1883,70 @@
             }
         }
         
-        function approveLecturer(userId) {
+        async function approveLecturer(userId) {
             if (!confirm('Are you sure you want to approve this lecturer?')) {
                 return;
             }
             
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const userIndex = users.findIndex(u => u.id == userId);
+            showLoading("Approving lecturer...");
             
-            if (userIndex !== -1) {
-                users[userIndex].isApproved = true;
-                localStorage.setItem('users', JSON.stringify(users));
+            try {
+                if (db) {
+                    await db.collection('users').doc(userId).update({
+                        isApproved: true,
+                        approvedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
                 
+                // Also update locally
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                const userIndex = users.findIndex(u => u.id == userId);
+                if (userIndex !== -1) {
+                    users[userIndex].isApproved = true;
+                    localStorage.setItem('users', JSON.stringify(users));
+                }
+                
+                hideLoading();
                 showFlashMessage('Lecturer approved successfully!', 'success');
                 
                 setTimeout(() => {
                     loadAdminDashboard();
                 }, 1500);
-            } else {
-                showFlashMessage('Lecturer not found', 'error');
+            } catch (error) {
+                hideLoading();
+                console.error('Error approving lecturer:', error);
+                showFlashMessage('Error approving lecturer', 'error');
             }
         }
         
-        function rejectLecturer(userId) {
+        async function rejectLecturer(userId) {
             if (!confirm('Are you sure you want to reject this lecturer registration?')) {
                 return;
             }
             
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const updatedUsers = users.filter(u => u.id != userId);
-            localStorage.setItem('users', JSON.stringify(updatedUsers));
+            showLoading("Rejecting lecturer...");
             
-            showFlashMessage('Lecturer registration rejected successfully!', 'success');
-            
-            setTimeout(() => {
-                loadAdminDashboard();
-            }, 1500);
+            try {
+                if (db) {
+                    await db.collection('users').doc(userId).delete();
+                }
+                
+                // Also delete locally
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                const updatedUsers = users.filter(u => u.id != userId);
+                localStorage.setItem('users', JSON.stringify(updatedUsers));
+                
+                hideLoading();
+                showFlashMessage('Lecturer registration rejected successfully!', 'success');
+                
+                setTimeout(() => {
+                    loadAdminDashboard();
+                }, 1500);
+            } catch (error) {
+                hideLoading();
+                console.error('Error rejecting lecturer:', error);
+                showFlashMessage('Error rejecting lecturer', 'error');
+            }
         }
         
         function viewAllUsers() {
@@ -1562,7 +1960,7 @@
             let message = 'All Users:\n\n';
             users.forEach((user, index) => {
                 message += `${index + 1}. ${user.fullName}\n`;
-                message += `   Username: ${user.username}\n`;
+                message += `   Email: ${user.email}\n`;
                 message += `   Role: ${user.role}\n`;
                 message += `   Status: ${user.isApproved ? 'Approved' : 'Pending'}\n`;
                 message += '─'.repeat(30) + '\n';
@@ -1711,14 +2109,60 @@
             }
         }
         
-        // Event Listeners - FIXED initialization
+        // Check for existing Firebase authentication on page load
+        async function checkAuthState() {
+            if (auth) {
+                auth.onAuthStateChanged(async (firebaseUser) => {
+                    if (firebaseUser) {
+                        try {
+                            // User is signed in via Firebase
+                            const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
+                            if (userDoc.exists) {
+                                const userData = userDoc.data();
+                                currentUser = {
+                                    id: firebaseUser.uid,
+                                    email: firebaseUser.email,
+                                    ...userData
+                                };
+                                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                                updateNavigation();
+                                
+                                // Redirect to appropriate dashboard
+                                setTimeout(() => {
+                                    switch(userData.role) {
+                                        case 'student':
+                                            showView('studentDashboard');
+                                            break;
+                                        case 'lecturer':
+                                            showView('lecturerDashboard');
+                                            break;
+                                        case 'admin':
+                                            showView('adminDashboard');
+                                            break;
+                                        default:
+                                            showView('home');
+                                    }
+                                }, 100);
+                            }
+                        } catch (error) {
+                            console.error('Error loading user data:', error);
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Event Listeners
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');
             initializeTheme();
             
-            // Check for existing user session
+            // Check Firebase auth state
+            checkAuthState();
+            
+            // Check for existing user session in localStorage
             const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
+            if (savedUser && !currentUser) {
                 try {
                     currentUser = JSON.parse(savedUser);
                     console.log('Found saved user:', currentUser.role);
@@ -1745,7 +2189,7 @@
                     console.error('Error parsing saved user:', e);
                     showView('splash');
                 }
-            } else {
+            } else if (!currentUser) {
                 console.log('No saved user, showing splash');
                 showView('splash');
             }
@@ -1755,9 +2199,9 @@
             if (loginForm) {
                 loginForm.addEventListener('submit', function(e) {
                     e.preventDefault();
-                    const username = document.getElementById('loginUsername').value;
+                    const email = document.getElementById('loginEmail').value;
                     const password = document.getElementById('loginPassword').value;
-                    login(username, password);
+                    login(email, password);
                 });
             }
             
@@ -1769,7 +2213,7 @@
                     
                     const role = document.getElementById('selectedRole').value;
                     const fullName = document.getElementById('fullName').value;
-                    const username = document.getElementById('signupUsername').value;
+                    const email = document.getElementById('signupEmail').value;
                     const password = document.getElementById('signupPassword').value;
                     const matricNumber = document.getElementById('matricNumber').value;
                     
@@ -1784,8 +2228,7 @@
                     }
                     
                     const userData = {
-                        id: Date.now(),
-                        username: username,
+                        email: email,
                         password: password,
                         role: role,
                         fullName: fullName,
