@@ -149,7 +149,7 @@
                             <span class="material-symbols-outlined text-primary text-2xl">co_present</span>
                         </div>
                         <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">For Lecturers</h3>
-                        <p class="text-slate-600 dark:text-slate-400">Manage classes, track attendance, and generate reports</p>
+                        <p class="text-slate-600 dark:text-slate-400">Manage classes, track attendance in real-time from any device</p>
                     </div>
                     
                     <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-soft fade-in" style="animation-delay: 0.3s">
@@ -495,6 +495,13 @@
                                     <p id="studentMatric" class="font-mono font-medium">-</p>
                                 </div>
                             </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="material-symbols-outlined text-slate-400">sync</span>
+                                <div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400">Sync Status</p>
+                                    <p id="studentSyncStatus" class="font-medium text-green-600 dark:text-green-400">Auto-sync enabled</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -519,7 +526,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h1 class="text-2xl font-bold text-slate-900 dark:text-white" id="lecturerName">Loading...</h1>
-                        <p class="text-slate-600 dark:text-slate-400 mt-2">Manage classes and track student attendance</p>
+                        <p class="text-slate-600 dark:text-slate-400 mt-2">Manage classes and track student attendance in real-time</p>
                     </div>
                     <div class="flex items-center space-x-3">
                         <div class="bg-primary/10 text-primary dark:text-blue-400 px-4 py-2 rounded-lg"><span class="font-semibold">Lecturer</span></div>
@@ -577,9 +584,15 @@
                                 <option value="URP302">URP 302</option>
                             </select>
                         </div>
-                        <button onclick="refreshAttendanceTable()" class="bg-primary/10 text-primary dark:text-blue-400 hover:bg-primary/20 px-3 py-1 rounded-lg text-sm font-medium transition-colors flex items-center">
-                            <span class="material-symbols-outlined text-sm mr-1">refresh</span>Refresh
-                        </button>
+                        <div class="flex items-center space-x-2">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="autoRefresh" checked class="mr-2 rounded border-slate-300 text-primary focus:ring-primary">
+                                <label for="autoRefresh" class="text-sm text-slate-600 dark:text-slate-400">Auto-refresh</label>
+                            </div>
+                            <button onclick="refreshAttendanceTable()" class="bg-primary/10 text-primary dark:text-blue-400 hover:bg-primary/20 px-3 py-1 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                <span class="material-symbols-outlined text-sm mr-1">refresh</span>Refresh Now
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
@@ -609,13 +622,19 @@
                 <div class="mt-4 text-sm text-slate-500 dark:text-slate-400 flex justify-between items-center">
                     <div id="attendanceCount">Showing 0 records</div>
                     <div class="flex items-center space-x-2">
-                        <button onclick="previousPage()" class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800" disabled id="prevBtn">
-                            <span class="material-symbols-outlined">chevron_left</span>
-                        </button>
-                        <span id="pageInfo">Page 1 of 1</span>
-                        <button onclick="nextPage()" class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800" disabled id="nextBtn">
-                            <span class="material-symbols-outlined">chevron_right</span>
-                        </button>
+                        <div class="text-xs text-slate-500 dark:text-slate-500">
+                            <span class="material-symbols-outlined text-xs align-middle mr-1">sync</span>
+                            Last sync: <span id="lastSyncTime">Just now</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="previousPage()" class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800" disabled id="prevBtn">
+                                <span class="material-symbols-outlined">chevron_left</span>
+                            </button>
+                            <span id="pageInfo">Page 1 of 1</span>
+                            <button onclick="nextPage()" class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800" disabled id="nextBtn">
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -758,93 +777,9 @@
 
     <!-- JavaScript -->
     <script>
-        // Remote storage simulation (using a free cloud service)
-        const REMOTE_STORAGE_URL = 'https://api.jsonbin.io/v3/b'; // Free JSON storage
-        const API_KEY = '$2a$10$L9fOAkuC.CUIN3cx7wj38uY0/p2d9Z21ymw.DJG4d5YlX0JyNqWaW'; // Get from jsonbin.io
-        
-        async function syncToCloud() {
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const attendance = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            
-            const data = {
-                users: users,
-                attendance: attendance,
-                timestamp: Date.now()
-            };
-            
-            try {
-                const response = await fetch(REMOTE_STORAGE_URL, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': API_KEY
-                    },
-                    body: JSON.stringify(data)
-                });
-                console.log('Data synced to cloud');
-                showFlashMessage('Data synchronized with cloud storage', 'success');
-            } catch (error) {
-                console.error('Sync failed:', error);
-                showFlashMessage('Cloud sync failed. Working offline.', 'warning');
-            }
-        }
-        
-        async function syncFromCloud() {
-            try {
-                const response = await fetch(REMOTE_STORAGE_URL + '/latest', {
-                    headers: {
-                        'X-Master-Key': API_KEY
-                    }
-                });
-                const data = await response.json();
-                
-                if (data.record) {
-                    // Merge local and remote data
-                    const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
-                    const remoteUsers = data.record.users || [];
-                    
-                    // Create a map to avoid duplicates
-                    const userMap = new Map();
-                    localUsers.forEach(user => userMap.set(user.username, user));
-                    remoteUsers.forEach(user => userMap.set(user.username, user));
-                    
-                    const mergedUsers = Array.from(userMap.values());
-                    
-                    // Merge attendance records
-                    const localAttendance = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-                    const remoteAttendance = data.record.attendance || [];
-                    
-                    // Use Set to avoid duplicate records by ID
-                    const attendanceMap = new Map();
-                    localAttendance.forEach(record => attendanceMap.set(record.id, record));
-                    remoteAttendance.forEach(record => attendanceMap.set(record.id, record));
-                    
-                    const mergedAttendance = Array.from(attendanceMap.values());
-                    
-                    // Save merged data
-                    localStorage.setItem('users', JSON.stringify(mergedUsers));
-                    localStorage.setItem('attendanceRecords', JSON.stringify(mergedAttendance));
-                    
-                    console.log('Data loaded from cloud');
-                    showFlashMessage('Data synchronized from cloud storage', 'success');
-                    
-                    // Update current user if logged in
-                    if (currentUser) {
-                        const updatedUser = mergedUsers.find(u => u.username === currentUser.username);
-                        if (updatedUser && updatedUser.password === currentUser.password) {
-                            currentUser = updatedUser;
-                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Sync failed:', error);
-                // Don't show error message on initial load
-                if (currentUser) {
-                    showFlashMessage('Cloud sync failed. Working offline.', 'warning');
-                }
-            }
-        }
+        // Remote storage configuration
+        const REMOTE_STORAGE_URL = 'https://api.jsonbin.io/v3/b/67ccb2c0acd3cb34a8b8c0bf'; // Your JSONBin.io bin ID
+        const API_KEY = '$2a$10$L9fOAkuC.CUIN3cx7wj38uY0/p2d9Z21ymw.DJG4d5YlX0JyNqWaW'; // Your JSONBin.io API key
         
         // Current user data
         let currentUser = null;
@@ -861,8 +796,189 @@
         let filteredRecords = [];
         let currentFilter = 'all';
         
+        // Auto-refresh interval for lecturer dashboard
+        let autoRefreshInterval = null;
+        let lastSyncTime = new Date();
+        
         // Set current year in footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
+        
+        // Enhanced Remote Storage Functions
+        async function syncToCloud() {
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const attendance = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            
+            const data = {
+                users: users,
+                attendance: attendance,
+                timestamp: Date.now(),
+                syncDevice: navigator.userAgent,
+                syncTime: new Date().toISOString()
+            };
+            
+            try {
+                const response = await fetch(REMOTE_STORAGE_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY,
+                        'X-Bin-Versioning': 'false'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Data synced to cloud:', result);
+                    lastSyncTime = new Date();
+                    updateLastSyncTime();
+                    return true;
+                } else {
+                    throw new Error('Failed to sync to cloud');
+                }
+            } catch (error) {
+                console.error('Sync failed:', error);
+                return false;
+            }
+        }
+        
+        async function syncFromCloud() {
+            try {
+                const response = await fetch(REMOTE_STORAGE_URL + '/latest', {
+                    headers: {
+                        'X-Master-Key': API_KEY
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch from cloud');
+                }
+                
+                const data = await response.json();
+                
+                if (data.record) {
+                    // Store the last cloud timestamp
+                    localStorage.setItem('lastCloudSync', data.record.timestamp || Date.now());
+                    
+                    // Merge local and remote data - improved algorithm
+                    const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                    const remoteUsers = data.record.users || [];
+                    
+                    // Merge users by ID, preferring newer data
+                    const userMap = new Map();
+                    localUsers.forEach(user => userMap.set(user.id, user));
+                    remoteUsers.forEach(user => {
+                        const existingUser = userMap.get(user.id);
+                        if (!existingUser || (user.createdAt && existingUser.createdAt && new Date(user.createdAt) > new Date(existingUser.createdAt))) {
+                            userMap.set(user.id, user);
+                        }
+                    });
+                    
+                    const mergedUsers = Array.from(userMap.values());
+                    
+                    // Merge attendance records by ID
+                    const localAttendance = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                    const remoteAttendance = data.record.attendance || [];
+                    
+                    const attendanceMap = new Map();
+                    localAttendance.forEach(record => attendanceMap.set(record.id, record));
+                    remoteAttendance.forEach(record => attendanceMap.set(record.id, record));
+                    
+                    const mergedAttendance = Array.from(attendanceMap.values());
+                    
+                    // Save merged data
+                    localStorage.setItem('users', JSON.stringify(mergedUsers));
+                    localStorage.setItem('attendanceRecords', JSON.stringify(mergedAttendance));
+                    
+                    lastSyncTime = new Date();
+                    updateLastSyncTime();
+                    
+                    console.log('Data loaded from cloud:', {
+                        users: mergedUsers.length,
+                        attendance: mergedAttendance.length
+                    });
+                    
+                    // Update current user if logged in
+                    if (currentUser) {
+                        const updatedUser = mergedUsers.find(u => u.id === currentUser.id);
+                        if (updatedUser && updatedUser.password === currentUser.password) {
+                            currentUser = updatedUser;
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        }
+                    }
+                    
+                    return true;
+                }
+            } catch (error) {
+                console.error('Sync failed:', error);
+                return false;
+            }
+        }
+        
+        // Real-time sync functions
+        async function syncData() {
+            if (navigator.onLine) {
+                try {
+                    // First pull from cloud
+                    await syncFromCloud();
+                    
+                    // Then push to cloud
+                    await syncToCloud();
+                    
+                    // If we're in lecturer dashboard, refresh the table
+                    if (currentUser && currentUser.role === 'lecturer' && document.getElementById('lecturerDashboardView').classList.contains('active')) {
+                        refreshAttendanceTable();
+                    }
+                    
+                    return true;
+                } catch (error) {
+                    console.error('Sync error:', error);
+                    return false;
+                }
+            }
+            return false;
+        }
+        
+        function updateLastSyncTime() {
+            const now = new Date();
+            const diffMs = now - lastSyncTime;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            let timeText = '';
+            if (diffMins < 1) {
+                timeText = 'Just now';
+            } else if (diffMins < 60) {
+                timeText = `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+            } else {
+                const diffHours = Math.floor(diffMins / 60);
+                timeText = `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+            }
+            
+            const lastSyncElement = document.getElementById('lastSyncTime');
+            if (lastSyncElement) {
+                lastSyncElement.textContent = timeText;
+            }
+        }
+        
+        // Start auto-refresh for lecturer dashboard
+        function startAutoRefresh() {
+            const autoRefreshCheckbox = document.getElementById('autoRefresh');
+            if (!autoRefreshCheckbox) return;
+            
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            
+            if (autoRefreshCheckbox.checked) {
+                autoRefreshInterval = setInterval(async () => {
+                    if (navigator.onLine) {
+                        await syncData();
+                    }
+                }, 30000); // Sync every 30 seconds
+                
+                console.log('Auto-refresh started');
+            }
+        }
         
         // Theme toggle function
         function toggleTheme() {
@@ -896,7 +1012,7 @@
             }
         }
         
-        // View management - FIXED
+        // View management
         function showView(viewName) {
             console.log('Showing view:', viewName);
             // Hide all views
@@ -955,7 +1071,7 @@
             }
         }
         
-        // Authentication functions - FIXED
+        // Authentication functions
         function login(username, password) {
             console.log('Login attempt for:', username);
             const users = JSON.parse(localStorage.getItem('users') || '[]');
@@ -972,9 +1088,9 @@
                 localStorage.setItem('currentUser', JSON.stringify(user));
                 console.log('User logged in:', user.role);
                 
-                // Sync to cloud after login
-                setTimeout(() => {
-                    syncToCloud();
+                // Sync data after login
+                setTimeout(async () => {
+                    await syncData();
                 }, 1000);
                 
                 // Redirect to appropriate dashboard
@@ -1004,8 +1120,11 @@
         }
         
         function logout() {
-            // Sync to cloud before logout
-            syncToCloud();
+            // Stop auto-refresh if running
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
             
             currentUser = null;
             localStorage.removeItem('currentUser');
@@ -1034,8 +1153,8 @@
             localStorage.setItem('currentUser', JSON.stringify(userData));
             
             // Sync to cloud after signup
-            setTimeout(() => {
-                syncToCloud();
+            setTimeout(async () => {
+                await syncToCloud();
             }, 1000);
             
             showFlashMessage('Account created successfully!', 'success');
@@ -1094,6 +1213,10 @@
                         </div>
                         <p class="text-sm text-slate-600 dark:text-slate-400">
                             ${new Date(record.timestamp).toLocaleDateString()} at ${new Date(record.timestamp).toLocaleTimeString()}
+                        </p>
+                        <p class="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                            <span class="material-symbols-outlined align-middle text-xs">location_on</span>
+                            ${record.latitude.toFixed(4)}, ${record.longitude.toFixed(4)}
                         </p>
                     </div>
                 `).join('');
@@ -1275,7 +1398,7 @@
             document.getElementById('startCamera').disabled = false;
         }
         
-        function submitAttendance() {
+        async function submitAttendance() {
             const courseCode = document.getElementById('courseCode').value;
             
             if (!currentLocation || !faceImage || !courseCode) {
@@ -1298,18 +1421,22 @@
                 faceImage: faceImage,
                 timestamp: timestamp,
                 date: new Date().toISOString().split('T')[0],
-                time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
+                time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+                submittedFrom: navigator.userAgent,
+                deviceType: /Mobile|Android|iPhone|iPad|iPod/.test(navigator.userAgent) ? 'Mobile' : 'Desktop'
             };
             
             records.push(attendanceRecord);
             localStorage.setItem('attendanceRecords', JSON.stringify(records));
             
             // Sync to cloud after attendance submission
-            setTimeout(() => {
-                syncToCloud();
-            }, 500);
+            const syncSuccess = await syncToCloud();
             
-            showFlashMessage(`Attendance submitted successfully! Course: ${courseCode}`, 'success');
+            if (syncSuccess) {
+                showFlashMessage(`Attendance submitted successfully! Course: ${courseCode} (Synced to cloud)`, 'success');
+            } else {
+                showFlashMessage(`Attendance submitted successfully! Course: ${courseCode} (Saved locally, will sync when online)`, 'success');
+            }
             
             // Clear form
             resetStudentForm();
@@ -1320,7 +1447,7 @@
             }, 1500);
         }
         
-        // Lecturer Dashboard Functions - UPDATED to show actual attendance data
+        // Lecturer Dashboard Functions
         function loadLecturerDashboard() {
             console.log('Loading lecturer dashboard...');
             if (!currentUser || currentUser.role !== 'lecturer') {
@@ -1331,6 +1458,19 @@
             
             document.getElementById('lecturerName').textContent = `Welcome, ${currentUser.fullName}!`;
             
+            // Start auto-refresh
+            startAutoRefresh();
+            
+            // Load attendance table
+            refreshAttendanceTable();
+        }
+        
+        async function refreshAttendanceTable() {
+            // Sync data first
+            if (navigator.onLine) {
+                await syncData();
+            }
+            
             // Get all attendance records from localStorage
             const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
             
@@ -1338,17 +1478,28 @@
             const today = new Date().toISOString().split('T')[0];
             const todayRecords = records.filter(r => r.date === today);
             
+            // Get unique students
+            const uniqueStudents = new Set(records.map(r => r.studentId)).size;
+            
             // Update dashboard stats
-            document.getElementById('totalStudents').textContent = '45'; // Mock data
+            document.getElementById('totalStudents').textContent = uniqueStudents;
             document.getElementById('presentToday').textContent = todayRecords.length.toString();
             document.getElementById('activeSessions').textContent = '2'; // Mock data
             
             // Load attendance table
             loadSubmittedAttendanceTable(records);
+            
+            // Update sync time
+            updateLastSyncTime();
+            
+            showFlashMessage('Attendance data refreshed!', 'success');
         }
         
         function loadSubmittedAttendanceTable(allRecords) {
             console.log('Loading attendance table with', allRecords.length, 'records');
+            
+            // Sort records by timestamp (newest first)
+            allRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             
             // Reset pagination
             currentPage = 1;
@@ -1361,6 +1512,9 @@
         function filterAttendanceByCourse(courseCode = null) {
             const filterValue = courseCode || document.getElementById('courseFilter').value;
             const allRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            
+            // Sort records by timestamp (newest first)
+            allRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             
             if (filterValue === 'all') {
                 filteredRecords = [...allRecords];
@@ -1402,14 +1556,24 @@
             // Render table rows
             submittedAttendance.innerHTML = pageRecords.map(record => `
                 <tr class="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                    <td class="py-3 px-4">${record.studentName}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex items-center">
+                            ${record.studentName}
+                            ${record.deviceType === 'Mobile' ? 
+                                '<span class="ml-2 material-symbols-outlined text-sm text-blue-500" title="Submitted from mobile">smartphone</span>' : 
+                                '<span class="ml-2 material-symbols-outlined text-sm text-green-500" title="Submitted from desktop">computer</span>'}
+                        </div>
+                    </td>
                     <td class="py-3 px-4 font-mono">${record.matricNumber}</td>
                     <td class="py-3 px-4">
                         <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">${record.courseCode}</span>
                     </td>
                     <td class="py-3 px-4">${record.date}</td>
                     <td class="py-3 px-4">${record.time}</td>
-                    <td class="py-3 px-4 font-mono text-xs">${record.longitude.toFixed(4)}, ${record.latitude.toFixed(4)}</td>
+                    <td class="py-3 px-4 font-mono text-xs">
+                        ${record.longitude.toFixed(4)}, ${record.latitude.toFixed(4)}
+                        <br><span class="text-xs text-slate-500">${record.deviceType}</span>
+                    </td>
                     <td class="py-3 px-4">
                         <div class="flex items-center space-x-2">
                             <button onclick="viewFaceImage('${record.id}')" class="text-primary hover:text-primary-hover transition-colors p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20" title="View Face">
@@ -1448,12 +1612,6 @@
             }
         }
         
-        function refreshAttendanceTable() {
-            const allRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-            filterAttendanceByCourse(currentFilter, allRecords);
-            showFlashMessage('Attendance table refreshed!', 'success');
-        }
-        
         function viewFaceImage(recordId) {
             const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
             const record = records.find(r => r.id == recordId);
@@ -1462,12 +1620,24 @@
                 const newWindow = window.open();
                 newWindow.document.write(`
                     <html>
-                    <head><title>Face Image - ${record.studentName}</title></head>
-                    <body style="margin:0;padding:20px;background:#f5f5f5;display:flex;justify-content:center;align-items:center;min-height:100vh;">
-                        <div style="text-align:center;">
-                            <img src="${record.faceImage}" style="max-width:80vw;max-height:80vh;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.2);">
-                            <p style="margin-top:20px;font-family:Arial,sans-serif;">${record.studentName} - ${record.matricNumber}</p>
-                            <p style="color:#666;font-size:14px;">${record.courseCode} - ${record.date} ${record.time}</p>
+                    <head><title>Face Image - ${record.studentName}</title>
+                    <style>
+                        body { margin:0; padding:20px; background:#f5f5f5; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:Arial,sans-serif; }
+                        .container { text-align:center; max-width:90vw; }
+                        img { max-width:80vw; max-height:80vh; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.2); }
+                        .info { margin-top:20px; background:white; padding:15px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.1); }
+                        .device-info { color:#666; font-size:14px; margin-top:5px; }
+                    </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <img src="${record.faceImage}" alt="Face Image">
+                            <div class="info">
+                                <p><strong>${record.studentName} - ${record.matricNumber}</strong></p>
+                                <p>${record.courseCode} - ${record.date} ${record.time}</p>
+                                <p class="device-info">Submitted from: ${record.deviceType || 'Unknown device'}</p>
+                                <p class="device-info">Location: ${record.latitude.toFixed(4)}, ${record.longitude.toFixed(4)}</p>
+                            </div>
                         </div>
                     </body>
                     </html>
@@ -1482,12 +1652,24 @@
             const record = records.find(r => r.id == recordId);
             
             if (record) {
-                const data = `Student Name: ${record.studentName}\nMatric Number: ${record.matricNumber}\nCourse: ${record.courseCode}\nDate: ${record.date}\nTime: ${record.time}\nLatitude: ${record.latitude}\nLongitude: ${record.longitude}\n\nDownloaded on: ${new Date().toLocaleString()}`;
+                const data = `ATTENDANCE RECORD\n\n` +
+                            `Student Name: ${record.studentName}\n` +
+                            `Matric Number: ${record.matricNumber}\n` +
+                            `Course: ${record.courseCode}\n` +
+                            `Date: ${record.date}\n` +
+                            `Time: ${record.time}\n` +
+                            `Latitude: ${record.latitude}\n` +
+                            `Longitude: ${record.longitude}\n` +
+                            `Device Type: ${record.deviceType || 'Unknown'}\n` +
+                            `Submitted From: ${record.submittedFrom || 'Unknown device'}\n\n` +
+                            `Downloaded on: ${new Date().toLocaleString()}\n` +
+                            `Downloaded by: ${currentUser.fullName} (${currentUser.role})`;
+                
                 const blob = new Blob([data], { type: 'text/plain' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `attendance_${record.matricNumber}_${record.date}.txt`;
+                a.download = `attendance_${record.matricNumber}_${record.date}_${record.time.replace(/:/g, '-')}.txt`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -1496,16 +1678,14 @@
             }
         }
         
-        function deleteRecord(recordId) {
+        async function deleteRecord(recordId) {
             if (confirm('Are you sure you want to delete this attendance record?')) {
                 const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
                 const updatedRecords = records.filter(r => r.id != recordId);
                 localStorage.setItem('attendanceRecords', JSON.stringify(updatedRecords));
                 
                 // Sync to cloud after deletion
-                setTimeout(() => {
-                    syncToCloud();
-                }, 500);
+                await syncToCloud();
                 
                 showFlashMessage('Record deleted successfully!', 'success');
                 refreshAttendanceTable();
@@ -1524,26 +1704,41 @@
                 return;
             }
             
-            // Group by course
+            // Group by course and date
             const courseSummary = {};
             records.forEach(record => {
-                if (!courseSummary[record.courseCode]) {
-                    courseSummary[record.courseCode] = {
+                const key = `${record.courseCode}_${record.date}`;
+                if (!courseSummary[key]) {
+                    courseSummary[key] = {
+                        course: record.courseCode,
+                        date: record.date,
                         total: 0,
-                        students: new Set()
+                        students: new Set(),
+                        mobileCount: 0,
+                        desktopCount: 0
                     };
                 }
-                courseSummary[record.courseCode].total++;
-                courseSummary[record.courseCode].students.add(record.studentName);
+                courseSummary[key].total++;
+                courseSummary[key].students.add(record.studentName);
+                if (record.deviceType === 'Mobile') {
+                    courseSummary[key].mobileCount++;
+                } else if (record.deviceType === 'Desktop') {
+                    courseSummary[key].desktopCount++;
+                }
             });
             
             let report = 'ATTENDANCE REPORT\n';
             report += 'Generated: ' + new Date().toLocaleString() + '\n';
+            report += 'Generated by: ' + currentUser.fullName + '\n';
             report += 'Total Records: ' + records.length + '\n\n';
-            report += 'By Course:\n';
+            report += 'By Course and Date:\n';
             
-            for (const [course, data] of Object.entries(courseSummary)) {
-                report += `  ${course}: ${data.total} attendance(s) from ${data.students.size} student(s)\n`;
+            for (const [key, data] of Object.entries(courseSummary)) {
+                report += `  ${data.course} - ${data.date}:\n`;
+                report += `    Total: ${data.total} attendance(s)\n`;
+                report += `    Unique Students: ${data.students.size}\n`;
+                report += `    Mobile Submissions: ${data.mobileCount}\n`;
+                report += `    Desktop Submissions: ${data.desktopCount}\n`;
             }
             
             alert(report);
@@ -1558,16 +1753,16 @@
                 return;
             }
             
-            let csv = 'Student Name,Matric Number,Course Code,Date,Time,Latitude,Longitude\n';
+            let csv = 'Student Name,Matric Number,Course Code,Date,Time,Latitude,Longitude,Device Type,Submitted From\n';
             records.forEach(record => {
-                csv += `"${record.studentName}","${record.matricNumber}","${record.courseCode}","${record.date}","${record.time}",${record.latitude},${record.longitude}\n`;
+                csv += `"${record.studentName}","${record.matricNumber}","${record.courseCode}","${record.date}","${record.time}",${record.latitude},${record.longitude},"${record.deviceType || ''}","${record.submittedFrom || ''}"\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'attendance_records.csv';
+            a.download = `attendance_records_${new Date().toISOString().split('T')[0]}.csv`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -1625,7 +1820,7 @@
             }
         }
         
-        function approveLecturer(userId) {
+        async function approveLecturer(userId) {
             if (!confirm('Are you sure you want to approve this lecturer?')) {
                 return;
             }
@@ -1638,9 +1833,7 @@
                 localStorage.setItem('users', JSON.stringify(users));
                 
                 // Sync to cloud after approval
-                setTimeout(() => {
-                    syncToCloud();
-                }, 500);
+                await syncToCloud();
                 
                 showFlashMessage('Lecturer approved successfully!', 'success');
                 
@@ -1652,7 +1845,7 @@
             }
         }
         
-        function rejectLecturer(userId) {
+        async function rejectLecturer(userId) {
             if (!confirm('Are you sure you want to reject this lecturer registration?')) {
                 return;
             }
@@ -1662,9 +1855,7 @@
             localStorage.setItem('users', JSON.stringify(updatedUsers));
             
             // Sync to cloud after rejection
-            setTimeout(() => {
-                syncToCloud();
-            }, 500);
+            await syncToCloud();
             
             showFlashMessage('Lecturer registration rejected successfully!', 'success');
             
@@ -1681,13 +1872,15 @@
                 return;
             }
             
-            let message = 'All Users:\n\n';
+            let message = 'ALL USERS REPORT\n\n';
             users.forEach((user, index) => {
                 message += `${index + 1}. ${user.fullName}\n`;
                 message += `   Username: ${user.username}\n`;
                 message += `   Role: ${user.role}\n`;
                 message += `   Status: ${user.isApproved ? 'Approved' : 'Pending'}\n`;
-                message += '─'.repeat(30) + '\n';
+                if (user.matricNumber) message += `   Matric: ${user.matricNumber}\n`;
+                message += `   Created: ${new Date(user.createdAt || Date.now()).toLocaleString()}\n`;
+                message += '─'.repeat(40) + '\n';
             });
             
             alert(message);
@@ -1701,13 +1894,15 @@
                 return;
             }
             
-            let message = 'All Attendance Records:\n\n';
+            let message = 'ALL ATTENDANCE RECORDS\n\n';
             records.forEach((record, index) => {
                 message += `${index + 1}. ${record.studentName}\n`;
                 message += `   Matric: ${record.matricNumber}\n`;
                 message += `   Course: ${record.courseCode}\n`;
                 message += `   Date: ${record.date} ${record.time}\n`;
-                message += '─'.repeat(30) + '\n';
+                message += `   Device: ${record.deviceType || 'Unknown'}\n`;
+                message += `   Location: ${record.latitude.toFixed(4)}, ${record.longitude.toFixed(4)}\n`;
+                message += '─'.repeat(40) + '\n';
             });
             
             alert(message);
@@ -1721,7 +1916,7 @@
         function showFlashMessage(message, type = 'info') {
             const flashMessages = document.getElementById('flashMessages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `rounded-xl p-4 mb-3 ${
+            messageDiv.className = `rounded-xl p-4 mb-3 fade-in ${
                 type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 text-green-800 dark:text-green-300' :
                 type === 'error' ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-300' :
                 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900 text-blue-800 dark:text-blue-300'
@@ -1731,7 +1926,13 @@
             
             setTimeout(() => {
                 if (messageDiv.parentNode) {
-                    messageDiv.parentNode.removeChild(messageDiv);
+                    messageDiv.style.opacity = '0';
+                    messageDiv.style.transition = 'opacity 0.5s';
+                    setTimeout(() => {
+                        if (messageDiv.parentNode) {
+                            messageDiv.parentNode.removeChild(messageDiv);
+                        }
+                    }, 500);
                 }
             }, 5000);
         }
@@ -1833,15 +2034,15 @@
             }
         }
         
-        // Event Listeners - FIXED initialization
+        // Event Listeners
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');
             initializeTheme();
             
-            // Sync from cloud on page load
-            setTimeout(() => {
-                syncFromCloud();
-            }, 500);
+            // Initialize sync
+            setTimeout(async () => {
+                await syncFromCloud();
+            }, 1000);
             
             // Check for existing user session
             const savedUser = localStorage.getItem('currentUser');
@@ -1958,6 +2159,22 @@
             if (courseCodeSelect) {
                 courseCodeSelect.addEventListener('change', updateSubmitButton);
             }
+            
+            // Auto-refresh checkbox
+            const autoRefreshCheckbox = document.getElementById('autoRefresh');
+            if (autoRefreshCheckbox) {
+                autoRefreshCheckbox.addEventListener('change', startAutoRefresh);
+            }
+            
+            // Online/offline detection
+            window.addEventListener('online', async () => {
+                showFlashMessage('You are back online. Syncing data...', 'success');
+                await syncData();
+            });
+            
+            window.addEventListener('offline', () => {
+                showFlashMessage('You are offline. Working with local data.', 'warning');
+            });
             
             console.log('Event listeners initialized');
         });
