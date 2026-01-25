@@ -758,6 +758,94 @@
 
     <!-- JavaScript -->
     <script>
+        // Remote storage simulation (using a free cloud service)
+        const REMOTE_STORAGE_URL = 'https://api.jsonbin.io/v3/b'; // Free JSON storage
+        const API_KEY = '$2a$10$L9fOAkuC.CUIN3cx7wj38uY0/p2d9Z21ymw.DJG4d5YlX0JyNqWaW'; // Get from jsonbin.io
+        
+        async function syncToCloud() {
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const attendance = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+            
+            const data = {
+                users: users,
+                attendance: attendance,
+                timestamp: Date.now()
+            };
+            
+            try {
+                const response = await fetch(REMOTE_STORAGE_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify(data)
+                });
+                console.log('Data synced to cloud');
+                showFlashMessage('Data synchronized with cloud storage', 'success');
+            } catch (error) {
+                console.error('Sync failed:', error);
+                showFlashMessage('Cloud sync failed. Working offline.', 'warning');
+            }
+        }
+        
+        async function syncFromCloud() {
+            try {
+                const response = await fetch(REMOTE_STORAGE_URL + '/latest', {
+                    headers: {
+                        'X-Master-Key': API_KEY
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.record) {
+                    // Merge local and remote data
+                    const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                    const remoteUsers = data.record.users || [];
+                    
+                    // Create a map to avoid duplicates
+                    const userMap = new Map();
+                    localUsers.forEach(user => userMap.set(user.username, user));
+                    remoteUsers.forEach(user => userMap.set(user.username, user));
+                    
+                    const mergedUsers = Array.from(userMap.values());
+                    
+                    // Merge attendance records
+                    const localAttendance = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
+                    const remoteAttendance = data.record.attendance || [];
+                    
+                    // Use Set to avoid duplicate records by ID
+                    const attendanceMap = new Map();
+                    localAttendance.forEach(record => attendanceMap.set(record.id, record));
+                    remoteAttendance.forEach(record => attendanceMap.set(record.id, record));
+                    
+                    const mergedAttendance = Array.from(attendanceMap.values());
+                    
+                    // Save merged data
+                    localStorage.setItem('users', JSON.stringify(mergedUsers));
+                    localStorage.setItem('attendanceRecords', JSON.stringify(mergedAttendance));
+                    
+                    console.log('Data loaded from cloud');
+                    showFlashMessage('Data synchronized from cloud storage', 'success');
+                    
+                    // Update current user if logged in
+                    if (currentUser) {
+                        const updatedUser = mergedUsers.find(u => u.username === currentUser.username);
+                        if (updatedUser && updatedUser.password === currentUser.password) {
+                            currentUser = updatedUser;
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Sync failed:', error);
+                // Don't show error message on initial load
+                if (currentUser) {
+                    showFlashMessage('Cloud sync failed. Working offline.', 'warning');
+                }
+            }
+        }
+        
         // Current user data
         let currentUser = null;
         let currentLocation = null;
@@ -884,6 +972,11 @@
                 localStorage.setItem('currentUser', JSON.stringify(user));
                 console.log('User logged in:', user.role);
                 
+                // Sync to cloud after login
+                setTimeout(() => {
+                    syncToCloud();
+                }, 1000);
+                
                 // Redirect to appropriate dashboard
                 let dashboardView = '';
                 switch(user.role) {
@@ -911,6 +1004,9 @@
         }
         
         function logout() {
+            // Sync to cloud before logout
+            syncToCloud();
+            
             currentUser = null;
             localStorage.removeItem('currentUser');
             showView('home');
@@ -936,6 +1032,11 @@
             
             currentUser = userData;
             localStorage.setItem('currentUser', JSON.stringify(userData));
+            
+            // Sync to cloud after signup
+            setTimeout(() => {
+                syncToCloud();
+            }, 1000);
             
             showFlashMessage('Account created successfully!', 'success');
             
@@ -1203,6 +1304,11 @@
             records.push(attendanceRecord);
             localStorage.setItem('attendanceRecords', JSON.stringify(records));
             
+            // Sync to cloud after attendance submission
+            setTimeout(() => {
+                syncToCloud();
+            }, 500);
+            
             showFlashMessage(`Attendance submitted successfully! Course: ${courseCode}`, 'success');
             
             // Clear form
@@ -1395,6 +1501,12 @@
                 const records = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
                 const updatedRecords = records.filter(r => r.id != recordId);
                 localStorage.setItem('attendanceRecords', JSON.stringify(updatedRecords));
+                
+                // Sync to cloud after deletion
+                setTimeout(() => {
+                    syncToCloud();
+                }, 500);
+                
                 showFlashMessage('Record deleted successfully!', 'success');
                 refreshAttendanceTable();
             }
@@ -1525,6 +1637,11 @@
                 users[userIndex].isApproved = true;
                 localStorage.setItem('users', JSON.stringify(users));
                 
+                // Sync to cloud after approval
+                setTimeout(() => {
+                    syncToCloud();
+                }, 500);
+                
                 showFlashMessage('Lecturer approved successfully!', 'success');
                 
                 setTimeout(() => {
@@ -1543,6 +1660,11 @@
             const users = JSON.parse(localStorage.getItem('users') || '[]');
             const updatedUsers = users.filter(u => u.id != userId);
             localStorage.setItem('users', JSON.stringify(updatedUsers));
+            
+            // Sync to cloud after rejection
+            setTimeout(() => {
+                syncToCloud();
+            }, 500);
             
             showFlashMessage('Lecturer registration rejected successfully!', 'success');
             
@@ -1715,6 +1837,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');
             initializeTheme();
+            
+            // Sync from cloud on page load
+            setTimeout(() => {
+                syncFromCloud();
+            }, 500);
             
             // Check for existing user session
             const savedUser = localStorage.getItem('currentUser');
