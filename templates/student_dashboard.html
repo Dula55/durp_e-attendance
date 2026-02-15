@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>NSUK URP E-Attendance System - Student Dashboard</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Noto+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0f1b3d",
+                        "primary-hover": "#0a1430",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1e293b",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.75rem", "lg": "1rem", "xl": "1.5rem"},
+                },
+            },
+        }
+    </script>
+    
+    <style>
+        body { min-height: 100vh; font-family: 'Lexend', sans-serif; }
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        #video { transform: scaleX(-1); border-radius: 1rem; background: #000; width: 100%; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display">
+    <!-- Navigation Bar -->
+    <nav class="bg-surface-light dark:bg-surface-dark shadow-md">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <a href="{{ url_for('index') }}" class="flex items-center space-x-3">
+                    <img src="{{ url_for('static', filename='NSUK-logo.jpg') }}" alt="NSUK Logo" class="h-10 w-10 rounded-lg object-cover">
+                    <div>
+                        <h1 class="text-lg font-bold text-primary dark:text-white">NSUK URP</h1>
+                        <p class="text-xs text-slate-600 dark:text-slate-400">E-Attendance System</p>
+                    </div>
+                </a>
+                
+                <div class="flex items-center space-x-4">
+                    <div id="userInfo" class="flex items-center space-x-3">
+                        <span id="userRole" class="text-sm text-slate-700 dark:text-slate-300"></span>
+                        <button onclick="logout()" class="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">Logout</button>
+                    </div>
+                    
+                    <button onclick="toggleTheme()" class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <span id="themeIcon" class="material-symbols-outlined text-slate-700 dark:text-slate-300">dark_mode</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="flashMessages" class="container mx-auto px-4 py-4"></div>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Student Dashboard -->
+        <div id="studentDashboard">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 mb-8 border-l-4 border-primary fade-in">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900 dark:text-white" id="studentName">Loading...</h1>
+                        <p class="text-slate-600 dark:text-slate-400 mt-2">Submit your attendance with location and face verification</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-primary/10 text-primary dark:text-blue-400 px-4 py-2 rounded-lg"><span class="font-semibold">Student</span></div>
+                        <span class="material-symbols-outlined text-4xl text-primary dark:text-blue-400">school</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Location Capture -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 fade-in">
+                        <div class="flex items-center mb-6">
+                            <div class="flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl mr-4">
+                                <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">location_on</span>
+                            </div>
+                            <h2 class="text-xl font-bold text-slate-900 dark:text-white">1. Capture Location</h2>
+                        </div>
+                        
+                        <div class="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl mb-4">
+                            <p class="text-blue-800 dark:text-blue-300 mb-4">
+                                <span class="material-symbols-outlined align-middle mr-2">info</span>
+                                Click the button below to capture your current location for verification
+                            </p>
+                            
+                            <button id="captureLocation" class="bg-primary hover:bg-primary-hover text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center">
+                                <span class="material-symbols-outlined mr-2">location_on</span>Capture Location
+                            </button>
+                            
+                            <div class="mt-6 space-y-3">
+                                <div id="locationStatus" class="text-sm text-slate-600 dark:text-slate-400">
+                                    <span class="material-symbols-outlined align-middle text-yellow-600">pending</span>Location not captured yet
+                                </div>
+                                <div id="coordinates" class="hidden mt-2 space-y-2">
+                                    <div class="flex items-center space-x-3">
+                                        <span class="material-symbols-outlined text-green-600">check_circle</span>
+                                        <div>
+                                            <p class="text-sm text-slate-700 dark:text-slate-300">Latitude: <span id="latitude" class="font-mono font-bold">-</span></p>
+                                            <p class="text-sm text-slate-700 dark:text-slate-300">Longitude: <span id="longitude" class="font-mono font-bold">-</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Face Capture -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 fade-in">
+                        <div class="flex items-center mb-6">
+                            <div class="flex items-center justify-center w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl mr-4">
+                                <span class="material-symbols-outlined text-purple-600 dark:text-purple-400">face</span>
+                            </div>
+                            <h2 class="text-xl font-bold text-slate-900 dark:text-white">2. Capture Face</h2>
+                        </div>
+                        
+                        <div class="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-xl">
+                            <div class="mb-6">
+                                <div id="cameraContainer" class="hidden">
+                                    <video id="video" width="100%" height="auto" autoplay playsinline class="rounded-xl"></video>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">Ensure your face is clearly visible in the frame</p>
+                                </div>
+                                <div id="noCamera" class="text-center py-8">
+                                    <span class="material-symbols-outlined text-4xl text-slate-400 mb-4">videocam_off</span>
+                                    <p class="text-slate-600 dark:text-slate-400">Camera will appear here when started</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-4">
+                                <button id="startCamera" class="bg-primary hover:bg-primary-hover text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center">
+                                    <span class="material-symbols-outlined mr-2">videocam</span>Start Camera
+                                </button>
+                                <button id="captureFace" class="bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center" disabled>
+                                    <span class="material-symbols-outlined mr-2">camera</span>Capture Face
+                                </button>
+                                <button id="retakePhoto" class="bg-slate-600 hover:bg-slate-700 text-white py-3 px-6 rounded-xl font-semibold transition-colors flex items-center hidden">
+                                    <span class="material-symbols-outlined mr-2">refresh</span>Retake Photo
+                                </button>
+                            </div>
+                            
+                            <div id="facePreview" class="mt-6 hidden">
+                                <h3 class="font-semibold text-slate-900 dark:text-white mb-3">Captured Image</h3>
+                                <div class="flex flex-col md:flex-row items-center gap-6">
+                                    <img id="capturedImage" src="" alt="Captured Face" class="rounded-xl max-w-xs border-4 border-green-200 dark:border-green-900">
+                                    <div class="text-green-600 dark:text-green-400 flex items-center">
+                                        <span class="material-symbols-outlined text-4xl mr-2">check_circle</span>
+                                        <div>
+                                            <p class="font-semibold">Face captured successfully!</p>
+                                            <p class="text-sm text-slate-600 dark:text-slate-400">Ready for submission</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Form -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 fade-in">
+                        <div class="flex items-center mb-6">
+                            <div class="flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl mr-4">
+                                <span class="material-symbols-outlined text-green-600 dark:text-green-400">fact_check</span>
+                            </div>
+                            <h2 class="text-xl font-bold text-slate-900 dark:text-white">3. Submit Attendance</h2>
+                        </div>
+                        
+                        <form id="attendanceForm" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Full Name</label>
+                                    <input type="text" id="studentFullNameInput" readonly class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Matric Number</label>
+                                    <input type="text" id="studentMatricInput" readonly class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 font-mono text-slate-700 dark:text-slate-300">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Course Code *</label>
+                                <select id="courseCode" required class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent">
+                                    <option value="">Select Course</option>
+                                    <option value="URP213">URP 213 - Introduction to Land Surveying</option>
+                                    <option value="URP313">URP 313 - Regional Development Planning</option>
+                                    <option value="URP431">URP 431 - Planning Studio VII (Master Plan)</option>
+                                    <option value="URP435">URP 435 - Public Utilities and Services</option>
+                                    <option value="URP419">URP 419 - Pollution Control and Management</option>
+                                    <option value="URP302">URP 302 - Housing and Community Development</option>
+                                </select>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Note: The selected course code will be recorded in the attendance system</p>
+                            </div>
+                            
+                            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 rounded-xl p-4">
+                                <div class="flex items-start">
+                                    <span class="material-symbols-outlined text-yellow-600 dark:text-yellow-400 mr-3 mt-1">warning</span>
+                                    <div>
+                                        <p class="font-semibold text-slate-900 dark:text-white mb-1">Requirements before submission:</p>
+                                        <ul class="text-sm text-slate-600 dark:text-slate-400 space-y-1">
+                                            <li class="flex items-center">
+                                                <span id="locationCheck" class="material-symbols-outlined text-red-500 mr-2 text-sm">radio_button_unchecked</span>Location captured
+                                            </li>
+                                            <li class="flex items-center">
+                                                <span id="faceCheck" class="material-symbols-outlined text-red-500 mr-2 text-sm">radio_button_unchecked</span>Face image captured
+                                            </li>
+                                            <li class="flex items-center">
+                                                <span id="courseCheck" class="material-symbols-outlined text-red-500 mr-2 text-sm">radio_button_unchecked</span>Course selected
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" id="submitBtn" class="w-full bg-primary hover:bg-primary-hover text-white py-4 rounded-xl font-semibold transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                <span class="material-symbols-outlined mr-2">check_circle</span>Submit Attendance
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="space-y-6">
+                    <!-- Student Info -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 fade-in">
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Student Information</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <span class="material-symbols-outlined text-slate-400">person</span>
+                                <div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400">Full Name</p>
+                                    <p id="studentFullName" class="font-medium">-</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="material-symbols-outlined text-slate-400">badge</span>
+                                <div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400">Matric Number</p>
+                                    <p id="studentMatric" class="font-mono font-medium">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Attendance -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-soft p-6 fade-in">
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Recent Attendance</h3>
+                        <div id="recentAttendance" class="space-y-4 max-h-[400px] overflow-y-auto">
+                            <div class="text-center py-8">
+                                <span class="material-symbols-outlined text-4xl text-slate-400 mb-4">history</span>
+                                <p class="text-slate-500 dark:text-slate-400">No attendance records yet</p>
+                                <p class="text-sm text-slate-500 dark:text-slate-500 mt-2">Submit your first attendance above</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-surface-light dark:bg-surface-dark border-t border-slate-200 dark:border-slate-800 mt-12">
+        <div class="container mx-auto px-4 py-8">
+            <div class="text-center">
+                <p class="text-sm text-slate-600 dark:text-slate-400">
+                    Department of Urban and Regional Planning<br>
+                    Nasarawa State University, Keffi
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let currentLocation = null;
+        let faceImage = null;
+        let videoStream = null;
+        let isLocationCaptured = false;
+        let isFaceCaptured = false;
+        let isCourseSelected = false;
+
+        // Set theme
+        const savedTheme = localStorage.getItem('theme');
+        const themeIcon = document.getElementById('themeIcon');
+        
+        if (savedTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+            themeIcon.textContent = 'light_mode';
+        } else {
+            document.documentElement.classList.add('light');
+            themeIcon.textContent = 'dark_mode';
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('themeIcon');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                themeIcon.textContent = 'dark_mode';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                themeIcon.textContent = 'light_mode';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        function showFlashMessage(message, type = 'info') {
+            const flashMessages = document.getElementById('flashMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `rounded-xl p-4 mb-3 fade-in ${
+                type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 text-green-800 dark:text-green-300' :
+                type === 'error' ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-300' :
+                'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900 text-blue-800 dark:text-blue-300'
+            }`;
+            messageDiv.textContent = message;
+            flashMessages.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.style.opacity = '0';
+                    messageDiv.style.transition = 'opacity 0.5s';
+                    setTimeout(() => {
+                        if (messageDiv.parentNode) {
+                            messageDiv.parentNode.removeChild(messageDiv);
+                        }
+                    }, 500);
+                }
+            }, 5000);
+        }
+
+        // Load current user
+        async function loadCurrentUser() {
+            try {
+                const response = await fetch('/api/current-user');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    document.getElementById('userRole').textContent = `${currentUser.fullName} (${currentUser.role})`;
+                    document.getElementById('studentName').textContent = `Welcome, ${currentUser.fullName}!`;
+                    document.getElementById('studentFullName').textContent = currentUser.fullName;
+                    document.getElementById('studentMatric').textContent = 'Loading...';
+                    document.getElementById('studentFullNameInput').value = currentUser.fullName;
+                    
+                    // Load attendance records
+                    loadAttendanceRecords();
+                } else {
+                    window.location.href = '{{ url_for("login") }}';
+                }
+            } catch (error) {
+                showFlashMessage('Error loading user data', 'error');
+            }
+        }
+
+        // Load attendance records
+        async function loadAttendanceRecords() {
+            try {
+                const response = await fetch('/api/get-attendance');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const records = data.attendance;
+                    
+                    // Update matric number from first record if available
+                    if (records.length > 0) {
+                        document.getElementById('studentMatric').textContent = records[0].matricNumber;
+                        document.getElementById('studentMatricInput').value = records[0].matricNumber;
+                    }
+                    
+                    const recentAttendance = document.getElementById('recentAttendance');
+                    if (records.length > 0) {
+                        recentAttendance.innerHTML = records.slice(0, 5).map(record => `
+                            <div class="border-l-4 border-primary pl-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-900/50 rounded-r-xl">
+                                <div class="flex justify-between items-start mb-1">
+                                    <p class="font-medium text-slate-900 dark:text-white">${record.courseCode}</p>
+                                    <span class="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">Present</span>
+                                </div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">
+                                    ${new Date(record.timestamp).toLocaleDateString()} at ${record.time}
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                                    <span class="material-symbols-outlined align-middle text-xs">location_on</span>
+                                    ${record.latitude.toFixed(4)}, ${record.longitude.toFixed(4)}
+                                </p>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading attendance:', error);
+            }
+        }
+
+        // Logout
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '{{ url_for("index") }}';
+            } catch (error) {
+                showFlashMessage('Error logging out', 'error');
+            }
+        }
+
+        // Student functions
+        function captureLocation() {
+            if (navigator.geolocation) {
+                const btn = document.getElementById('captureLocation');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="material-symbols-outlined mr-2 animate-spin">sync</span>Capturing...';
+                btn.disabled = true;
+                
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        currentLocation = {
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        };
+                        
+                        document.getElementById('locationStatus').innerHTML = `
+                            <span class="material-symbols-outlined align-middle text-green-600">check_circle</span>Location captured successfully
+                        `;
+                        document.getElementById('coordinates').classList.remove('hidden');
+                        document.getElementById('latitude').textContent = currentLocation.lat.toFixed(6);
+                        document.getElementById('longitude').textContent = currentLocation.lon.toFixed(6);
+                        
+                        isLocationCaptured = true;
+                        updateSubmitButton();
+                        
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    },
+                    error => {
+                        showFlashMessage('Error capturing location: ' + error.message, 'error');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                );
+            } else {
+                showFlashMessage('Geolocation is not supported by your browser', 'error');
+            }
+        }
+
+        function startCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                const btn = document.getElementById('startCamera');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="material-symbols-outlined mr-2 animate-spin">sync</span>Starting...';
+                btn.disabled = true;
+                
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+                .then(stream => {
+                    videoStream = stream;
+                    const video = document.getElementById('video');
+                    video.srcObject = stream;
+                    
+                    document.getElementById('cameraContainer').classList.remove('hidden');
+                    document.getElementById('noCamera').classList.add('hidden');
+                    document.getElementById('captureFace').disabled = false;
+                    
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                })
+                .catch(error => {
+                    showFlashMessage('Could not access camera: ' + error.message, 'error');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+            }
+        }
+
+        function captureFace() {
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            faceImage = canvas.toDataURL('image/jpeg', 0.8);
+            
+            const preview = document.getElementById('facePreview');
+            const capturedImage = document.getElementById('capturedImage');
+            capturedImage.src = faceImage;
+            preview.classList.remove('hidden');
+            
+            document.getElementById('captureFace').classList.add('hidden');
+            document.getElementById('retakePhoto').classList.remove('hidden');
+            
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            
+            isFaceCaptured = true;
+            updateSubmitButton();
+        }
+
+        function retakePhoto() {
+            document.getElementById('facePreview').classList.add('hidden');
+            document.getElementById('captureFace').classList.remove('hidden');
+            document.getElementById('retakePhoto').classList.add('hidden');
+            document.getElementById('noCamera').classList.remove('hidden');
+            document.getElementById('cameraContainer').classList.add('hidden');
+            
+            faceImage = null;
+            isFaceCaptured = false;
+            updateSubmitButton();
+            
+            document.getElementById('startCamera').innerHTML = '<span class="material-symbols-outlined mr-2">videocam</span>Start Camera';
+            document.getElementById('startCamera').disabled = false;
+        }
+
+        function updateSubmitButton() {
+            const submitBtn = document.getElementById('submitBtn');
+            const locationCheck = document.getElementById('locationCheck');
+            const faceCheck = document.getElementById('faceCheck');
+            const courseCheck = document.getElementById('courseCheck');
+            const courseCode = document.getElementById('courseCode').value;
+            
+            if (isLocationCaptured) {
+                locationCheck.textContent = 'check_circle';
+                locationCheck.className = 'material-symbols-outlined text-green-500 mr-2 text-sm';
+            } else {
+                locationCheck.textContent = 'radio_button_unchecked';
+                locationCheck.className = 'material-symbols-outlined text-red-500 mr-2 text-sm';
+            }
+            
+            if (isFaceCaptured) {
+                faceCheck.textContent = 'check_circle';
+                faceCheck.className = 'material-symbols-outlined text-green-500 mr-2 text-sm';
+            } else {
+                faceCheck.textContent = 'radio_button_unchecked';
+                faceCheck.className = 'material-symbols-outlined text-red-500 mr-2 text-sm';
+            }
+            
+            if (courseCode) {
+                courseCheck.textContent = 'check_circle';
+                courseCheck.className = 'material-symbols-outlined text-green-500 mr-2 text-sm';
+                isCourseSelected = true;
+            } else {
+                courseCheck.textContent = 'radio_button_unchecked';
+                courseCheck.className = 'material-symbols-outlined text-red-500 mr-2 text-sm';
+                isCourseSelected = false;
+            }
+            
+            if (isLocationCaptured && isFaceCaptured && isCourseSelected) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+
+        // Submit attendance
+        document.getElementById('attendanceForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!currentLocation || !faceImage) {
+                showFlashMessage('Please complete all steps before submitting', 'error');
+                return;
+            }
+            
+            const courseCode = document.getElementById('courseCode').value;
+            
+            try {
+                const response = await fetch('/api/submit-attendance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        courseCode,
+                        latitude: currentLocation.lat,
+                        longitude: currentLocation.lon,
+                        faceImage,
+                        matricNumber: document.getElementById('studentMatric').textContent,
+                        deviceType: /Mobile|Android|iPhone|iPad|iPod/.test(navigator.userAgent) ? 'Mobile' : 'Desktop'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFlashMessage(data.message, 'success');
+                    
+                    // Reset form
+                    isLocationCaptured = false;
+                    isFaceCaptured = false;
+                    currentLocation = null;
+                    faceImage = null;
+                    
+                    document.getElementById('locationStatus').innerHTML = `
+                        <span class="material-symbols-outlined align-middle text-yellow-600">pending</span>Location not captured yet
+                    `;
+                    document.getElementById('coordinates').classList.add('hidden');
+                    document.getElementById('facePreview').classList.add('hidden');
+                    document.getElementById('captureFace').classList.remove('hidden');
+                    document.getElementById('retakePhoto').classList.add('hidden');
+                    document.getElementById('courseCode').value = '';
+                    
+                    updateSubmitButton();
+                    
+                    // Reload attendance records
+                    loadAttendanceRecords();
+                }
+            } catch (error) {
+                showFlashMessage('Error submitting attendance', 'error');
+            }
+        });
+
+        // Event listeners
+        document.getElementById('captureLocation').addEventListener('click', captureLocation);
+        document.getElementById('startCamera').addEventListener('click', startCamera);
+        document.getElementById('captureFace').addEventListener('click', captureFace);
+        document.getElementById('retakePhoto').addEventListener('click', retakePhoto);
+        document.getElementById('courseCode').addEventListener('change', updateSubmitButton);
+
+        // Load user data on page load
+        loadCurrentUser();
+    </script>
+</body>
+</html>

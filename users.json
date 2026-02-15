@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1771167990.63585",
+    "username": "Misbah",
+    "password": "eb34a5c31f081f792f2f8726cf0770221e2922a29459d2f106b020721cc61ba7",
+    "role": "student",
+    "fullName": "Misbahuddeen A. Suleiman",
+    "matricNumber": "1234567890",
+    "isApproved": true,
+    "createdAt": "2026-02-15T16:06:30.636467"
+  },
+  {
+    "id": "1771168132.557277",
+    "username": "Abdul S",
+    "password": "6b8ffee52a6eb0086f098984f46bb052a7553d9ae9feb7b5371fa5bcca7f9a57",
+    "role": "lecturer",
+    "fullName": "Abdullahi Suleiman",
+    "matricNumber": null,
+    "isApproved": true,
+    "createdAt": "2026-02-15T16:08:52.557344"
+  },
+  {
+    "id": "1771168206.336677",
+    "username": "Dulas",
+    "password": "04e924c0a85d6510eaaf300791f14878c5c00cf10726e44a6b1810a5058b41c5",
+    "role": "admin",
+    "fullName": "Abdullahi Suleiman A.",
+    "matricNumber": null,
+    "isApproved": true,
+    "createdAt": "2026-02-15T16:10:06.336774"
+  }
+]
