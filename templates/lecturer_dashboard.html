@@ -13,6 +13,10 @@
     <!-- Material Symbols -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     
@@ -186,12 +190,15 @@
             </div>
 
             <!-- Quick Actions -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 fade-in">
                 <button onclick="generateReport()" class="bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
                     <span class="material-symbols-outlined mr-2">summarize</span>Generate Report
                 </button>
                 <button onclick="exportData()" class="bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
                     <span class="material-symbols-outlined mr-2">download</span>Export CSV
+                </button>
+                <button onclick="downloadPDF()" class="bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
+                    <span class="material-symbols-outlined mr-2">picture_as_pdf</span>Download PDF
                 </button>
                 <button onclick="printReport()" class="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center">
                     <span class="material-symbols-outlined mr-2">print</span>Print Report
@@ -372,14 +379,14 @@
                                 '<span class="ml-2 material-symbols-outlined text-sm text-green-500" title="Submitted from desktop">computer</span>'}
                         </div>
                     </td>
-                    <td class="py-3 px-4 font-mono">${record.matricNumber}</td>
+                    <td class="py-3 px-4 font-mono">${record.matricNumber || 'N/A'}</td>
                     <td class="py-3 px-4">
                         <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">${record.courseCode}</span>
                     </td>
                     <td class="py-3 px-4">${record.date}</td>
                     <td class="py-3 px-4">${record.time}</td>
                     <td class="py-3 px-4 font-mono text-xs">
-                        ${record.longitude.toFixed(4)}, ${record.latitude.toFixed(4)}
+                        ${record.longitude ? record.longitude.toFixed(4) : 'N/A'}, ${record.latitude ? record.latitude.toFixed(4) : 'N/A'}
                     </td>
                     <td class="py-3 px-4">
                         <div class="flex items-center space-x-2">
@@ -436,9 +443,9 @@
                         <div class="container">
                             <img src="${record.faceImage}" alt="Face Image">
                             <div class="info">
-                                <p><strong>${record.studentName} - ${record.matricNumber}</strong></p>
+                                <p><strong>${record.studentName} - ${record.matricNumber || 'N/A'}</strong></p>
                                 <p>${record.courseCode} - ${record.date} ${record.time}</p>
-                                <p>Location: ${record.latitude.toFixed(4)}, ${record.longitude.toFixed(4)}</p>
+                                <p>Location: ${record.latitude ? record.latitude.toFixed(4) : 'N/A'}, ${record.longitude ? record.longitude.toFixed(4) : 'N/A'}</p>
                             </div>
                         </div>
                     </body>
@@ -522,7 +529,7 @@
             
             let csv = 'Student Name,Matric Number,Course Code,Date,Time,Latitude,Longitude,Device Type\n';
             filteredRecords.forEach(record => {
-                csv += `"${record.studentName}","${record.matricNumber}","${record.courseCode}","${record.date}","${record.time}",${record.latitude},${record.longitude},"${record.deviceType || ''}"\n`;
+                csv += `"${record.studentName}","${record.matricNumber || ''}","${record.courseCode}","${record.date}","${record.time}",${record.latitude || ''},${record.longitude || ''},"${record.deviceType || ''}"\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -538,9 +545,189 @@
             showFlashMessage('CSV exported successfully', 'success');
         }
 
+        // Download PDF
+        function downloadPDF() {
+            if (filteredRecords.length === 0) {
+                showFlashMessage('No records to download', 'error');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Add title
+            doc.setFontSize(18);
+            doc.setTextColor(15, 27, 61); // Primary color
+            doc.text('NSUK URP Attendance Report', 14, 20);
+
+            // Add metadata
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
+            doc.text(`Generated by: ${currentUser.fullName}`, 14, 34);
+            
+            // Add filter info
+            const courseFilter = document.getElementById('courseFilter').value;
+            doc.text(`Course: ${courseFilter === 'all' ? 'All Courses' : courseFilter}`, 14, 40);
+            doc.text(`Total Records: ${filteredRecords.length}`, 14, 46);
+
+            // Prepare table data
+            const tableColumn = ['Student Name', 'Matric No.', 'Course', 'Date', 'Time', 'Location', 'Device'];
+            const tableRows = [];
+
+            filteredRecords.forEach(record => {
+                const recordData = [
+                    record.studentName,
+                    record.matricNumber || 'N/A',
+                    record.courseCode,
+                    record.date,
+                    record.time,
+                    `${record.latitude ? record.latitude.toFixed(4) : 'N/A'}, ${record.longitude ? record.longitude.toFixed(4) : 'N/A'}`,
+                    record.deviceType || 'Desktop'
+                ];
+                tableRows.push(recordData);
+            });
+
+            // Generate table
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 52,
+                theme: 'grid',
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2,
+                    lineColor: [200, 200, 200],
+                    lineWidth: 0.1,
+                },
+                headStyles: {
+                    fillColor: [15, 27, 61],
+                    textColor: [255, 255, 255],
+                    fontSize: 8,
+                    fontStyle: 'bold',
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245],
+                },
+                columnStyles: {
+                    0: { cellWidth: 40 },
+                    1: { cellWidth: 30 },
+                    2: { cellWidth: 25 },
+                    3: { cellWidth: 25 },
+                    4: { cellWidth: 20 },
+                    5: { cellWidth: 45 },
+                    6: { cellWidth: 20 }
+                }
+            });
+
+            // Add footer
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text(
+                    `Page ${i} of ${pageCount}`,
+                    doc.internal.pageSize.getWidth() - 20,
+                    doc.internal.pageSize.getHeight() - 10
+                );
+                doc.text(
+                    'NSUK URP E-Attendance System',
+                    14,
+                    doc.internal.pageSize.getHeight() - 10
+                );
+            }
+
+            // Save PDF
+            const filename = `attendance_${new Date().toISOString().split('T')[0]}_${courseFilter}.pdf`;
+            doc.save(filename);
+
+            showFlashMessage('PDF downloaded successfully', 'success');
+        }
+
         // Print report
         function printReport() {
-            window.print();
+            if (filteredRecords.length === 0) {
+                showFlashMessage('No records to print', 'error');
+                return;
+            }
+
+            const printWindow = window.open('', '_blank');
+            
+            let content = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Attendance Report - NSUK URP</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        h1 { color: #0f1b3d; font-size: 24px; }
+                        .header { margin-bottom: 20px; }
+                        .meta { color: #666; font-size: 12px; margin-bottom: 5px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th { background-color: #0f1b3d; color: white; padding: 8px; text-align: left; font-size: 12px; }
+                        td { padding: 6px; border-bottom: 1px solid #ddd; font-size: 11px; }
+                        tr:nth-child(even) { background-color: #f5f5f5; }
+                        .footer { margin-top: 20px; font-size: 10px; color: #666; text-align: center; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>NSUK URP Attendance Report</h1>
+                        <div class="meta">Generated: ${new Date().toLocaleString()}</div>
+                        <div class="meta">Generated by: ${currentUser.fullName}</div>
+                        <div class="meta">Course: ${document.getElementById('courseFilter').value === 'all' ? 'All Courses' : document.getElementById('courseFilter').value}</div>
+                        <div class="meta">Total Records: ${filteredRecords.length}</div>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Matric No.</th>
+                                <th>Course</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Device</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            filteredRecords.forEach(record => {
+                content += `
+                    <tr>
+                        <td>${record.studentName}</td>
+                        <td>${record.matricNumber || 'N/A'}</td>
+                        <td>${record.courseCode}</td>
+                        <td>${record.date}</td>
+                        <td>${record.time}</td>
+                        <td>${record.latitude ? record.latitude.toFixed(4) : 'N/A'}, ${record.longitude ? record.longitude.toFixed(4) : 'N/A'}</td>
+                        <td>${record.deviceType || 'Desktop'}</td>
+                    </tr>
+                `;
+            });
+            
+            content += `
+                        </tbody>
+                    </table>
+                    
+                    <div class="footer">
+                        NSUK URP E-Attendance System
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(content);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
         }
 
         // Logout

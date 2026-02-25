@@ -119,6 +119,7 @@ def api_login():
         session['username'] = user['username']
         session['role'] = user['role']
         session['full_name'] = user['fullName']
+        session['matric_number'] = user.get('matricNumber')  # Store matric number in session
         
         return jsonify({
             'success': True,
@@ -324,15 +325,22 @@ def api_delete_attendance(record_id):
 @app.route('/api/current-user', methods=['GET'])
 def api_current_user():
     if 'user_id' in session:
-        return jsonify({
-            'success': True,
-            'user': {
-                'id': session['user_id'],
-                'username': session['username'],
-                'role': session['role'],
-                'fullName': session['full_name']
-            }
-        })
+        # Get additional user data from the users file
+        users = read_json(USERS_FILE)
+        user = next((u for u in users if u['id'] == session['user_id']), None)
+        
+        if user:
+            return jsonify({
+                'success': True,
+                'user': {
+                    'id': session['user_id'],
+                    'username': session['username'],
+                    'role': session['role'],
+                    'fullName': session['full_name'],
+                    'matricNumber': user.get('matricNumber', 'Not available')  # Include matric number
+                }
+            })
+    
     return jsonify({'success': False})
 
 if __name__ == '__main__':

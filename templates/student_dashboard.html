@@ -82,7 +82,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h1 class="text-2xl font-bold text-slate-900 dark:text-white" id="studentName">Loading...</h1>
-                        <p class="text-slate-600 dark:text-slate-400 mt-2">Submit your attendance with location and face verification</p>
+                        <p class="text-slate-600 dark:text-slate-400 mt-2" id="studentMatricDisplay">Loading matric number...</p>
                     </div>
                     <div class="flex items-center space-x-3">
                         <div class="bg-primary/10 text-primary dark:text-blue-400 px-4 py-2 rounded-lg"><span class="font-semibold">Student</span></div>
@@ -184,7 +184,7 @@
                             <div class="flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl mr-4">
                                 <span class="material-symbols-outlined text-green-600 dark:text-green-400">fact_check</span>
                             </div>
-                            <h2 class="text-xl font-bold text-slate-900 dark:text-white">3. Submit Attendance</h2>
+                            <h2 class="text-xl font-bold text-slate-900 dark:text-white">3. Student Attendance</h2>
                         </div>
                         
                         <form id="attendanceForm" class="space-y-6">
@@ -209,7 +209,6 @@
                                     <option value="URP435">URP 435 - Public Utilities and Services</option>
                                     <option value="URP419">URP 419 - Pollution Control and Management</option>
                                     <option value="EVM215">EVM 215 - Land Surveying</option>
-                                    option>
                                     <option value="EVM412">EVM 412 - Regional Planning & Development Control</option>
                                 </select>
                                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Note: The selected course code will be recorded in the attendance system</p>
@@ -362,11 +361,34 @@
                 
                 if (data.success) {
                     currentUser = data.user;
+                    
+                    // Update UI with user data
                     document.getElementById('userRole').textContent = `${currentUser.fullName} (${currentUser.role})`;
                     document.getElementById('studentName').textContent = `Welcome, ${currentUser.fullName}!`;
+                    
+                    // Display matric number if available
+                    const matricDisplay = document.getElementById('studentMatricDisplay');
+                    if (currentUser.matricNumber && currentUser.matricNumber !== 'Not available') {
+                        matricDisplay.textContent = `Matric Number: ${currentUser.matricNumber}`;
+                    } else {
+                        matricDisplay.textContent = 'Matric number not available';
+                    }
+                    
+                    // Update student information section
                     document.getElementById('studentFullName').textContent = currentUser.fullName;
-                    document.getElementById('studentMatric').textContent = 'Loading...';
+                    
+                    if (currentUser.matricNumber && currentUser.matricNumber !== 'Not available') {
+                        document.getElementById('studentMatric').textContent = currentUser.matricNumber;
+                    } else {
+                        document.getElementById('studentMatric').textContent = 'Not available';
+                    }
+                    
+                    // Update form fields
                     document.getElementById('studentFullNameInput').value = currentUser.fullName;
+                    
+                    if (currentUser.matricNumber && currentUser.matricNumber !== 'Not available') {
+                        document.getElementById('studentMatricInput').value = currentUser.matricNumber;
+                    }
                     
                     // Load attendance records
                     loadAttendanceRecords();
@@ -374,6 +396,7 @@
                     window.location.href = '{{ url_for("login") }}';
                 }
             } catch (error) {
+                console.error('Error loading user data:', error);
                 showFlashMessage('Error loading user data', 'error');
             }
         }
@@ -386,12 +409,6 @@
                 
                 if (data.success) {
                     const records = data.attendance;
-                    
-                    // Update matric number from first record if available
-                    if (records.length > 0) {
-                        document.getElementById('studentMatric').textContent = records[0].matricNumber;
-                        document.getElementById('studentMatricInput').value = records[0].matricNumber;
-                    }
                     
                     const recentAttendance = document.getElementById('recentAttendance');
                     if (records.length > 0) {
@@ -406,7 +423,11 @@
                                 </p>
                                 <p class="text-xs text-slate-500 dark:text-slate-500 mt-1">
                                     <span class="material-symbols-outlined align-middle text-xs">location_on</span>
-                                    ${record.latitude.toFixed(4)}, ${record.longitude.toFixed(4)}
+                                    ${record.latitude ? record.latitude.toFixed(4) : 'N/A'}, ${record.longitude ? record.longitude.toFixed(4) : 'N/A'}
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                                    <span class="material-symbols-outlined align-middle text-xs">badge</span>
+                                    Matric: ${record.matricNumber || 'N/A'}
                                 </p>
                             </div>
                         `).join('');
@@ -586,6 +607,8 @@
             }
             
             const courseCode = document.getElementById('courseCode').value;
+            const matricNumber = document.getElementById('studentMatricInput').value || 
+                                document.getElementById('studentMatric').textContent;
             
             try {
                 const response = await fetch('/api/submit-attendance', {
@@ -598,7 +621,7 @@
                         latitude: currentLocation.lat,
                         longitude: currentLocation.lon,
                         faceImage,
-                        matricNumber: document.getElementById('studentMatric').textContent,
+                        matricNumber: matricNumber,
                         deviceType: /Mobile|Android|iPhone|iPad|iPod/.test(navigator.userAgent) ? 'Mobile' : 'Desktop'
                     })
                 });
@@ -629,6 +652,7 @@
                     loadAttendanceRecords();
                 }
             } catch (error) {
+                console.error('Error submitting attendance:', error);
                 showFlashMessage('Error submitting attendance', 'error');
             }
         });
@@ -641,7 +665,7 @@
         document.getElementById('courseCode').addEventListener('change', updateSubmitButton);
 
         // Load user data on page load
-        loadCurrentUser();
+        document.addEventListener('DOMContentLoaded', loadCurrentUser);
     </script>
 </body>
 </html>
