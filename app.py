@@ -7,15 +7,23 @@ from datetime import datetime, timedelta
 import os
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(32)
+# Use environment variable for secret key in production
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+# Disable debug mode in production
+app.debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
 
-# File paths for data storage
-USERS_FILE = 'users.json'
-ATTENDANCE_FILE = 'attendance.json'
-RESET_TOKENS_FILE = 'reset_tokens.json'
+# File paths for data storage - make configurable via environment variables
+DATA_DIR = os.environ.get('DATA_DIR', '.')
+USERS_FILE = os.path.join(DATA_DIR, 'users.json')
+ATTENDANCE_FILE = os.path.join(DATA_DIR, 'attendance.json')
+RESET_TOKENS_FILE = os.path.join(DATA_DIR, 'reset_tokens.json')
 
 # Initialize JSON files if they don't exist
 def init_json_files():
+    # Ensure data directory exists
+    if DATA_DIR != '.' and not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR, exist_ok=True)
+    
     for file_path in [USERS_FILE, ATTENDANCE_FILE, RESET_TOKENS_FILE]:
         if not os.path.exists(file_path):
             with open(file_path, 'w') as f:
@@ -119,7 +127,7 @@ def api_login():
         session['username'] = user['username']
         session['role'] = user['role']
         session['full_name'] = user['fullName']
-        session['matric_number'] = user.get('matricNumber')  # Store matric number in session
+        session['matric_number'] = user.get('matricNumber')
         
         return jsonify({
             'success': True,
@@ -149,7 +157,7 @@ def api_signup():
         'role': data['role'],
         'fullName': data['fullName'],
         'matricNumber': data.get('matricNumber') if data['role'] == 'student' else None,
-        'isApproved': data['role'] != 'lecturer',  # Lecturers need approval
+        'isApproved': data['role'] != 'lecturer',
         'createdAt': datetime.now().isoformat()
     }
     
@@ -194,11 +202,10 @@ def api_forgot_password():
         
         write_json(RESET_TOKENS_FILE, reset_tokens)
         
-        # In a real app, you would send an email here
         return jsonify({
             'success': True,
             'message': 'Password reset instructions sent to your email',
-            'demo_token': token  # Only for demo purposes
+            'demo_token': token
         })
     
     return jsonify({'success': False, 'message': 'Username not found'})
@@ -220,7 +227,6 @@ def api_reset_password():
             user['password'] = hash_password(new_password)
             write_json(USERS_FILE, users)
             
-            # Remove used token
             reset_tokens = [t for t in reset_tokens if t['token'] != token]
             write_json(RESET_TOKENS_FILE, reset_tokens)
             
@@ -262,12 +268,9 @@ def api_get_attendance():
     attendance = read_json(ATTENDANCE_FILE)
     
     if role == 'student':
-        # Students see only their own attendance
         attendance = [a for a in attendance if a['studentId'] == session['user_id']]
     elif role == 'lecturer':
-        # Lecturers see all attendance (filter by course would be implemented here)
         pass
-    # Admins see all attendance
     
     return jsonify({'success': True, 'attendance': attendance})
 
@@ -276,7 +279,6 @@ def api_get_attendance():
 @role_required('admin')
 def api_get_users():
     users = read_json(USERS_FILE)
-    # Remove passwords from response
     for user in users:
         user.pop('password', None)
     return jsonify({'success': True, 'users': users})
@@ -309,23 +311,16 @@ def api_reject_lecturer(user_id):
 def api_delete_attendance(record_id):
     attendance = read_json(ATTENDANCE_FILE)
     
-    if session['role'] == 'lecturer':
-        # Lecturers can delete any record
+    if session['role'] in ['lecturer', 'admin']:
         attendance = [a for a in attendance if a['id'] != record_id]
-    elif session['role'] == 'admin':
-        # Admins can delete any record
-        attendance = [a for a in attendance if a['id'] != record_id]
-    else:
-        # Students cannot delete
-        return jsonify({'success': False, 'message': 'Unauthorized'})
+        write_json(ATTENDANCE_FILE, attendance)
+        return jsonify({'success': True, 'message': 'Record deleted successfully'})
     
-    write_json(ATTENDANCE_FILE, attendance)
-    return jsonify({'success': True, 'message': 'Record deleted successfully'})
+    return jsonify({'success': False, 'message': 'Unauthorized'})
 
 @app.route('/api/current-user', methods=['GET'])
 def api_current_user():
     if 'user_id' in session:
-        # Get additional user data from the users file
         users = read_json(USERS_FILE)
         user = next((u for u in users if u['id'] == session['user_id']), None)
         
@@ -337,11 +332,20 @@ def api_current_user():
                     'username': session['username'],
                     'role': session['role'],
                     'fullName': session['full_name'],
-                    'matricNumber': user.get('matricNumber', 'Not available')  # Include matric number
+                    'matricNumber': user.get('matricNumber', 'Not available')
                 }
             })
     
     return jsonify({'success': False})
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint for Docker"""
+    return jsonify({'status': 'healthy'}), 200
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Get port from environment variable for Docker
+    port = int(os.environ.get('PORT', 5000))
+    # Only enable debug in development
+    debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
