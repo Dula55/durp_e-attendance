@@ -1,28 +1,24 @@
-FROM python:3.9-slim
+FROM python:3.11-slim
 
-# Prevent Python from writing pyc files & enable logs immediately
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Install system dependencies (optional but good practice)
-RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
+# Install pip cleanly
+RUN python -m pip install --upgrade pip
 
-# Upgrade pip first
-RUN pip install --upgrade pip
-
-# Copy only requirements first (better layer caching)
+# Copy only requirements first
 COPY requirements.txt .
 
-# Install dependencies as root (no permission issue)
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Now copy application code
+# Copy application files
 COPY . .
 
-# Expose port (Render / most PaaS use 8000)
+# Expose port (Render/most platforms expect 8000)
 EXPOSE 8000
 
-# Use JSON array format (correct signal handling)
+# Run app
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:app"]
