@@ -7,10 +7,18 @@ from datetime import datetime, timedelta
 import os
 
 app = Flask(__name__)
-# Use environment variable for secret key in production
+
+# Use environment variable for secret key in production; fall back to a generated key if not provided
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
-# Disable debug mode in production
+
+# Disable debug mode in production by default
 app.debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+
+# Session cookie security settings (adjust as needed for your environment)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+# In production set SESSION_COOKIE_SECURE to True (requires HTTPS)
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+app.config['SESSION_COOKIE_SAMESITE'] = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
 
 # File paths for data storage - make configurable via environment variables
 DATA_DIR = os.environ.get('DATA_DIR', '.')
@@ -340,12 +348,9 @@ def api_current_user():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint for Docker"""
+    """Health check endpoint for container health checks or load balancers."""
     return jsonify({'status': 'healthy'}), 200
 
-if __name__ == '__main__':
-                # Get port from environment variable for Docker
-    port = int(os.environ.get('PORT', 5000))
-    # Only enable debug in development
-    debug_mode = os.environ.get('FLASK_ENV') == 'development'
-    app.run(host='0.0.0.0', port=port, debug=debug_mode)
+# Note: In production run this app with a WSGI server such as gunicorn:
+#    gunicorn app:app
+# Do NOT rely on Flask's built-in development server for production.
