@@ -343,10 +343,9 @@ def health_check():
     """Health check endpoint for Docker"""
     return jsonify({'status': 'healthy'}), 200
 
-@app.route('/health')
-def health():
-    return {"status": "healthy"}
-
 if __name__ == '__main__':
+                # Get port from environment variable for Docker
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    # Only enable debug in development
+    debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
