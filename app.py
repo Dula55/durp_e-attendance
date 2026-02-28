@@ -1,5 +1,4 @@
 import os
-import json
 import sqlite3
 import hashlib
 import secrets
@@ -60,6 +59,10 @@ def setup_logging():
     root = logging.getLogger()
     root.setLevel(LOG_LEVEL)
 
+    # Avoid adding handlers multiple times if reloaded
+    if root.handlers:
+        return
+
     # Console handler (useful for PaaS logs)
     ch = logging.StreamHandler()
     ch.setLevel(LOG_LEVEL)
@@ -82,13 +85,8 @@ logger.info("Starting application - logs to %s", LOG_FILE)
 # Database helpers
 # ==========================
 def get_db():
-    """
-    Return a sqlite3.Connection for the current request (stored in flask.g).
-    Uses check_same_thread=False for thread compatibility with Gunicorn workers.
-    """
     db = getattr(g, "_database", None)
     if db is None:
-        # Use detect_types for datetimes if needed later
         db = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES, check_same_thread=False)
         db.row_factory = sqlite3.Row
         g._database = db
@@ -102,7 +100,6 @@ def close_db(error=None):
         g._database = None
 
 def init_db():
-    """Create tables if they don't exist."""
     db = get_db()
     cursor = db.cursor()
     cursor.execute(
@@ -150,7 +147,6 @@ def init_db():
     logger.info("Initialized database at %s", DB_PATH)
 
 with app.app_context():
-    # Ensure DB exists and tables created at startup
     try:
         init_db()
     except Exception as e:
@@ -323,7 +319,6 @@ def role_required(*roles):
 # ==========================
 @app.route("/")
 def index():
-    # Basic page render; templates should be in templates/
     return render_template("index.html")
 
 @app.route("/login")
@@ -409,7 +404,6 @@ def api_signup():
             return jsonify({"success": False, "message": "Username already exists"}), 409
 
         if role == "student" and matricNumber:
-            # ensure matric uniqueness
             existing = get_user_by_username_or_matric(matricNumber)
             if existing:
                 return jsonify({"success": False, "message": "Matric number already registered"}), 409
@@ -427,7 +421,6 @@ def api_signup():
 
         create_user(new_user)
 
-        # Auto-login for non-lecturer
         if role != "lecturer":
             session.update({
                 "user_id": new_user["id"],
@@ -467,7 +460,6 @@ def api_forgot_password():
         expires = (datetime.utcnow() + timedelta(hours=1)).isoformat()
         add_reset_token(token, user["id"], expires)
 
-        # In production: send token via email. Here we return it for demo/testing only.
         logger.info("Reset token created for user %s", username)
         return jsonify({"success": True, "message": "Password reset instructions sent to your email", "demo_token": token})
     except Exception as e:
@@ -513,7 +505,7 @@ def api_submit_attendance():
             "courseCode": data.get("courseCode"),
             "latitude": data.get("latitude"),
             "longitude": data.get("longitude"),
-            "faceImage": data.get("faceImage"),  # store as base64 or URL if used
+            "faceImage": data.get("faceImage"),
             "timestamp": now_iso(),
             "date": datetime.utcnow().strftime("%Y-%m-%d"),
             "time": datetime.utcnow().strftime("%H:%M"),
@@ -533,7 +525,7 @@ def api_get_attendance():
         role = session.get("role")
         if role == "student":
             attendance = get_attendance_by_student(session["user_id"])
-        elif role == "lecturer" or role == "admin":
+        elif role in ("lecturer", "admin"):
             attendance = get_attendance_all()
         else:
             attendance = []
@@ -621,7 +613,6 @@ def health_check():
 # Local runner (for dev only)
 # ==========================
 if __name__ == "__main__":
-    # Local development port fallback; in production use gunicorn
     port = int(os.environ.get("PORT", 8000))
     logger.info("Running dev server on port %s", port)
     app.run(host="0.0.0.0", port=port, debug=app.debug)
