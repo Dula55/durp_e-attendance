@@ -1,356 +1,627 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-from functools import wraps
+import os
 import json
+import sqlite3
 import hashlib
 import secrets
+import logging
+from logging.handlers import RotatingFileHandler
 from datetime import datetime, timedelta
-import os
+from functools import wraps
 
-app = Flask(__name__)
+from flask import (
+    Flask,
+    render_template,
+    request,
+    jsonify,
+    session,
+    redirect,
+    url_for,
+    g,
+)
 
-# Use environment variable for secret key in production; fall back to a generated key if not provided
-app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+# ==========================
+# Config & Environment
+# ==========================
+APP_NAME = "attendance_app"
 
-# Disable debug mode in production by default
-app.debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+# Persistent storage directory (PandaStack: mount a volume here, e.g. /data)
+DATA_DIR = os.environ.get("DATA_DIR", "/data")
+os.makedirs(DATA_DIR, exist_ok=True)
 
-# Session cookie security settings (adjust as needed for your environment)
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-# In production set SESSION_COOKIE_SECURE to True (requires HTTPS)
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
-app.config['SESSION_COOKIE_SAMESITE'] = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
+# SQLite DB path
+DB_PATH = os.path.join(DATA_DIR, "app.db")
 
-# File paths for data storage - make configurable via environment variables
-DATA_DIR = os.environ.get('DATA_DIR', '.')
-USERS_FILE = os.path.join(DATA_DIR, 'users.json')
-ATTENDANCE_FILE = os.path.join(DATA_DIR, 'attendance.json')
-RESET_TOKENS_FILE = os.path.join(DATA_DIR, 'reset_tokens.json')
+# Secret key and session settings
+SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_hex(32))
+SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "False").lower() == "true"
+SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
 
-# Initialize JSON files if they don't exist
-def init_json_files():
-    # Ensure data directory exists
-    if DATA_DIR != '.' and not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR, exist_ok=True)
-    
-    for file_path in [USERS_FILE, ATTENDANCE_FILE, RESET_TOKENS_FILE]:
-        if not os.path.exists(file_path):
-            with open(file_path, 'w') as f:
-                json.dump([], f)
+# Logging config
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+LOG_FILE = os.path.join(DATA_DIR, f"{APP_NAME}.log")
+LOG_MAX_BYTES = int(os.environ.get("LOG_MAX_BYTES", 5 * 1024 * 1024))  # 5 MB
+LOG_BACKUP_COUNT = int(os.environ.get("LOG_BACKUP_COUNT", 5))
 
-init_json_files()
+# ==========================
+# Flask app
+# ==========================
+app = Flask(__name__, static_folder="static", template_folder="templates")
+app.secret_key = SECRET_KEY
+app.debug = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
 
-# Helper functions for JSON operations
-def read_json(file_path):
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SECURE"] = SESSION_COOKIE_SECURE
+app.config["SESSION_COOKIE_SAMESITE"] = SESSION_COOKIE_SAMESITE
+
+# ==========================
+# Logging Setup
+# ==========================
+def setup_logging():
+    root = logging.getLogger()
+    root.setLevel(LOG_LEVEL)
+
+    # Console handler (useful for PaaS logs)
+    ch = logging.StreamHandler()
+    ch.setLevel(LOG_LEVEL)
+    ch_formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s - %(message)s')
+    ch.setFormatter(ch_formatter)
+    root.addHandler(ch)
+
+    # Rotating file handler (persistent logs)
+    fh = RotatingFileHandler(LOG_FILE, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT)
+    fh.setLevel(LOG_LEVEL)
+    fh_formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] - %(message)s')
+    fh.setFormatter(fh_formatter)
+    root.addHandler(fh)
+
+setup_logging()
+logger = logging.getLogger(__name__)
+logger.info("Starting application - logs to %s", LOG_FILE)
+
+# ==========================
+# Database helpers
+# ==========================
+def get_db():
+    """
+    Return a sqlite3.Connection for the current request (stored in flask.g).
+    Uses check_same_thread=False for thread compatibility with Gunicorn workers.
+    """
+    db = getattr(g, "_database", None)
+    if db is None:
+        # Use detect_types for datetimes if needed later
+        db = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES, check_same_thread=False)
+        db.row_factory = sqlite3.Row
+        g._database = db
+    return db
+
+@app.teardown_appcontext
+def close_db(error=None):
+    db = getattr(g, "_database", None)
+    if db is not None:
+        db.close()
+        g._database = None
+
+def init_db():
+    """Create tables if they don't exist."""
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL,
+            fullName TEXT,
+            matricNumber TEXT,
+            isApproved INTEGER DEFAULT 0,
+            createdAt TEXT
+        )
+        """
+    )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS attendance (
+            id TEXT PRIMARY KEY,
+            studentId TEXT NOT NULL,
+            studentName TEXT,
+            matricNumber TEXT,
+            courseCode TEXT,
+            latitude REAL,
+            longitude REAL,
+            faceImage TEXT,
+            timestamp TEXT,
+            date TEXT,
+            time TEXT,
+            deviceType TEXT
+        )
+        """
+    )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS reset_tokens (
+            token TEXT PRIMARY KEY,
+            user_id TEXT,
+            expires TEXT
+        )
+        """
+    )
+    db.commit()
+    logger.info("Initialized database at %s", DB_PATH)
+
+with app.app_context():
+    # Ensure DB exists and tables created at startup
     try:
-        with open(file_path, 'r') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
+        init_db()
+    except Exception as e:
+        logger.exception("Failed to initialize DB: %s", e)
+        raise
 
-def write_json(file_path, data):
-    with open(file_path, 'w') as f:
-        json.dump(data, f, indent=2)
+# ==========================
+# Utility functions
+# ==========================
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
-# Password hashing
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
-
-def verify_password(password, hashed):
+def verify_password(password: str, hashed: str) -> bool:
     return hash_password(password) == hashed
 
-# Login required decorator
+def now_iso():
+    return datetime.utcnow().isoformat()
+
+# ==========================
+# DB CRUD Helpers
+# ==========================
+def create_user(user: dict):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute(
+        """
+        INSERT INTO users (id, username, password, role, fullName, matricNumber, isApproved, createdAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user["id"],
+            user["username"],
+            user["password"],
+            user["role"],
+            user.get("fullName"),
+            user.get("matricNumber"),
+            1 if user.get("isApproved") else 0,
+            user.get("createdAt", now_iso()),
+        ),
+    )
+    db.commit()
+
+def get_user_by_username_or_matric(identifier):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute(
+        "SELECT * FROM users WHERE username = ? OR matricNumber = ? LIMIT 1",
+        (identifier, identifier),
+    )
+    row = cur.fetchone()
+    return dict(row) if row else None
+
+def get_user_by_id(user_id):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT * FROM users WHERE id = ? LIMIT 1", (user_id,))
+    row = cur.fetchone()
+    return dict(row) if row else None
+
+def list_users_safely():
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT id, username, role, fullName, matricNumber, isApproved, createdAt FROM users")
+    return [dict(r) for r in cur.fetchall()]
+
+def approve_lecturer_by_id(user_id):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("UPDATE users SET isApproved = 1 WHERE id = ? AND role = 'lecturer'", (user_id,))
+    db.commit()
+    return cur.rowcount > 0
+
+def delete_user_by_id(user_id):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    db.commit()
+    return cur.rowcount > 0
+
+def add_attendance_record(record: dict):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute(
+        """
+        INSERT INTO attendance (id, studentId, studentName, matricNumber, courseCode,
+            latitude, longitude, faceImage, timestamp, date, time, deviceType)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            record["id"],
+            record["studentId"],
+            record.get("studentName"),
+            record.get("matricNumber"),
+            record.get("courseCode"),
+            record.get("latitude"),
+            record.get("longitude"),
+            record.get("faceImage"),
+            record.get("timestamp"),
+            record.get("date"),
+            record.get("time"),
+            record.get("deviceType"),
+        ),
+    )
+    db.commit()
+
+def get_attendance_all():
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT * FROM attendance ORDER BY timestamp DESC")
+    return [dict(r) for r in cur.fetchall()]
+
+def get_attendance_by_student(student_id):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT * FROM attendance WHERE studentId = ? ORDER BY timestamp DESC", (student_id,))
+    return [dict(r) for r in cur.fetchall()]
+
+def delete_attendance_by_id(record_id):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM attendance WHERE id = ?", (record_id,))
+    db.commit()
+    return cur.rowcount > 0
+
+def add_reset_token(token: str, user_id: str, expires_iso: str):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute(
+        "INSERT INTO reset_tokens (token, user_id, expires) VALUES (?, ?, ?)",
+        (token, user_id, expires_iso),
+    )
+    db.commit()
+
+def get_reset_token(token: str):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT * FROM reset_tokens WHERE token = ? LIMIT 1", (token,))
+    row = cur.fetchone()
+    return dict(row) if row else None
+
+def delete_reset_token(token: str):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM reset_tokens WHERE token = ?", (token,))
+    db.commit()
+
+# ==========================
+# Auth decorators
+# ==========================
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return redirect(url_for('login'))
+        if "user_id" not in session:
+            return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
 
-# Role-based access decorator
 def role_required(*roles):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if 'role' not in session or session['role'] not in roles:
-                return redirect(url_for('index'))
+            if "role" not in session or session["role"] not in roles:
+                return redirect(url_for("index"))
             return f(*args, **kwargs)
         return decorated_function
     return decorator
 
-# Routes
-@app.route('/')
+# ==========================
+# Routes (views)
+# ==========================
+@app.route("/")
 def index():
-    return render_template('index.html')
+    # Basic page render; templates should be in templates/
+    return render_template("index.html")
 
-@app.route('/login')
+@app.route("/login")
 def login():
-    if 'user_id' in session:
+    if "user_id" in session:
         return redirect(url_for(f"{session['role']}_dashboard"))
-    return render_template('login.html')
+    return render_template("login.html")
 
-@app.route('/signup')
+@app.route("/signup")
 def signup():
-    if 'user_id' in session:
+    if "user_id" in session:
         return redirect(url_for(f"{session['role']}_dashboard"))
-    return render_template('signup.html')
+    return render_template("signup.html")
 
-@app.route('/forgot-password')
+@app.route("/forgot-password")
 def forgot_password():
-    return render_template('forgot_password.html')
+    return render_template("forgot_password.html")
 
-@app.route('/admin-dashboard')
+@app.route("/admin-dashboard")
 @login_required
-@role_required('admin')
+@role_required("admin")
 def admin_dashboard():
-    return render_template('admin_dashboard.html')
+    return render_template("admin_dashboard.html")
 
-@app.route('/lecturer-dashboard')
+@app.route("/lecturer-dashboard")
 @login_required
-@role_required('lecturer')
+@role_required("lecturer")
 def lecturer_dashboard():
-    return render_template('lecturer_dashboard.html')
+    return render_template("lecturer_dashboard.html")
 
-@app.route('/student-dashboard')
+@app.route("/student-dashboard")
 @login_required
-@role_required('student')
+@role_required("student")
 def student_dashboard():
-    return render_template('student_dashboard.html')
+    return render_template("student_dashboard.html")
 
-# API Routes
-@app.route('/api/login', methods=['POST'])
+# ==========================
+# API endpoints
+# ==========================
+@app.route("/api/login", methods=["POST"])
 def api_login():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    
-    users = read_json(USERS_FILE)
-    user = next((u for u in users if u['username'] == username or u.get('matricNumber') == username), None)
-    
-    if user and verify_password(password, user['password']):
-        if user['role'] == 'lecturer' and not user.get('isApproved', False):
-            return jsonify({'success': False, 'message': 'Your account is pending approval'})
-        
-        session['user_id'] = user['id']
-        session['username'] = user['username']
-        session['role'] = user['role']
-        session['full_name'] = user['fullName']
-        session['matric_number'] = user.get('matricNumber')
-        
-        return jsonify({
-            'success': True,
-            'role': user['role'],
-            'message': 'Login successful'
-        })
-    
-    return jsonify({'success': False, 'message': 'Invalid username or password'})
+    try:
+        data = request.json or {}
+        username = data.get("username")
+        password = data.get("password")
 
-@app.route('/api/signup', methods=['POST'])
+        user = get_user_by_username_or_matric(username)
+        if user and verify_password(password, user["password"]):
+            if user["role"] == "lecturer" and not user.get("isApproved"):
+                return jsonify({"success": False, "message": "Your account is pending approval"}), 403
+
+            session.update({
+                "user_id": user["id"],
+                "username": user["username"],
+                "role": user["role"],
+                "full_name": user.get("fullName"),
+                "matric_number": user.get("matricNumber"),
+            })
+
+            logger.info("User logged in: %s (role=%s)", user["username"], user["role"])
+            return jsonify({"success": True, "role": user["role"], "message": "Login successful"})
+        else:
+            logger.warning("Failed login attempt for username: %s", username)
+            return jsonify({"success": False, "message": "Invalid username or password"}), 401
+    except Exception as e:
+        logger.exception("Error in api_login: %s", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/api/signup", methods=["POST"])
 def api_signup():
-    data = request.json
-    users = read_json(USERS_FILE)
-    
-    # Check if username exists
-    if any(u['username'] == data['username'] for u in users):
-        return jsonify({'success': False, 'message': 'Username already exists'})
-    
-    # Check if matric number exists for students
-    if data['role'] == 'student' and any(u.get('matricNumber') == data['matricNumber'] for u in users):
-        return jsonify({'success': False, 'message': 'Matric number already registered'})
-    
-    new_user = {
-        'id': str(datetime.now().timestamp()),
-        'username': data['username'],
-        'password': hash_password(data['password']),
-        'role': data['role'],
-        'fullName': data['fullName'],
-        'matricNumber': data.get('matricNumber') if data['role'] == 'student' else None,
-        'isApproved': data['role'] != 'lecturer',
-        'createdAt': datetime.now().isoformat()
-    }
-    
-    users.append(new_user)
-    write_json(USERS_FILE, users)
-    
-    # Auto login for non-lecturer users
-    if data['role'] != 'lecturer':
-        session['user_id'] = new_user['id']
-        session['username'] = new_user['username']
-        session['role'] = new_user['role']
-        session['full_name'] = new_user['fullName']
-    
-    return jsonify({
-        'success': True,
-        'role': data['role'],
-        'message': 'Account created successfully' + (' (Pending approval)' if data['role'] == 'lecturer' else '')
-    })
+    try:
+        data = request.json or {}
+        username = data.get("username")
+        password = data.get("password")
+        role = data.get("role")
+        fullName = data.get("fullName")
+        matricNumber = data.get("matricNumber")
 
-@app.route('/api/logout', methods=['POST'])
+        if not username or not password or not role:
+            return jsonify({"success": False, "message": "username, password and role are required"}), 400
+
+        if get_user_by_username_or_matric(username):
+            return jsonify({"success": False, "message": "Username already exists"}), 409
+
+        if role == "student" and matricNumber:
+            # ensure matric uniqueness
+            existing = get_user_by_username_or_matric(matricNumber)
+            if existing:
+                return jsonify({"success": False, "message": "Matric number already registered"}), 409
+
+        new_user = {
+            "id": str(datetime.utcnow().timestamp()),
+            "username": username,
+            "password": hash_password(password),
+            "role": role,
+            "fullName": fullName,
+            "matricNumber": matricNumber if role == "student" else None,
+            "isApproved": False if role == "lecturer" else True,
+            "createdAt": now_iso(),
+        }
+
+        create_user(new_user)
+
+        # Auto-login for non-lecturer
+        if role != "lecturer":
+            session.update({
+                "user_id": new_user["id"],
+                "username": new_user["username"],
+                "role": new_user["role"],
+                "full_name": new_user["fullName"],
+            })
+
+        logger.info("New user created: %s (role=%s)", username, role)
+        return jsonify({
+            "success": True,
+            "role": role,
+            "message": "Account created successfully" + (" (Pending approval)" if role == "lecturer" else "")
+        })
+    except sqlite3.IntegrityError as ie:
+        logger.exception("DB integrity error during signup: %s", ie)
+        return jsonify({"success": False, "message": "Username or matric number already exists"}), 409
+    except Exception as e:
+        logger.exception("Error in api_signup: %s", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/api/logout", methods=["POST"])
 def api_logout():
     session.clear()
-    return jsonify({'success': True})
+    return jsonify({"success": True})
 
-@app.route('/api/forgot-password', methods=['POST'])
+@app.route("/api/forgot-password", methods=["POST"])
 def api_forgot_password():
-    data = request.json
-    username = data.get('username')
-    
-    users = read_json(USERS_FILE)
-    user = next((u for u in users if u['username'] == username or u.get('matricNumber') == username), None)
-    
-    if user:
+    try:
+        data = request.json or {}
+        username = data.get("username")
+        user = get_user_by_username_or_matric(username)
+        if not user:
+            return jsonify({"success": False, "message": "Username not found"}), 404
+
         token = secrets.token_urlsafe(32)
-        reset_tokens = read_json(RESET_TOKENS_FILE)
-        
-        reset_tokens.append({
-            'user_id': user['id'],
-            'token': token,
-            'expires': (datetime.now() + timedelta(hours=1)).isoformat()
-        })
-        
-        write_json(RESET_TOKENS_FILE, reset_tokens)
-        
-        return jsonify({
-            'success': True,
-            'message': 'Password reset instructions sent to your email',
-            'demo_token': token
-        })
-    
-    return jsonify({'success': False, 'message': 'Username not found'})
+        expires = (datetime.utcnow() + timedelta(hours=1)).isoformat()
+        add_reset_token(token, user["id"], expires)
 
-@app.route('/api/reset-password', methods=['POST'])
+        # In production: send token via email. Here we return it for demo/testing only.
+        logger.info("Reset token created for user %s", username)
+        return jsonify({"success": True, "message": "Password reset instructions sent to your email", "demo_token": token})
+    except Exception as e:
+        logger.exception("Error in forgot-password: %s", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/api/reset-password", methods=["POST"])
 def api_reset_password():
-    data = request.json
-    token = data.get('token')
-    new_password = data.get('password')
-    
-    reset_tokens = read_json(RESET_TOKENS_FILE)
-    token_data = next((t for t in reset_tokens if t['token'] == token), None)
-    
-    if token_data and datetime.fromisoformat(token_data['expires']) > datetime.now():
-        users = read_json(USERS_FILE)
-        user = next((u for u in users if u['id'] == token_data['user_id']), None)
-        
-        if user:
-            user['password'] = hash_password(new_password)
-            write_json(USERS_FILE, users)
-            
-            reset_tokens = [t for t in reset_tokens if t['token'] != token]
-            write_json(RESET_TOKENS_FILE, reset_tokens)
-            
-            return jsonify({'success': True, 'message': 'Password reset successfully'})
-    
-    return jsonify({'success': False, 'message': 'Invalid or expired token'})
+    try:
+        data = request.json or {}
+        token = data.get("token")
+        new_password = data.get("password")
+        if not token or not new_password:
+            return jsonify({"success": False, "message": "token and password are required"}), 400
 
-@app.route('/api/submit-attendance', methods=['POST'])
+        token_data = get_reset_token(token)
+        if token_data and datetime.fromisoformat(token_data["expires"]) > datetime.utcnow():
+            user = get_user_by_id(token_data["user_id"])
+            if user:
+                db = get_db()
+                cur = db.cursor()
+                cur.execute("UPDATE users SET password = ? WHERE id = ?", (hash_password(new_password), user["id"]))
+                db.commit()
+                delete_reset_token(token)
+                logger.info("Password reset for user id %s", user["id"])
+                return jsonify({"success": True, "message": "Password reset successfully"})
+        return jsonify({"success": False, "message": "Invalid or expired token"}), 400
+    except Exception as e:
+        logger.exception("Error in reset-password: %s", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/api/submit-attendance", methods=["POST"])
 @login_required
-@role_required('student')
+@role_required("student")
 def api_submit_attendance():
-    data = request.json
-    attendance = read_json(ATTENDANCE_FILE)
-    
-    record = {
-        'id': str(datetime.now().timestamp()),
-        'studentId': session['user_id'],
-        'studentName': session['full_name'],
-        'matricNumber': data.get('matricNumber'),
-        'courseCode': data.get('courseCode'),
-        'latitude': data.get('latitude'),
-        'longitude': data.get('longitude'),
-        'faceImage': data.get('faceImage'),
-        'timestamp': datetime.now().isoformat(),
-        'date': datetime.now().strftime('%Y-%m-%d'),
-        'time': datetime.now().strftime('%H:%M'),
-        'deviceType': data.get('deviceType', 'Desktop')
-    }
-    
-    attendance.append(record)
-    write_json(ATTENDANCE_FILE, attendance)
-    
-    return jsonify({'success': True, 'message': 'Attendance submitted successfully'})
+    try:
+        data = request.json or {}
+        record = {
+            "id": str(datetime.utcnow().timestamp()),
+            "studentId": session["user_id"],
+            "studentName": session.get("full_name"),
+            "matricNumber": data.get("matricNumber"),
+            "courseCode": data.get("courseCode"),
+            "latitude": data.get("latitude"),
+            "longitude": data.get("longitude"),
+            "faceImage": data.get("faceImage"),  # store as base64 or URL if used
+            "timestamp": now_iso(),
+            "date": datetime.utcnow().strftime("%Y-%m-%d"),
+            "time": datetime.utcnow().strftime("%H:%M"),
+            "deviceType": data.get("deviceType", "Desktop"),
+        }
+        add_attendance_record(record)
+        logger.info("Attendance recorded for student %s", session.get("username"))
+        return jsonify({"success": True, "message": "Attendance submitted successfully"})
+    except Exception as e:
+        logger.exception("Error in submit-attendance: %s", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
-@app.route('/api/get-attendance', methods=['GET'])
+@app.route("/api/get-attendance", methods=["GET"])
 @login_required
 def api_get_attendance():
-    role = session['role']
-    attendance = read_json(ATTENDANCE_FILE)
-    
-    if role == 'student':
-        attendance = [a for a in attendance if a['studentId'] == session['user_id']]
-    elif role == 'lecturer':
-        pass
-    
-    return jsonify({'success': True, 'attendance': attendance})
+    try:
+        role = session.get("role")
+        if role == "student":
+            attendance = get_attendance_by_student(session["user_id"])
+        elif role == "lecturer" or role == "admin":
+            attendance = get_attendance_all()
+        else:
+            attendance = []
+        return jsonify({"success": True, "attendance": attendance})
+    except Exception as e:
+        logger.exception("Error in get-attendance: %s", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
-@app.route('/api/get-users', methods=['GET'])
+@app.route("/api/get-users", methods=["GET"])
 @login_required
-@role_required('admin')
+@role_required("admin")
 def api_get_users():
-    users = read_json(USERS_FILE)
-    for user in users:
-        user.pop('password', None)
-    return jsonify({'success': True, 'users': users})
+    try:
+        users = list_users_safely()
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        logger.exception("Error in get-users: %s", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
-@app.route('/api/approve-lecturer/<user_id>', methods=['POST'])
+@app.route("/api/approve-lecturer/<user_id>", methods=["POST"])
 @login_required
-@role_required('admin')
+@role_required("admin")
 def api_approve_lecturer(user_id):
-    users = read_json(USERS_FILE)
-    user = next((u for u in users if u['id'] == user_id), None)
-    
-    if user and user['role'] == 'lecturer':
-        user['isApproved'] = True
-        write_json(USERS_FILE, users)
-        return jsonify({'success': True, 'message': 'Lecturer approved successfully'})
-    
-    return jsonify({'success': False, 'message': 'User not found'})
+    try:
+        ok = approve_lecturer_by_id(user_id)
+        if ok:
+            logger.info("Lecturer approved: %s", user_id)
+            return jsonify({"success": True, "message": "Lecturer approved successfully"})
+        return jsonify({"success": False, "message": "User not found or not a lecturer"}), 404
+    except Exception as e:
+        logger.exception("Error in approve-lecturer: %s", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
-@app.route('/api/reject-lecturer/<user_id>', methods=['POST'])
+@app.route("/api/reject-lecturer/<user_id>", methods=["POST"])
 @login_required
-@role_required('admin')
+@role_required("admin")
 def api_reject_lecturer(user_id):
-    users = read_json(USERS_FILE)
-    users = [u for u in users if u['id'] != user_id]
-    write_json(USERS_FILE, users)
-    return jsonify({'success': True, 'message': 'Lecturer rejected successfully'})
+    try:
+        deleted = delete_user_by_id(user_id)
+        if deleted:
+            logger.info("Lecturer rejected/deleted: %s", user_id)
+            return jsonify({"success": True, "message": "Lecturer rejected successfully"})
+        return jsonify({"success": False, "message": "User not found"}), 404
+    except Exception as e:
+        logger.exception("Error in reject-lecturer: %s", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
-@app.route('/api/delete-attendance/<record_id>', methods=['DELETE'])
+@app.route("/api/delete-attendance/<record_id>", methods=["DELETE"])
 @login_required
 def api_delete_attendance(record_id):
-    attendance = read_json(ATTENDANCE_FILE)
-    
-    if session['role'] in ['lecturer', 'admin']:
-        attendance = [a for a in attendance if a['id'] != record_id]
-        write_json(ATTENDANCE_FILE, attendance)
-        return jsonify({'success': True, 'message': 'Record deleted successfully'})
-    
-    return jsonify({'success': False, 'message': 'Unauthorized'})
+    try:
+        if session.get("role") in ["lecturer", "admin"]:
+            deleted = delete_attendance_by_id(record_id)
+            if deleted:
+                logger.info("Attendance deleted: %s by %s", record_id, session.get("username"))
+                return jsonify({"success": True, "message": "Record deleted successfully"})
+            return jsonify({"success": False, "message": "Record not found"}), 404
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    except Exception as e:
+        logger.exception("Error in delete-attendance: %s", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
-@app.route('/api/current-user', methods=['GET'])
+@app.route("/api/current-user", methods=["GET"])
 def api_current_user():
-    if 'user_id' in session:
-        users = read_json(USERS_FILE)
-        user = next((u for u in users if u['id'] == session['user_id']), None)
-        
+    if "user_id" in session:
+        user = get_user_by_id(session["user_id"])
         if user:
             return jsonify({
-                'success': True,
-                'user': {
-                    'id': session['user_id'],
-                    'username': session['username'],
-                    'role': session['role'],
-                    'fullName': session['full_name'],
-                    'matricNumber': user.get('matricNumber', 'Not available')
+                "success": True,
+                "user": {
+                    "id": session["user_id"],
+                    "username": session.get("username"),
+                    "role": session.get("role"),
+                    "fullName": session.get("full_name"),
+                    "matricNumber": user.get("matricNumber", "Not available"),
                 }
             })
-    
-    return jsonify({'success': False})
+    return jsonify({"success": False})
 
-@app.route('/health', methods=['GET'])
+@app.route("/health", methods=["GET"])
 def health_check():
-    """Health check endpoint for container health checks or load balancers."""
-    return jsonify({'status': 'healthy'}), 200
+    return jsonify({"status": "healthy"}), 200
 
-# Note: In production run this app with a WSGI server such as gunicorn:
-#    gunicorn app:app
-# Do NOT rely on Flask's built-in development server for production.
+# ==========================
+# Local runner (for dev only)
+# ==========================
+if __name__ == "__main__":
+    # Local development port fallback; in production use gunicorn
+    port = int(os.environ.get("PORT", 8000))
+    logger.info("Running dev server on port %s", port)
+    app.run(host="0.0.0.0", port=port, debug=app.debug)
