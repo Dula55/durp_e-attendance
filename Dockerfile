@@ -4,24 +4,23 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# App working directory
+# Set working directory
 WORKDIR /app
 
-# Copy only requirements first (for caching)
+# Install pip system-wide as root
+RUN python -m pip install --upgrade pip
+
+# Copy requirements first (leverage cache)
 COPY requirements.txt .
 
-# Install Python packages in /app/.local (writable by non-root)
-ENV PYTHONUSERBASE=/app/.local
-ENV PATH=/app/.local/bin:$PATH
+# Install dependencies **system-wide** (root) to avoid user permissions issues
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN python -m pip install --upgrade pip \
-    && pip install --user --no-cache-dir -r requirements.txt
-
-# Copy app code
+# Copy the rest of the app
 COPY . .
 
-# Expose port (most platforms, including PandaStack, expect 8000)
+# Expose port
 EXPOSE 8000
 
-# Run app with Gunicorn
+# Use JSON array form for CMD (avoids signal issues)
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:app"]
