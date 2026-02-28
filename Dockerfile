@@ -1,13 +1,22 @@
+# Use an official Python runtime as a parent image
 FROM python:3.9-slim
 
+# Set working directory
 WORKDIR /app
+
+# Copy project files into the container
 COPY . /app
 
-# Install dependencies as root
+# Upgrade pip and install dependencies as root
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Switch to non-root user
-USER 1000
+# Create a non-root user and switch to it
+RUN useradd --create-home appuser
+USER appuser
 
-CMD ["gunicorn", "app:app"]
+# Expose the port your app runs on (adjust if needed)
+EXPOSE 8000
+
+# Run the app using gunicorn
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8000"]
