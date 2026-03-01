@@ -1,37 +1,44 @@
-# Build stage
-FROM python:3.9-slim as builder
+FROM python:3.9-slim AS builder
 
-WORKDIR /build
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc && \
+    rm -rf /var/lib/apt/lists/*
 
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install dependencies
 COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
 
 # Final stage
 FROM python:3.9-slim
 
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \
+    mkdir -p /app && \
+    chown -R appuser:appuser /app
+
 WORKDIR /app
 
-# Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
+# Copy application code
+COPY --chown=appuser:appuser . .
 
-# Create non-root user and directories
-RUN addgroup --system --gid 1001 appgroup && \
-    adduser --system --uid 1001 --gid 1001 --no-create-home appuser && \
-    mkdir -p /app /data && \
-    chown -R appuser:appgroup /app /data && \
-    chmod 755 /app /data
-
-# Add local bin to PATH
-ENV PATH=/root/.local/bin:$PATH \
-    DATA_DIR=/data
-
-# Copy application files
-COPY --chown=appuser:appgroup . /app
+# Set environment
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    FLASK_APP=app.py \
+    FLASK_ENV=production
 
 # Switch to non-root user
 USER appuser
 
-VOLUME ["/data"]
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "4", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
+# For Flask app with app instance (if your main file is app.py)
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:app"]
