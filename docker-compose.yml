@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  attendance-app:
+    build: .
+    container_name: attendance-app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATA_DIR=/data
+      - SECRET_KEY=${SECRET_KEY:-change_this_in_production}
+      - SESSION_COOKIE_SECURE=False
+      - SESSION_COOKIE_SAMESITE=Lax
+      - LOG_LEVEL=INFO
+      - FLASK_DEBUG=False
+      - PORT=8000
+    volumes:
+      - attendance-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  attendance-data:
+    driver: local
