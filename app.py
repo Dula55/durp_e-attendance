@@ -6,6 +6,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timedelta
 from functools import wraps
+from tempfile import gettempdir
 
 from flask import (
     Flask,
@@ -19,15 +20,39 @@ from flask import (
 )
 
 # ==========================
-# Config & Environment
+# App identity & env helpers
 # ==========================
 APP_NAME = "attendance_app"
 
-# Persistent storage directory (PandaStack: mount a volume here, e.g. /data)
-DATA_DIR = os.environ.get("DATA_DIR", "/data")
-os.makedirs(DATA_DIR, exist_ok=True)
+def make_writable_dir(preferred: str):
+    """
+    Try to ensure preferred exists and is writable.
+    On failure, fall back to system temp directory.
+    Returns an actual directory path that is writable.
+    """
+    try:
+        if not preferred:
+            raise ValueError("no preferred dir")
+        os.makedirs(preferred, exist_ok=True)
+        testfile = os.path.join(preferred, f".write_test_{os.getpid()}")
+        with open(testfile, "w") as f:
+            f.write("ok")
+        os.remove(testfile)
+        return preferred
+    except Exception:
+        tmp = gettempdir()
+        # ensure tmp exists (it should)
+        try:
+            os.makedirs(tmp, exist_ok=True)
+        except Exception:
+            pass
+        return tmp
 
-# SQLite DB path
+# Preferred persistent directory for wasmer.io (you can mount a volume here)
+PREFERRED_DATA_DIR = os.environ.get("DATA_DIR", "/data")
+DATA_DIR = make_writable_dir(PREFERRED_DATA_DIR)
+
+# SQLite DB path (use DATA_DIR which is writable or /tmp)
 DB_PATH = os.path.join(DATA_DIR, "app.db")
 
 # Secret key and session settings
@@ -35,10 +60,10 @@ SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "False").lower() == "true"
 SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
 
-# Logging config
+# Logging config (file logging only if DATA_DIR writable)
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 LOG_FILE = os.path.join(DATA_DIR, f"{APP_NAME}.log")
-LOG_MAX_BYTES = int(os.environ.get("LOG_MAX_BYTES", 5 * 1024 * 1024))  # 5 MB
+LOG_MAX_BYTES = int(os.environ.get("LOG_MAX_BYTES", 5 * 1024 * 1024))  # 5MB
 LOG_BACKUP_COUNT = int(os.environ.get("LOG_BACKUP_COUNT", 5))
 
 # ==========================
@@ -53,56 +78,77 @@ app.config["SESSION_COOKIE_SECURE"] = SESSION_COOKIE_SECURE
 app.config["SESSION_COOKIE_SAMESITE"] = SESSION_COOKIE_SAMESITE
 
 # ==========================
-# Logging Setup
+# Logging Setup - safe for wasmer
 # ==========================
 def setup_logging():
     root = logging.getLogger()
     root.setLevel(LOG_LEVEL)
 
-    # Avoid adding handlers multiple times if reloaded
+    # Avoid adding duplicate handlers during reload
     if root.handlers:
         return
 
-    # Console handler (useful for PaaS logs)
+    # Console handler (always present: wasmer captures stdout)
     ch = logging.StreamHandler()
     ch.setLevel(LOG_LEVEL)
-    ch_formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s - %(message)s')
+    ch_formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s - %(message)s")
     ch.setFormatter(ch_formatter)
     root.addHandler(ch)
 
-    # Rotating file handler (persistent logs)
-    fh = RotatingFileHandler(LOG_FILE, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT)
-    fh.setLevel(LOG_LEVEL)
-    fh_formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] - %(message)s')
-    fh.setFormatter(fh_formatter)
-    root.addHandler(fh)
+    # Add rotating file handler only if DATA_DIR is writable
+    try:
+        # try creating/rotating once to ensure we can write
+        fh = RotatingFileHandler(LOG_FILE, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT)
+        fh.setLevel(LOG_LEVEL)
+        fh_formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] - %(message)s")
+        fh.setFormatter(fh_formatter)
+        root.addHandler(fh)
+    except Exception:
+        # If file handler cannot be created, continue with console-only logging
+        root.warning("Could not create file logger at %s — using stdout only", LOG_FILE)
 
 setup_logging()
 logger = logging.getLogger(__name__)
-logger.info("Starting application - logs to %s", LOG_FILE)
+logger.info("Starting application. DATA_DIR=%s DB_PATH=%s", DATA_DIR, DB_PATH)
 
 # ==========================
 # Database helpers
 # ==========================
 def get_db():
+    """
+    Per-request sqlite connection stored on flask.g.
+    check_same_thread=False recommended for Gunicorn worker threads.
+    """
     db = getattr(g, "_database", None)
     if db is None:
-        db = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES, check_same_thread=False)
-        db.row_factory = sqlite3.Row
-        g._database = db
+        try:
+            db = sqlite3.connect(
+                DB_PATH,
+                detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
+                check_same_thread=False,
+            )
+            db.row_factory = sqlite3.Row
+            g._database = db
+        except Exception as e:
+            logger.exception("Failed to open DB at %s: %s", DB_PATH, e)
+            raise
     return db
 
 @app.teardown_appcontext
 def close_db(error=None):
     db = getattr(g, "_database", None)
     if db is not None:
-        db.close()
+        try:
+            db.close()
+        except Exception:
+            pass
         g._database = None
 
 def init_db():
+    """Create tables if they don't exist."""
     db = get_db()
-    cursor = db.cursor()
-    cursor.execute(
+    cur = db.cursor()
+    cur.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
@@ -116,7 +162,7 @@ def init_db():
         )
         """
     )
-    cursor.execute(
+    cur.execute(
         """
         CREATE TABLE IF NOT EXISTS attendance (
             id TEXT PRIMARY KEY,
@@ -134,7 +180,7 @@ def init_db():
         )
         """
     )
-    cursor.execute(
+    cur.execute(
         """
         CREATE TABLE IF NOT EXISTS reset_tokens (
             token TEXT PRIMARY KEY,
@@ -144,14 +190,15 @@ def init_db():
         """
     )
     db.commit()
-    logger.info("Initialized database at %s", DB_PATH)
+    logger.info("Database initialized at %s", DB_PATH)
 
+# Initialize DB at import/start time (single process)
 with app.app_context():
     try:
         init_db()
     except Exception as e:
-        logger.exception("Failed to initialize DB: %s", e)
-        raise
+        logger.exception("Database initialization failed: %s", e)
+        # Do not crash the entire process if DB cannot initialize here; let requests handle failures gracefully
 
 # ==========================
 # Utility functions
