@@ -1,31 +1,25 @@
 FROM python:3.9-slim
 
-# Install system dependencies if needed
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create app directory
 WORKDIR /app
 
-# Copy requirements
-COPY requirements.txt .
-
-# Install dependencies as root (but with --user flag for non-root later)
-RUN pip install --no-cache-dir --user -r requirements.txt
-
-# Copy application code
-COPY . .
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app /root/.local
+RUN useradd -m -u 1000 appuser
 
-# Switch to non-root user
+# Create and activate virtual environment
+ENV VIRTUAL_ENV=/app/venv
+RUN python -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Install requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Switch to non-root user and copy application
 USER appuser
+COPY --chown=appuser:appuser . .
 
-# Add user's local bin to PATH
-ENV PATH="/root/.local/bin:$PATH"
-
-EXPOSE 8000
-CMD ["python", "app.py"]
+CMD ["gunicorn", "app:application"]
