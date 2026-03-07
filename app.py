@@ -24,7 +24,13 @@ from flask import (
 APP_NAME = "attendance_app"
 
 # Persistent storage directory (PandaStack: mount a volume here, e.g. /data)
-DATA_DIR = os.environ.get("DATA_DIR", "/data")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+DATA_DIR = os.getenv(
+    "DATA_DIR",
+    os.path.join(BASE_DIR, "data")
+)
+
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # SQLite DB path
