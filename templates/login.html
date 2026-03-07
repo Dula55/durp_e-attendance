@@ -88,7 +88,7 @@
                     </div>
 
                     <div class="flex items-center">
-                        <input type="checkbox" id="remember" class="rounded border-slate-300 text-primary focus:ring-primary">
+                        <input type="checkbox" id="remember" class="rounded border-slate-300 text-primary focus:ring-primary" checked>
                         <label for="remember" class="ml-2 text-sm text-slate-600">Remember me</label>
                     </div>
 
@@ -179,6 +179,7 @@
             
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
+            const remember = document.getElementById('remember').checked;
             
             try {
                 const response = await fetch('/api/login', {
@@ -186,7 +187,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username, password, remember })
                 });
                 
                 const data = await response.json();
@@ -195,7 +196,7 @@
                     showFlashMessage(data.message, 'success');
                     setTimeout(() => {
                         window.location.href = `/${data.role}-dashboard`;
-                    }, 1500);
+                    }, 800);
                 } else {
                     showFlashMessage(data.message, 'error');
                 }

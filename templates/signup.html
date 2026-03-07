@@ -152,6 +152,12 @@
                         </label>
                     </div>
 
+                    <!-- Remember me for persistent session after signup -->
+                    <div class="flex items-center">
+                        <input type="checkbox" id="rememberSignup" class="rounded border-slate-300 text-primary focus:ring-primary" checked>
+                        <label for="rememberSignup" class="ml-2 text-sm text-slate-600">Remember me (keep me logged in)</label>
+                    </div>
+
                     <button type="submit" class="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-semibold transition-colors">Create Account</button>
 
                     <div class="text-center pt-4 border-t border-slate-200 dark:border-slate-700">
@@ -325,6 +331,7 @@
             const username = document.getElementById('signupUsername').value;
             const password = document.getElementById('signupPassword').value;
             const matricNumber = document.getElementById('matricNumber').value;
+            const remember = document.getElementById('rememberSignup').checked;
             
             if (role === 'student' && !matricNumber) {
                 showFlashMessage('Matric number is required for students', 'error');
@@ -347,7 +354,8 @@
                         fullName,
                         username,
                         password,
-                        matricNumber: role === 'student' ? matricNumber : null
+                        matricNumber: role === 'student' ? matricNumber : null,
+                        remember: remember
                     })
                 });
                 
@@ -361,7 +369,7 @@
                         } else {
                             window.location.href = `/${data.role}-dashboard`;
                         }
-                    }, 1500);
+                    }, 1000);
                 } else {
                     showFlashMessage(data.message, 'error');
                 }

@@ -6,6 +6,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timedelta
 from functools import wraps
+from uuid import uuid4
 
 from flask import (
     Flask,
@@ -23,7 +24,7 @@ from flask import (
 # ==========================
 APP_NAME = "attendance_app"
 
-# Persistent storage directory (PandaStack: mount a volume here, e.g. /data)
+# Persistent storage directory (mount a volume here in production if necessary)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 DATA_DIR = os.getenv(
@@ -54,6 +55,8 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = SECRET_KEY
 app.debug = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
 
+# Make sessions optionally persistent for "remember me"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SECURE"] = SESSION_COOKIE_SECURE
 app.config["SESSION_COOKIE_SAMESITE"] = SESSION_COOKIE_SAMESITE
@@ -93,8 +96,15 @@ logger.info("Starting application - logs to %s", LOG_FILE)
 def get_db():
     db = getattr(g, "_database", None)
     if db is None:
+        # Use check_same_thread=False for shared usage in dev; for production consider a proper DB server
         db = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES, check_same_thread=False)
         db.row_factory = sqlite3.Row
+        # Improve durability and concurrency
+        try:
+            db.execute("PRAGMA journal_mode=WAL;")
+            db.execute("PRAGMA foreign_keys=ON;")
+        except Exception:
+            pass
         g._database = db
     return db
 
@@ -116,7 +126,7 @@ def init_db():
             password TEXT NOT NULL,
             role TEXT NOT NULL,
             fullName TEXT,
-            matricNumber TEXT,
+            matricNumber TEXT UNIQUE,
             isApproved INTEGER DEFAULT 0,
             createdAt TEXT
         )
@@ -341,13 +351,18 @@ def index():
 @app.route("/login")
 def login():
     if "user_id" in session:
-        return redirect(url_for(f"{session['role']}_dashboard"))
+        # redirect to the correct dashboard
+        role = session.get("role")
+        if role:
+            return redirect(url_for(f"{role}_dashboard"))
     return render_template("login.html")
 
 @app.route("/signup")
 def signup():
     if "user_id" in session:
-        return redirect(url_for(f"{session['role']}_dashboard"))
+        role = session.get("role")
+        if role:
+            return redirect(url_for(f"{role}_dashboard"))
     return render_template("signup.html")
 
 @app.route("/forgot-password")
@@ -381,12 +396,14 @@ def api_login():
         data = request.json or {}
         username = data.get("username")
         password = data.get("password")
+        remember = bool(data.get("remember", False))
 
         user = get_user_by_username_or_matric(username)
         if user and verify_password(password, user["password"]):
             if user["role"] == "lecturer" and not user.get("isApproved"):
                 return jsonify({"success": False, "message": "Your account is pending approval"}), 403
 
+            # Set session
             session.update({
                 "user_id": user["id"],
                 "username": user["username"],
@@ -395,7 +412,10 @@ def api_login():
                 "matric_number": user.get("matricNumber"),
             })
 
-            logger.info("User logged in: %s (role=%s)", user["username"], user["role"])
+            # If user requested "remember", make session permanent
+            session.permanent = remember
+
+            logger.info("User logged in: %s (role=%s) remember=%s", user["username"], user["role"], remember)
             return jsonify({"success": True, "role": user["role"], "message": "Login successful"})
         else:
             logger.warning("Failed login attempt for username: %s", username)
@@ -413,6 +433,7 @@ def api_signup():
         role = data.get("role")
         fullName = data.get("fullName")
         matricNumber = data.get("matricNumber")
+        remember = bool(data.get("remember", False))
 
         if not username or not password or not role:
             return jsonify({"success": False, "message": "username, password and role are required"}), 400
@@ -426,18 +447,19 @@ def api_signup():
                 return jsonify({"success": False, "message": "Matric number already registered"}), 409
 
         new_user = {
-            "id": str(datetime.utcnow().timestamp()),
+            "id": str(uuid4()),
             "username": username,
             "password": hash_password(password),
             "role": role,
             "fullName": fullName,
-            "matricNumber": matricNumber if role == "student" else None,
+            "matricNumber": matricNumber if role == "student" and matricNumber else None,
             "isApproved": False if role == "lecturer" else True,
             "createdAt": now_iso(),
         }
 
         create_user(new_user)
 
+        # Auto-login for non-lecturers
         if role != "lecturer":
             session.update({
                 "user_id": new_user["id"],
@@ -445,6 +467,7 @@ def api_signup():
                 "role": new_user["role"],
                 "full_name": new_user["fullName"],
             })
+            session.permanent = remember
 
         logger.info("New user created: %s (role=%s)", username, role)
         return jsonify({
@@ -515,23 +538,23 @@ def api_submit_attendance():
     try:
         data = request.json or {}
         course_code = data.get("courseCode")
-        
+
         if not course_code:
             return jsonify({"success": False, "message": "Course code is required"}), 400
-            
+
         today_date = datetime.utcnow().strftime("%Y-%m-%d")
-        
+
         # Check if student has already submitted attendance for this course today
         if check_existing_attendance(session["user_id"], course_code, today_date):
-            logger.warning("Student %s attempted duplicate attendance for course %s on %s", 
+            logger.warning("Student %s attempted duplicate attendance for course %s on %s",
                           session.get("username"), course_code, today_date)
             return jsonify({
-                "success": False, 
+                "success": False,
                 "message": "You have already submitted attendance for this course today. Only one submission is allowed per day."
             }), 400
-        
+
         record = {
-            "id": str(datetime.utcnow().timestamp()),
+            "id": str(uuid4()),
             "studentId": session["user_id"],
             "studentName": session.get("full_name"),
             "matricNumber": data.get("matricNumber"),
@@ -544,10 +567,10 @@ def api_submit_attendance():
             "time": datetime.utcnow().strftime("%H:%M"),
             "deviceType": data.get("deviceType", "Desktop"),
         }
-        
+
         try:
             add_attendance_record(record)
-            logger.info("Attendance recorded for student %s in course %s", 
+            logger.info("Attendance recorded for student %s in course %s",
                        session.get("username"), course_code)
             return jsonify({"success": True, "message": "Attendance submitted successfully"})
         except sqlite3.IntegrityError:
@@ -555,10 +578,10 @@ def api_submit_attendance():
             logger.warning("Database integrity error - duplicate attendance attempt for student %s in course %s on %s",
                           session.get("username"), course_code, today_date)
             return jsonify({
-                "success": False, 
+                "success": False,
                 "message": "You have already submitted attendance for this course today. Only one submission is allowed per day."
             }), 400
-            
+
     except Exception as e:
         logger.exception("Error in submit-attendance: %s", e)
         return jsonify({"success": False, "message": "Server error"}), 500
@@ -572,10 +595,10 @@ def api_check_attendance_status():
         course_code = request.args.get("courseCode")
         if not course_code:
             return jsonify({"success": False, "message": "Course code is required"}), 400
-            
+
         today_date = datetime.utcnow().strftime("%Y-%m-%d")
         has_submitted = check_existing_attendance(session["user_id"], course_code, today_date)
-        
+
         return jsonify({
             "success": True,
             "hasSubmitted": has_submitted,
