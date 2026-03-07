@@ -136,7 +136,8 @@ def init_db():
             timestamp TEXT,
             date TEXT,
             time TEXT,
-            deviceType TEXT
+            deviceType TEXT,
+            UNIQUE(studentId, courseCode, date)
         )
         """
     )
@@ -231,6 +232,16 @@ def delete_user_by_id(user_id):
     cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
     db.commit()
     return cur.rowcount > 0
+
+def check_existing_attendance(student_id, course_code, date):
+    """Check if attendance already exists for a student in a course on a specific date"""
+    db = get_db()
+    cur = db.cursor()
+    cur.execute(
+        "SELECT id FROM attendance WHERE studentId = ? AND courseCode = ? AND date = ? LIMIT 1",
+        (student_id, course_code, date),
+    )
+    return cur.fetchone() is not None
 
 def add_attendance_record(record: dict):
     db = get_db()
@@ -503,25 +514,75 @@ def api_reset_password():
 def api_submit_attendance():
     try:
         data = request.json or {}
+        course_code = data.get("courseCode")
+        
+        if not course_code:
+            return jsonify({"success": False, "message": "Course code is required"}), 400
+            
+        today_date = datetime.utcnow().strftime("%Y-%m-%d")
+        
+        # Check if student has already submitted attendance for this course today
+        if check_existing_attendance(session["user_id"], course_code, today_date):
+            logger.warning("Student %s attempted duplicate attendance for course %s on %s", 
+                          session.get("username"), course_code, today_date)
+            return jsonify({
+                "success": False, 
+                "message": "You have already submitted attendance for this course today. Only one submission is allowed per day."
+            }), 400
+        
         record = {
             "id": str(datetime.utcnow().timestamp()),
             "studentId": session["user_id"],
             "studentName": session.get("full_name"),
             "matricNumber": data.get("matricNumber"),
-            "courseCode": data.get("courseCode"),
+            "courseCode": course_code,
             "latitude": data.get("latitude"),
             "longitude": data.get("longitude"),
             "faceImage": data.get("faceImage"),
             "timestamp": now_iso(),
-            "date": datetime.utcnow().strftime("%Y-%m-%d"),
+            "date": today_date,
             "time": datetime.utcnow().strftime("%H:%M"),
             "deviceType": data.get("deviceType", "Desktop"),
         }
-        add_attendance_record(record)
-        logger.info("Attendance recorded for student %s", session.get("username"))
-        return jsonify({"success": True, "message": "Attendance submitted successfully"})
+        
+        try:
+            add_attendance_record(record)
+            logger.info("Attendance recorded for student %s in course %s", 
+                       session.get("username"), course_code)
+            return jsonify({"success": True, "message": "Attendance submitted successfully"})
+        except sqlite3.IntegrityError:
+            # This handles the case where the UNIQUE constraint catches a duplicate
+            logger.warning("Database integrity error - duplicate attendance attempt for student %s in course %s on %s",
+                          session.get("username"), course_code, today_date)
+            return jsonify({
+                "success": False, 
+                "message": "You have already submitted attendance for this course today. Only one submission is allowed per day."
+            }), 400
+            
     except Exception as e:
         logger.exception("Error in submit-attendance: %s", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/api/check-attendance-status", methods=["GET"])
+@login_required
+@role_required("student")
+def api_check_attendance_status():
+    """Check if student has already submitted attendance for a specific course today"""
+    try:
+        course_code = request.args.get("courseCode")
+        if not course_code:
+            return jsonify({"success": False, "message": "Course code is required"}), 400
+            
+        today_date = datetime.utcnow().strftime("%Y-%m-%d")
+        has_submitted = check_existing_attendance(session["user_id"], course_code, today_date)
+        
+        return jsonify({
+            "success": True,
+            "hasSubmitted": has_submitted,
+            "message": "Already submitted today" if has_submitted else "Can submit attendance"
+        })
+    except Exception as e:
+        logger.exception("Error in check-attendance-status: %s", e)
         return jsonify({"success": False, "message": "Server error"}), 500
 
 @app.route("/api/get-attendance", methods=["GET"])

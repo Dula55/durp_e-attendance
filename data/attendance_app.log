@@ -6,3 +6,11 @@
  * Running on http://127.0.0.1:8000
  * Running on http://172.25.11.106:8000
 2026-03-07 13:32:23,114 INFO werkzeug [_internal.py:187] - [33mPress CTRL+C to quit[0m
+2026-03-07 16:46:08,115 INFO __main__ [app.py:88] - Starting application - logs to C:\Users\HP\Desktop\durp_e-attendance\data\attendance_app.log
+2026-03-07 16:46:08,129 INFO __main__ [app.py:153] - Initialized database at C:\Users\HP\Desktop\durp_e-attendance\data\app.db
+2026-03-07 16:46:08,144 INFO __main__ [app.py:623] - Running dev server on port 8000
+2026-03-07 16:46:11,674 INFO werkzeug [_internal.py:97] - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://172.25.11.106:8000
+2026-03-07 16:46:11,676 INFO werkzeug [_internal.py:97] - [33mPress CTRL+C to quit[0m
