@@ -3,6 +3,8 @@ import sqlite3
 import hashlib
 import secrets
 import logging
+import psycopg2
+import psycopg2.extras
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timedelta
 from functools import wraps
@@ -34,8 +36,12 @@ DATA_DIR = os.getenv(
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# SQLite DB path
-DB_PATH = os.path.join(DATA_DIR, "app.db")
+# Database configuration
+DATABASE_URL = os.environ.get("DATABASE_URL")  # For PostgreSQL on Render
+USE_POSTGRESQL = DATABASE_URL is not None
+
+# SQLite DB path (fallback)
+SQLITE_DB_PATH = os.path.join(DATA_DIR, "app.db")
 
 # Secret key and session settings
 SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_hex(32))
@@ -88,23 +94,36 @@ def setup_logging():
 
 setup_logging()
 logger = logging.getLogger(__name__)
-logger.info("Starting application - logs to %s", LOG_FILE)
+logger.info("Starting application - using %s database", "PostgreSQL" if USE_POSTGRESQL else "SQLite")
+logger.info("Logs to %s", LOG_FILE)
 
 # ==========================
 # Database helpers
 # ==========================
 def get_db():
+    if USE_POSTGRESQL:
+        return get_postgres_db()
+    else:
+        return get_sqlite_db()
+
+def get_sqlite_db():
     db = getattr(g, "_database", None)
     if db is None:
-        # Use check_same_thread=False for shared usage in dev; for production consider a proper DB server
-        db = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES, check_same_thread=False)
+        db = sqlite3.connect(SQLITE_DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES, check_same_thread=False)
         db.row_factory = sqlite3.Row
-        # Improve durability and concurrency
         try:
             db.execute("PRAGMA journal_mode=WAL;")
             db.execute("PRAGMA foreign_keys=ON;")
         except Exception:
             pass
+        g._database = db
+    return db
+
+def get_postgres_db():
+    db = getattr(g, "_database", None)
+    if db is None:
+        db = psycopg2.connect(DATABASE_URL)
+        db.cursor_factory = psycopg2.extras.RealDictCursor
         g._database = db
     return db
 
@@ -116,6 +135,12 @@ def close_db(error=None):
         g._database = None
 
 def init_db():
+    if USE_POSTGRESQL:
+        init_postgres_db()
+    else:
+        init_sqlite_db()
+
+def init_sqlite_db():
     db = get_db()
     cursor = db.cursor()
     cursor.execute(
@@ -161,11 +186,116 @@ def init_db():
         """
     )
     db.commit()
-    logger.info("Initialized database at %s", DB_PATH)
+    logger.info("Initialized SQLite database at %s", SQLITE_DB_PATH)
+
+def init_postgres_db():
+    db = get_db()
+    cursor = db.cursor()
+    
+    # Create users table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL,
+            "fullName" TEXT,
+            "matricNumber" TEXT UNIQUE,
+            "isApproved" INTEGER DEFAULT 0,
+            "createdAt" TEXT
+        )
+    """)
+    
+    # Create attendance table with unique constraint
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS attendance (
+            id TEXT PRIMARY KEY,
+            "studentId" TEXT NOT NULL,
+            "studentName" TEXT,
+            "matricNumber" TEXT,
+            "courseCode" TEXT,
+            latitude REAL,
+            longitude REAL,
+            "faceImage" TEXT,
+            timestamp TEXT,
+            date TEXT,
+            time TEXT,
+            "deviceType" TEXT,
+            UNIQUE("studentId", "courseCode", date)
+        )
+    """)
+    
+    # Create reset_tokens table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS reset_tokens (
+            token TEXT PRIMARY KEY,
+            user_id TEXT,
+            expires TEXT
+        )
+    """)
+    
+    db.commit()
+    logger.info("Initialized PostgreSQL database")
 
 with app.app_context():
     try:
         init_db()
+        
+        # Create default admin user if it doesn't exist
+        db = get_db()
+        cursor = db.cursor()
+        
+        if USE_POSTGRESQL:
+            cursor.execute("SELECT * FROM users WHERE username = 'admin'")
+        else:
+            cursor.execute("SELECT * FROM users WHERE username = ?", ('admin',))
+        
+        admin = cursor.fetchone()
+        
+        if not admin:
+            admin_user = {
+                "id": str(uuid4()),
+                "username": "admin",
+                "password": hash_password("admin123"),
+                "role": "admin",
+                "fullName": "System Administrator",
+                "matricNumber": None,
+                "isApproved": True,
+                "createdAt": now_iso(),
+            }
+            
+            if USE_POSTGRESQL:
+                cursor.execute("""
+                    INSERT INTO users (id, username, password, role, "fullName", "matricNumber", "isApproved", "createdAt")
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    admin_user["id"],
+                    admin_user["username"],
+                    admin_user["password"],
+                    admin_user["role"],
+                    admin_user["fullName"],
+                    admin_user["matricNumber"],
+                    admin_user["isApproved"],
+                    admin_user["createdAt"],
+                ))
+            else:
+                cursor.execute("""
+                    INSERT INTO users (id, username, password, role, fullName, matricNumber, isApproved, createdAt)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    admin_user["id"],
+                    admin_user["username"],
+                    admin_user["password"],
+                    admin_user["role"],
+                    admin_user["fullName"],
+                    admin_user["matricNumber"],
+                    admin_user["isApproved"],
+                    admin_user["createdAt"],
+                ))
+            
+            db.commit()
+            logger.info("Created default admin user (username: admin, password: admin123)")
+            
     except Exception as e:
         logger.exception("Failed to initialize DB: %s", e)
         raise
@@ -188,58 +318,105 @@ def now_iso():
 def create_user(user: dict):
     db = get_db()
     cur = db.cursor()
-    cur.execute(
-        """
-        INSERT INTO users (id, username, password, role, fullName, matricNumber, isApproved, createdAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            user["id"],
-            user["username"],
-            user["password"],
-            user["role"],
-            user.get("fullName"),
-            user.get("matricNumber"),
-            1 if user.get("isApproved") else 0,
-            user.get("createdAt", now_iso()),
-        ),
-    )
+    
+    if USE_POSTGRESQL:
+        cur.execute(
+            """
+            INSERT INTO users (id, username, password, role, "fullName", "matricNumber", "isApproved", "createdAt")
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                user["id"],
+                user["username"],
+                user["password"],
+                user["role"],
+                user.get("fullName"),
+                user.get("matricNumber"),
+                1 if user.get("isApproved") else 0,
+                user.get("createdAt", now_iso()),
+            ),
+        )
+    else:
+        cur.execute(
+            """
+            INSERT INTO users (id, username, password, role, fullName, matricNumber, isApproved, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                user["id"],
+                user["username"],
+                user["password"],
+                user["role"],
+                user.get("fullName"),
+                user.get("matricNumber"),
+                1 if user.get("isApproved") else 0,
+                user.get("createdAt", now_iso()),
+            ),
+        )
     db.commit()
 
 def get_user_by_username_or_matric(identifier):
     db = get_db()
     cur = db.cursor()
-    cur.execute(
-        "SELECT * FROM users WHERE username = ? OR matricNumber = ? LIMIT 1",
-        (identifier, identifier),
-    )
+    
+    if USE_POSTGRESQL:
+        cur.execute(
+            "SELECT * FROM users WHERE username = %s OR \"matricNumber\" = %s LIMIT 1",
+            (identifier, identifier),
+        )
+    else:
+        cur.execute(
+            "SELECT * FROM users WHERE username = ? OR matricNumber = ? LIMIT 1",
+            (identifier, identifier),
+        )
+    
     row = cur.fetchone()
     return dict(row) if row else None
 
 def get_user_by_id(user_id):
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT * FROM users WHERE id = ? LIMIT 1", (user_id,))
+    
+    if USE_POSTGRESQL:
+        cur.execute("SELECT * FROM users WHERE id = %s LIMIT 1", (user_id,))
+    else:
+        cur.execute("SELECT * FROM users WHERE id = ? LIMIT 1", (user_id,))
+    
     row = cur.fetchone()
     return dict(row) if row else None
 
 def list_users_safely():
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT id, username, role, fullName, matricNumber, isApproved, createdAt FROM users")
+    
+    if USE_POSTGRESQL:
+        cur.execute("SELECT id, username, role, \"fullName\", \"matricNumber\", \"isApproved\", \"createdAt\" FROM users")
+    else:
+        cur.execute("SELECT id, username, role, fullName, matricNumber, isApproved, createdAt FROM users")
+    
     return [dict(r) for r in cur.fetchall()]
 
 def approve_lecturer_by_id(user_id):
     db = get_db()
     cur = db.cursor()
-    cur.execute("UPDATE users SET isApproved = 1 WHERE id = ? AND role = 'lecturer'", (user_id,))
+    
+    if USE_POSTGRESQL:
+        cur.execute("UPDATE users SET \"isApproved\" = 1 WHERE id = %s AND role = 'lecturer'", (user_id,))
+    else:
+        cur.execute("UPDATE users SET isApproved = 1 WHERE id = ? AND role = 'lecturer'", (user_id,))
+    
     db.commit()
     return cur.rowcount > 0
 
 def delete_user_by_id(user_id):
     db = get_db()
     cur = db.cursor()
-    cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    
+    if USE_POSTGRESQL:
+        cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+    else:
+        cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    
     db.commit()
     return cur.rowcount > 0
 
@@ -247,77 +424,141 @@ def check_existing_attendance(student_id, course_code, date):
     """Check if attendance already exists for a student in a course on a specific date"""
     db = get_db()
     cur = db.cursor()
-    cur.execute(
-        "SELECT id FROM attendance WHERE studentId = ? AND courseCode = ? AND date = ? LIMIT 1",
-        (student_id, course_code, date),
-    )
+    
+    if USE_POSTGRESQL:
+        cur.execute(
+            "SELECT id FROM attendance WHERE \"studentId\" = %s AND \"courseCode\" = %s AND date = %s LIMIT 1",
+            (student_id, course_code, date),
+        )
+    else:
+        cur.execute(
+            "SELECT id FROM attendance WHERE studentId = ? AND courseCode = ? AND date = ? LIMIT 1",
+            (student_id, course_code, date),
+        )
+    
     return cur.fetchone() is not None
 
 def add_attendance_record(record: dict):
     db = get_db()
     cur = db.cursor()
-    cur.execute(
-        """
-        INSERT INTO attendance (id, studentId, studentName, matricNumber, courseCode,
-            latitude, longitude, faceImage, timestamp, date, time, deviceType)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            record["id"],
-            record["studentId"],
-            record.get("studentName"),
-            record.get("matricNumber"),
-            record.get("courseCode"),
-            record.get("latitude"),
-            record.get("longitude"),
-            record.get("faceImage"),
-            record.get("timestamp"),
-            record.get("date"),
-            record.get("time"),
-            record.get("deviceType"),
-        ),
-    )
+    
+    if USE_POSTGRESQL:
+        cur.execute(
+            """
+            INSERT INTO attendance (id, "studentId", "studentName", "matricNumber", "courseCode",
+                latitude, longitude, "faceImage", timestamp, date, time, "deviceType")
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                record["id"],
+                record["studentId"],
+                record.get("studentName"),
+                record.get("matricNumber"),
+                record.get("courseCode"),
+                record.get("latitude"),
+                record.get("longitude"),
+                record.get("faceImage"),
+                record.get("timestamp"),
+                record.get("date"),
+                record.get("time"),
+                record.get("deviceType"),
+            ),
+        )
+    else:
+        cur.execute(
+            """
+            INSERT INTO attendance (id, studentId, studentName, matricNumber, courseCode,
+                latitude, longitude, faceImage, timestamp, date, time, deviceType)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record["id"],
+                record["studentId"],
+                record.get("studentName"),
+                record.get("matricNumber"),
+                record.get("courseCode"),
+                record.get("latitude"),
+                record.get("longitude"),
+                record.get("faceImage"),
+                record.get("timestamp"),
+                record.get("date"),
+                record.get("time"),
+                record.get("deviceType"),
+            ),
+        )
     db.commit()
 
 def get_attendance_all():
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT * FROM attendance ORDER BY timestamp DESC")
+    
+    if USE_POSTGRESQL:
+        cur.execute("SELECT * FROM attendance ORDER BY timestamp DESC")
+    else:
+        cur.execute("SELECT * FROM attendance ORDER BY timestamp DESC")
+    
     return [dict(r) for r in cur.fetchall()]
 
 def get_attendance_by_student(student_id):
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT * FROM attendance WHERE studentId = ? ORDER BY timestamp DESC", (student_id,))
+    
+    if USE_POSTGRESQL:
+        cur.execute("SELECT * FROM attendance WHERE \"studentId\" = %s ORDER BY timestamp DESC", (student_id,))
+    else:
+        cur.execute("SELECT * FROM attendance WHERE studentId = ? ORDER BY timestamp DESC", (student_id,))
+    
     return [dict(r) for r in cur.fetchall()]
 
 def delete_attendance_by_id(record_id):
     db = get_db()
     cur = db.cursor()
-    cur.execute("DELETE FROM attendance WHERE id = ?", (record_id,))
+    
+    if USE_POSTGRESQL:
+        cur.execute("DELETE FROM attendance WHERE id = %s", (record_id,))
+    else:
+        cur.execute("DELETE FROM attendance WHERE id = ?", (record_id,))
+    
     db.commit()
     return cur.rowcount > 0
 
 def add_reset_token(token: str, user_id: str, expires_iso: str):
     db = get_db()
     cur = db.cursor()
-    cur.execute(
-        "INSERT INTO reset_tokens (token, user_id, expires) VALUES (?, ?, ?)",
-        (token, user_id, expires_iso),
-    )
+    
+    if USE_POSTGRESQL:
+        cur.execute(
+            "INSERT INTO reset_tokens (token, user_id, expires) VALUES (%s, %s, %s)",
+            (token, user_id, expires_iso),
+        )
+    else:
+        cur.execute(
+            "INSERT INTO reset_tokens (token, user_id, expires) VALUES (?, ?, ?)",
+            (token, user_id, expires_iso),
+        )
     db.commit()
 
 def get_reset_token(token: str):
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT * FROM reset_tokens WHERE token = ? LIMIT 1", (token,))
+    
+    if USE_POSTGRESQL:
+        cur.execute("SELECT * FROM reset_tokens WHERE token = %s LIMIT 1", (token,))
+    else:
+        cur.execute("SELECT * FROM reset_tokens WHERE token = ? LIMIT 1", (token,))
+    
     row = cur.fetchone()
     return dict(row) if row else None
 
 def delete_reset_token(token: str):
     db = get_db()
     cur = db.cursor()
-    cur.execute("DELETE FROM reset_tokens WHERE token = ?", (token,))
+    
+    if USE_POSTGRESQL:
+        cur.execute("DELETE FROM reset_tokens WHERE token = %s", (token,))
+    else:
+        cur.execute("DELETE FROM reset_tokens WHERE token = ?", (token,))
+    
     db.commit()
 
 # ==========================
@@ -475,9 +716,6 @@ def api_signup():
             "role": role,
             "message": "Account created successfully" + (" (Pending approval)" if role == "lecturer" else "")
         })
-    except sqlite3.IntegrityError as ie:
-        logger.exception("DB integrity error during signup: %s", ie)
-        return jsonify({"success": False, "message": "Username or matric number already exists"}), 409
     except Exception as e:
         logger.exception("Error in api_signup: %s", e)
         return jsonify({"success": False, "message": "Server error"}), 500
@@ -521,7 +759,12 @@ def api_reset_password():
             if user:
                 db = get_db()
                 cur = db.cursor()
-                cur.execute("UPDATE users SET password = ? WHERE id = ?", (hash_password(new_password), user["id"]))
+                
+                if USE_POSTGRESQL:
+                    cur.execute("UPDATE users SET password = %s WHERE id = %s", (hash_password(new_password), user["id"]))
+                else:
+                    cur.execute("UPDATE users SET password = ? WHERE id = ?", (hash_password(new_password), user["id"]))
+                
                 db.commit()
                 delete_reset_token(token)
                 logger.info("Password reset for user id %s", user["id"])
@@ -573,10 +816,10 @@ def api_submit_attendance():
             logger.info("Attendance recorded for student %s in course %s",
                        session.get("username"), course_code)
             return jsonify({"success": True, "message": "Attendance submitted successfully"})
-        except sqlite3.IntegrityError:
+        except Exception as e:
             # This handles the case where the UNIQUE constraint catches a duplicate
-            logger.warning("Database integrity error - duplicate attendance attempt for student %s in course %s on %s",
-                          session.get("username"), course_code, today_date)
+            logger.warning("Database integrity error - duplicate attendance attempt for student %s in course %s on %s: %s",
+                          session.get("username"), course_code, today_date, str(e))
             return jsonify({
                 "success": False,
                 "message": "You have already submitted attendance for this course today. Only one submission is allowed per day."
