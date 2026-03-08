@@ -41,3 +41,13 @@ Traceback (most recent call last):
     "createdAt": now_iso(),
                  ^^^^^^^
 NameError: name 'now_iso' is not defined
+2026-03-08 21:09:10,105 INFO __main__ [app.py:112] - Starting application - using SQLite database
+2026-03-08 21:09:10,106 INFO __main__ [app.py:113] - Logs to C:\Users\HP\Desktop\durp_e-attendance\data\attendance_app.log
+2026-03-08 21:09:10,126 INFO __main__ [app.py:204] - Initialized SQLite database at C:\Users\HP\Desktop\durp_e-attendance\data\app.db
+2026-03-08 21:09:10,136 INFO __main__ [app.py:312] - Created default admin user (username: admin, password: admin123)
+2026-03-08 21:09:10,160 INFO __main__ [app.py:953] - Running dev server on port 8000
+2026-03-08 21:09:12,540 INFO werkzeug [_internal.py:97] - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://10.49.128.106:8000
+2026-03-08 21:09:12,543 INFO werkzeug [_internal.py:97] - [33mPress CTRL+C to quit[0m

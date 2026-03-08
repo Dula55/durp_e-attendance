@@ -3,12 +3,13 @@ import sqlite3
 import hashlib
 import secrets
 import logging
-import psycopg2
-import psycopg2.extras
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timedelta
 from functools import wraps
 from uuid import uuid4
+
+# NOTE: psycopg2 import removed from top-level to avoid ImportError on incompatible Python builds.
+# We'll import a Postgres driver lazily inside get_postgres_db() only when DATABASE_URL is set.
 
 from flask import (
     Flask,
@@ -38,7 +39,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 # Database configuration
 DATABASE_URL = os.environ.get("DATABASE_URL")  # For PostgreSQL on Render
-USE_POSTGRESQL = DATABASE_URL is not None
+USE_POSTGRESQL = DATABASE_URL is not None and DATABASE_URL != ""
 
 # SQLite DB path (fallback)
 SQLITE_DB_PATH = os.path.join(DATA_DIR, "app.db")
@@ -135,18 +136,76 @@ def get_sqlite_db():
     return db
 
 def get_postgres_db():
+    """
+    Lazily import a Postgres client and return a connection.
+    Tries psycopg2 first, then psycopg (psycopg v3). If neither is usable,
+    raises a clear RuntimeError with guidance.
+    """
     db = getattr(g, "_database", None)
-    if db is None:
-        db = psycopg2.connect(DATABASE_URL)
-        db.cursor_factory = psycopg2.extras.RealDictCursor
-        g._database = db
-    return db
+    if db is not None:
+        return db
+
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL is not set but get_postgres_db was called.")
+
+    # Try psycopg2 (common, but note: psycopg2-binary may be incompatible with CPython 3.14 builds)
+    try:
+        import psycopg2
+        import psycopg2.extras
+
+        conn = psycopg2.connect(DATABASE_URL)
+        # ensure cursors default to returning mappings when possible
+        try:
+            conn.cursor_factory = psycopg2.extras.RealDictCursor
+        except Exception:
+            # some psycopg2 builds may not accept setting cursor_factory attribute,
+            # but we'll still use RealDictCursor explicitly when creating cursors elsewhere.
+            pass
+
+        g._database = conn
+        logger.info("Using psycopg2 for PostgreSQL connection")
+        return conn
+
+    except Exception as e_psycopg2:
+        logger.warning("psycopg2 import/connect failed: %s", e_psycopg2)
+
+    # Try psycopg (psycopg v3)
+    try:
+        import psycopg
+        from psycopg.rows import dict_row
+
+        # psycopg v3 supports row_factory to return dict-like rows
+        conn = psycopg.connect(DATABASE_URL, row_factory=dict_row)
+        g._database = conn
+        logger.info("Using psycopg (psycopg v3) for PostgreSQL connection")
+        return conn
+
+    except Exception as e_psycopg:
+        logger.warning("psycopg (v3) import/connect failed: %s", e_psycopg)
+
+    # If we reach here, no usable Postgres client is available.
+    msg = (
+        "No compatible PostgreSQL driver available. The application attempted to use psycopg2 "
+        "and psycopg (psycopg v3) but both failed to import/connect. "
+        "On Render this commonly happens when Python 3.14 is used with a psycopg2-binary build "
+        "that wasn't compiled for that Python ABI (undefined symbol: _PyInterpreterState_Get). "
+        "Possible fixes:\n"
+        "  * Pin your Python runtime to 3.11 by adding a runtime.txt with 'python-3.11.9' (recommended),\n"
+        "  * Or install a driver compatible with your Python version (e.g. 'psycopg' for psycopg v3),\n"
+        "  * Or remove DATABASE_URL / use SQLite fallback if you don't actually need Postgres in this environment.\n"
+        f"Original psycopg2 error: {e_psycopg2!r}; psycopg error: {e_psycopg!r}"
+    )
+    logger.error(msg)
+    raise RuntimeError(msg)
 
 @app.teardown_appcontext
 def close_db(error=None):
     db = getattr(g, "_database", None)
     if db is not None:
-        db.close()
+        try:
+            db.close()
+        except Exception:
+            pass
         g._database = None
 
 def init_db():
@@ -205,68 +264,96 @@ def init_sqlite_db():
 
 def init_postgres_db():
     db = get_db()
-    cursor = db.cursor()
-    
-    # Create users table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id TEXT PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT NOT NULL,
-            "fullName" TEXT,
-            "matricNumber" TEXT UNIQUE,
-            "isApproved" INTEGER DEFAULT 0,
-            "createdAt" TEXT
-        )
-    """)
-    
-    # Create attendance table with unique constraint
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS attendance (
-            id TEXT PRIMARY KEY,
-            "studentId" TEXT NOT NULL,
-            "studentName" TEXT,
-            "matricNumber" TEXT,
-            "courseCode" TEXT,
-            latitude REAL,
-            longitude REAL,
-            "faceImage" TEXT,
-            timestamp TEXT,
-            date TEXT,
-            time TEXT,
-            "deviceType" TEXT,
-            UNIQUE("studentId", "courseCode", date)
-        )
-    """)
-    
-    # Create reset_tokens table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS reset_tokens (
-            token TEXT PRIMARY KEY,
-            user_id TEXT,
-            expires TEXT
-        )
-    """)
-    
-    db.commit()
-    logger.info("Initialized PostgreSQL database")
+    cur = db.cursor()
+
+    # NOTE: cursor behavior differs between psycopg2 and psycopg (v3):
+    # - psycopg2: we try to use RealDictCursor when creating cursors (explicitly).
+    # - psycopg (v3): connections were created with row_factory=dict_row so fetches yield dicts.
+    # To keep the rest of the code simple, queries below use SQL and let fetch return mapping-like rows.
+    try:
+        # Create users table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL,
+                "fullName" TEXT,
+                "matricNumber" TEXT UNIQUE,
+                "isApproved" INTEGER DEFAULT 0,
+                "createdAt" TEXT
+            )
+        """)
+
+        # Create attendance table with unique constraint
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS attendance (
+                id TEXT PRIMARY KEY,
+                "studentId" TEXT NOT NULL,
+                "studentName" TEXT,
+                "matricNumber" TEXT,
+                "courseCode" TEXT,
+                latitude REAL,
+                longitude REAL,
+                "faceImage" TEXT,
+                timestamp TEXT,
+                date TEXT,
+                time TEXT,
+                "deviceType" TEXT,
+                UNIQUE("studentId", "courseCode", date)
+            )
+        """)
+
+        # Create reset_tokens table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS reset_tokens (
+                token TEXT PRIMARY KEY,
+                user_id TEXT,
+                expires TEXT
+            )
+        """)
+        db.commit()
+        logger.info("Initialized PostgreSQL database")
+    except Exception as e:
+        # If using psycopg2, some cursor factories require explicit usage; try again with explicit RealDictCursor
+        logger.exception("Error while initializing Postgres DB: %s", e)
+        raise
 
 with app.app_context():
     try:
         init_db()
-        
+
         # Create default admin user if it doesn't exist
         db = get_db()
-        cursor = db.cursor()
-        
+
+        # When using psycopg2, to get a dict-like row we need RealDictCursor when creating cursor.
+        # We'll create a cursor that returns mapping-like rows if possible.
+        def make_cursor_for_db(conn):
+            """
+            Return a cursor that yields mapping-like rows (dicts) if possible for downstream code.
+            """
+            # psycopg (v3) connections yield dict-like rows by default if row_factory set.
+            try:
+                # Try psycopg2 RealDictCursor (psycopg2 may expose extras)
+                import psycopg2.extras  # noqa: F401
+                return conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            except Exception:
+                try:
+                    # psycopg v3: conn.cursor() returns mapping-like rows if row_factory=dict_row used
+                    return conn.cursor()
+                except Exception:
+                    # fallback generic cursor
+                    return conn.cursor()
+
+        cursor = make_cursor_for_db(db)
+
         if USE_POSTGRESQL:
             cursor.execute("SELECT * FROM users WHERE username = 'admin'")
         else:
             cursor.execute("SELECT * FROM users WHERE username = ?", ('admin',))
-        
+
         admin = cursor.fetchone()
-        
+
         if not admin:
             admin_user = {
                 "id": str(uuid4()),
@@ -278,9 +365,11 @@ with app.app_context():
                 "isApproved": True,
                 "createdAt": now_iso(),
             }
-            
+
             if USE_POSTGRESQL:
-                cursor.execute("""
+                # Use parameterized insert
+                cur = make_cursor_for_db(db)
+                cur.execute("""
                     INSERT INTO users (id, username, password, role, "fullName", "matricNumber", "isApproved", "createdAt")
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
@@ -307,12 +396,13 @@ with app.app_context():
                     admin_user["isApproved"],
                     admin_user["createdAt"],
                 ))
-            
+
             db.commit()
             logger.info("Created default admin user (username: admin, password: admin123)")
-            
+
     except Exception as e:
         logger.exception("Failed to initialize DB: %s", e)
+        # Reraise so deployment logs show the real failure
         raise
 
 # ==========================
@@ -321,7 +411,7 @@ with app.app_context():
 def create_user(user: dict):
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute(
             """
@@ -361,8 +451,9 @@ def create_user(user: dict):
 def get_user_by_username_or_matric(identifier):
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
+        # psycopg2 RealDictCursor or psycopg dict_row will return mapping-like rows
         cur.execute(
             "SELECT * FROM users WHERE username = %s OR \"matricNumber\" = %s LIMIT 1",
             (identifier, identifier),
@@ -372,54 +463,54 @@ def get_user_by_username_or_matric(identifier):
             "SELECT * FROM users WHERE username = ? OR matricNumber = ? LIMIT 1",
             (identifier, identifier),
         )
-    
+
     row = cur.fetchone()
     return dict(row) if row else None
 
 def get_user_by_id(user_id):
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute("SELECT * FROM users WHERE id = %s LIMIT 1", (user_id,))
     else:
         cur.execute("SELECT * FROM users WHERE id = ? LIMIT 1", (user_id,))
-    
+
     row = cur.fetchone()
     return dict(row) if row else None
 
 def list_users_safely():
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute("SELECT id, username, role, \"fullName\", \"matricNumber\", \"isApproved\", \"createdAt\" FROM users")
     else:
         cur.execute("SELECT id, username, role, fullName, matricNumber, isApproved, createdAt FROM users")
-    
+
     return [dict(r) for r in cur.fetchall()]
 
 def approve_lecturer_by_id(user_id):
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute("UPDATE users SET \"isApproved\" = 1 WHERE id = %s AND role = 'lecturer'", (user_id,))
     else:
         cur.execute("UPDATE users SET isApproved = 1 WHERE id = ? AND role = 'lecturer'", (user_id,))
-    
+
     db.commit()
     return cur.rowcount > 0
 
 def delete_user_by_id(user_id):
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
     else:
         cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
-    
+
     db.commit()
     return cur.rowcount > 0
 
@@ -427,7 +518,7 @@ def check_existing_attendance(student_id, course_code, date):
     """Check if attendance already exists for a student in a course on a specific date"""
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute(
             "SELECT id FROM attendance WHERE \"studentId\" = %s AND \"courseCode\" = %s AND date = %s LIMIT 1",
@@ -438,13 +529,13 @@ def check_existing_attendance(student_id, course_code, date):
             "SELECT id FROM attendance WHERE studentId = ? AND courseCode = ? AND date = ? LIMIT 1",
             (student_id, course_code, date),
         )
-    
+
     return cur.fetchone() is not None
 
 def add_attendance_record(record: dict):
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute(
             """
@@ -494,41 +585,41 @@ def add_attendance_record(record: dict):
 def get_attendance_all():
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute("SELECT * FROM attendance ORDER BY timestamp DESC")
     else:
         cur.execute("SELECT * FROM attendance ORDER BY timestamp DESC")
-    
+
     return [dict(r) for r in cur.fetchall()]
 
 def get_attendance_by_student(student_id):
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute("SELECT * FROM attendance WHERE \"studentId\" = %s ORDER BY timestamp DESC", (student_id,))
     else:
         cur.execute("SELECT * FROM attendance WHERE studentId = ? ORDER BY timestamp DESC", (student_id,))
-    
+
     return [dict(r) for r in cur.fetchall()]
 
 def delete_attendance_by_id(record_id):
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute("DELETE FROM attendance WHERE id = %s", (record_id,))
     else:
         cur.execute("DELETE FROM attendance WHERE id = ?", (record_id,))
-    
+
     db.commit()
     return cur.rowcount > 0
 
 def add_reset_token(token: str, user_id: str, expires_iso: str):
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute(
             "INSERT INTO reset_tokens (token, user_id, expires) VALUES (%s, %s, %s)",
@@ -544,24 +635,24 @@ def add_reset_token(token: str, user_id: str, expires_iso: str):
 def get_reset_token(token: str):
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute("SELECT * FROM reset_tokens WHERE token = %s LIMIT 1", (token,))
     else:
         cur.execute("SELECT * FROM reset_tokens WHERE token = ? LIMIT 1", (token,))
-    
+
     row = cur.fetchone()
     return dict(row) if row else None
 
 def delete_reset_token(token: str):
     db = get_db()
     cur = db.cursor()
-    
+
     if USE_POSTGRESQL:
         cur.execute("DELETE FROM reset_tokens WHERE token = %s", (token,))
     else:
         cur.execute("DELETE FROM reset_tokens WHERE token = ?", (token,))
-    
+
     db.commit()
 
 # ==========================
@@ -762,12 +853,12 @@ def api_reset_password():
             if user:
                 db = get_db()
                 cur = db.cursor()
-                
+
                 if USE_POSTGRESQL:
                     cur.execute("UPDATE users SET password = %s WHERE id = %s", (hash_password(new_password), user["id"]))
                 else:
                     cur.execute("UPDATE users SET password = ? WHERE id = ?", (hash_password(new_password), user["id"]))
-                
+
                 db.commit()
                 delete_reset_token(token)
                 logger.info("Password reset for user id %s", user["id"])
