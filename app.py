@@ -1583,14 +1583,15 @@ def ratelimit_error(error):
     return jsonify({"success": False, "message": "Rate limit exceeded. Please try again later."}), 429
 
 # ==========================
-# Production runner
+# Local runner (for dev only)
 # ==========================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    logger.info("Starting production server on port %s", port)
-
-    app.run(
-        host="0.0.0.0",
-        port=port,
-        debug=app.debug
-    )
+    logger.info("Running development server on port %s", port)
+    logger.warning("This is a development server. Do not use in production!")
+    
+    # In production, use a proper WSGI server like gunicorn
+    if os.environ.get("USE_PRODUCTION_SERVER", "False").lower() == "true":
+        logger.error("Running in production mode with Flask's development server is not recommended!")
+    
+    app.run(host="0.0.0.0", port=port, debug=app.debug)
