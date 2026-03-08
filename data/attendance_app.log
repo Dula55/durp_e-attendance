@@ -14,3 +14,30 @@
  * Running on http://127.0.0.1:8000
  * Running on http://172.25.11.106:8000
 2026-03-07 16:46:11,676 INFO werkzeug [_internal.py:97] - [33mPress CTRL+C to quit[0m
+2026-03-08 20:58:07,190 INFO __main__ [app.py:97] - Starting application - using SQLite database
+2026-03-08 20:58:07,191 INFO __main__ [app.py:98] - Logs to C:\Users\HP\Desktop\durp_e-attendance\data\attendance_app.log
+2026-03-08 20:58:07,219 INFO __main__ [app.py:189] - Initialized SQLite database at C:\Users\HP\Desktop\durp_e-attendance\data\app.db
+2026-03-08 20:58:07,221 ERROR __main__ [app.py:300] - Failed to initialize DB: name 'hash_password' is not defined
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\durp_e-attendance\app.py", line 259, in <module>
+    "password": hash_password("admin123"),
+                ^^^^^^^^^^^^^
+NameError: name 'hash_password' is not defined
+2026-03-08 21:03:37,746 INFO __main__ [app.py:109] - Starting application - using SQLite database
+2026-03-08 21:03:37,748 INFO __main__ [app.py:110] - Logs to C:\Users\HP\Desktop\durp_e-attendance\data\attendance_app.log
+2026-03-08 21:03:37,765 INFO __main__ [app.py:201] - Initialized SQLite database at C:\Users\HP\Desktop\durp_e-attendance\data\app.db
+2026-03-08 21:03:37,767 ERROR __main__ [app.py:312] - Failed to initialize DB: name 'now_iso' is not defined
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\durp_e-attendance\app.py", line 276, in <module>
+    "createdAt": now_iso(),
+                 ^^^^^^^
+NameError: name 'now_iso' is not defined
+2026-03-08 21:04:47,448 INFO __main__ [app.py:100] - Starting application - using SQLite database
+2026-03-08 21:04:47,449 INFO __main__ [app.py:101] - Logs to C:\Users\HP\Desktop\durp_e-attendance\data\attendance_app.log
+2026-03-08 21:04:47,454 INFO __main__ [app.py:192] - Initialized SQLite database at C:\Users\HP\Desktop\durp_e-attendance\data\app.db
+2026-03-08 21:04:47,456 ERROR __main__ [app.py:303] - Failed to initialize DB: name 'now_iso' is not defined
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\durp_e-attendance\app.py", line 267, in <module>
+    "createdAt": now_iso(),
+                 ^^^^^^^
+NameError: name 'now_iso' is not defined

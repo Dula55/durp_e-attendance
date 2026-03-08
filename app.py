@@ -68,6 +68,21 @@ app.config["SESSION_COOKIE_SECURE"] = SESSION_COOKIE_SECURE
 app.config["SESSION_COOKIE_SAMESITE"] = SESSION_COOKIE_SAMESITE
 
 # ==========================
+# Utility functions
+# ==========================
+def hash_password(password: str) -> str:
+    """Return SHA256 hex digest of password (simple hashing)."""
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify a password against its SHA256 hash."""
+    return hash_password(password) == hashed
+
+def now_iso():
+    """Return current UTC time in ISO format."""
+    return datetime.utcnow().isoformat()
+
+# ==========================
 # Logging Setup
 # ==========================
 def setup_logging():
@@ -299,18 +314,6 @@ with app.app_context():
     except Exception as e:
         logger.exception("Failed to initialize DB: %s", e)
         raise
-
-# ==========================
-# Utility functions
-# ==========================
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
-
-def verify_password(password: str, hashed: str) -> bool:
-    return hash_password(password) == hashed
-
-def now_iso():
-    return datetime.utcnow().isoformat()
 
 # ==========================
 # DB CRUD Helpers
