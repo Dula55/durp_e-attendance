@@ -399,47 +399,6 @@ with app.app_context():
 
             db.commit()
             logger.info("Created default admin user (username: admin, password: admin123)")
-        else:
-            # Check if there are multiple admin users and enforce single admin policy
-            if USE_POSTGRESQL:
-                cursor.execute("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
-            else:
-                cursor.execute("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
-            
-            admin_count = cursor.fetchone()
-            admin_count_value = admin_count['count'] if admin_count else 0
-            
-            if admin_count_value > 1:
-                # We have multiple admins - need to resolve to single admin
-                logger.warning(f"Found {admin_count_value} admin users. Enforcing single admin policy.")
-                
-                # Get all admin users
-                if USE_POSTGRESQL:
-                    cursor.execute("SELECT id, username, createdAt FROM users WHERE role = 'admin' ORDER BY createdAt ASC")
-                else:
-                    cursor.execute("SELECT id, username, createdAt FROM users WHERE role = 'admin' ORDER BY createdAt ASC")
-                
-                all_admins = cursor.fetchall()
-                
-                # Keep the first admin (oldest by creation date) and demote/delete others
-                if len(all_admins) > 1:
-                    first_admin = all_admins[0]
-                    other_admins = all_admins[1:]
-                    
-                    logger.info(f"Keeping admin: {first_admin['username']} (ID: {first_admin['id']})")
-                    
-                    for extra_admin in other_admins:
-                        logger.info(f"Removing extra admin: {extra_admin['username']} (ID: {extra_admin['id']})")
-                        
-                        # Delete the extra admin user
-                        if USE_POSTGRESQL:
-                            cur = make_cursor_for_db(db)
-                            cur.execute("DELETE FROM users WHERE id = %s AND role = 'admin'", (extra_admin['id'],))
-                        else:
-                            cursor.execute("DELETE FROM users WHERE id = ? AND role = 'admin'", (extra_admin['id'],))
-                    
-                    db.commit()
-                    logger.info("Single admin policy enforced - kept 1 admin, removed %s extra admin(s)", len(other_admins))
 
     except Exception as e:
         logger.exception("Failed to initialize DB: %s", e)
@@ -452,20 +411,6 @@ with app.app_context():
 def create_user(user: dict):
     db = get_db()
     cur = db.cursor()
-
-    # Check if trying to create another admin when one already exists
-    if user["role"] == "admin":
-        if USE_POSTGRESQL:
-            cur.execute("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
-        else:
-            cur.execute("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
-        
-        admin_count = cur.fetchone()
-        admin_count_value = admin_count['count'] if admin_count else 0
-        
-        if admin_count_value >= 1:
-            logger.warning(f"Attempted to create another admin user '{user['username']}' but an admin already exists")
-            raise ValueError("Only one admin user is allowed in the system")
 
     if USE_POSTGRESQL:
         cur.execute(
@@ -545,6 +490,19 @@ def list_users_safely():
 
     return [dict(r) for r in cur.fetchall()]
 
+def count_admin_users():
+    """Count the number of admin users in the system"""
+    db = get_db()
+    cur = db.cursor()
+
+    if USE_POSTGRESQL:
+        cur.execute("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
+    else:
+        cur.execute("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
+
+    result = cur.fetchone()
+    return result['count'] if result else 0
+
 def approve_lecturer_by_id(user_id):
     db = get_db()
     cur = db.cursor()
@@ -560,25 +518,6 @@ def approve_lecturer_by_id(user_id):
 def delete_user_by_id(user_id):
     db = get_db()
     cur = db.cursor()
-    
-    # Check if we're trying to delete the last admin
-    if USE_POSTGRESQL:
-        cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
-    else:
-        cur.execute("SELECT role FROM users WHERE id = ?", (user_id,))
-    
-    user = cur.fetchone()
-    if user and user['role'] == 'admin':
-        # Check how many admins are left
-        if USE_POSTGRESQL:
-            cur.execute("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
-        else:
-            cur.execute("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
-        
-        admin_count = cur.fetchone()
-        if admin_count and admin_count['count'] <= 1:
-            logger.warning(f"Attempted to delete the only admin user (ID: {user_id})")
-            raise ValueError("Cannot delete the only admin user in the system")
 
     if USE_POSTGRESQL:
         cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
@@ -847,9 +786,16 @@ def api_signup():
         if not username or not password or not role:
             return jsonify({"success": False, "message": "username, password and role are required"}), 400
 
-        # Prevent signup as admin
+        # Check if trying to sign up as admin
         if role == "admin":
-            return jsonify({"success": False, "message": "Admin accounts cannot be created through signup"}), 403
+            # Count existing admin users
+            admin_count = count_admin_users()
+            if admin_count >= 1:
+                logger.warning("Attempted to create second admin user: %s", username)
+                return jsonify({
+                    "success": False, 
+                    "message": "Admin account already exists. Only one admin user is allowed in the system."
+                }), 403
 
         if get_user_by_username_or_matric(username):
             return jsonify({"success": False, "message": "Username already exists"}), 409
@@ -870,11 +816,7 @@ def api_signup():
             "createdAt": now_iso(),
         }
 
-        try:
-            create_user(new_user)
-        except ValueError as e:
-            # Handle the single admin policy error
-            return jsonify({"success": False, "message": str(e)}), 403
+        create_user(new_user)
 
         # Auto-login for non-lecturers
         if role != "lecturer":
@@ -1078,9 +1020,6 @@ def api_reject_lecturer(user_id):
             logger.info("Lecturer rejected/deleted: %s", user_id)
             return jsonify({"success": True, "message": "Lecturer rejected successfully"})
         return jsonify({"success": False, "message": "User not found"}), 404
-    except ValueError as e:
-        # Handle the case where trying to delete the only admin
-        return jsonify({"success": False, "message": str(e)}), 403
     except Exception as e:
         logger.exception("Error in reject-lecturer: %s", e)
         return jsonify({"success": False, "message": "Server error"}), 500
