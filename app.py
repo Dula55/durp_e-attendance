@@ -48,6 +48,13 @@ SQLITE_DB_PATH = os.path.join(DATA_DIR, "app.db")
 SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "False").lower() == "true"
 SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
+SESSION_TYPE = os.environ.get("SESSION_TYPE", "filesystem")  # Use filesystem for persistent sessions
+SESSION_PERMANENT = True  # Make sessions permanent by default
+SESSION_USE_SIGNER = True  # Sign cookies to prevent tampering
+SESSION_FILE_DIR = os.path.join(DATA_DIR, "flask_sessions")  # Directory for session files
+
+# Create session directory
+os.makedirs(SESSION_FILE_DIR, exist_ok=True)
 
 # Logging config
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -62,11 +69,15 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = SECRET_KEY
 app.debug = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
 
-# Make sessions optionally persistent for "remember me"
+# Make sessions persistent
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SECURE"] = SESSION_COOKIE_SECURE
 app.config["SESSION_COOKIE_SAMESITE"] = SESSION_COOKIE_SAMESITE
+app.config["SESSION_REFRESH_EACH_REQUEST"] = True  # Refresh session on each request to keep it alive
+app.config["SESSION_FILE_DIR"] = SESSION_FILE_DIR
+app.config["SESSION_FILE_THRESHOLD"] = 500  # Max number of session files
+app.config["SESSION_FILE_MODE"] = 0o600  # File permissions for session files
 
 # ==========================
 # Utility functions
@@ -217,6 +228,8 @@ def init_db():
 def init_sqlite_db():
     db = get_db()
     cursor = db.cursor()
+    
+    # Users table
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -231,6 +244,8 @@ def init_sqlite_db():
         )
         """
     )
+    
+    # Attendance table - records persist permanently
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS attendance (
@@ -250,6 +265,8 @@ def init_sqlite_db():
         )
         """
     )
+    
+    # Reset tokens table
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS reset_tokens (
@@ -259,6 +276,18 @@ def init_sqlite_db():
         )
         """
     )
+    
+    # Session table for server-side sessions (optional, but good for persistence)
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS sessions (
+            session_id TEXT PRIMARY KEY,
+            session_data TEXT,
+            expiry TEXT
+        )
+        """
+    )
+    
     db.commit()
     logger.info("Initialized SQLite database at %s", SQLITE_DB_PATH)
 
@@ -266,10 +295,6 @@ def init_postgres_db():
     db = get_db()
     cur = db.cursor()
 
-    # NOTE: cursor behavior differs between psycopg2 and psycopg (v3):
-    # - psycopg2: we try to use RealDictCursor when creating cursors (explicitly).
-    # - psycopg (v3): connections were created with row_factory=dict_row so fetches yield dicts.
-    # To keep the rest of the code simple, queries below use SQL and let fetch return mapping-like rows.
     try:
         # Create users table
         cur.execute("""
@@ -285,7 +310,7 @@ def init_postgres_db():
             )
         """)
 
-        # Create attendance table with unique constraint
+        # Create attendance table with unique constraint - records persist permanently
         cur.execute("""
             CREATE TABLE IF NOT EXISTS attendance (
                 id TEXT PRIMARY KEY,
@@ -312,10 +337,19 @@ def init_postgres_db():
                 expires TEXT
             )
         """)
+        
+        # Create sessions table for server-side sessions
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                session_id TEXT PRIMARY KEY,
+                session_data TEXT,
+                expiry TEXT
+            )
+        """)
+        
         db.commit()
         logger.info("Initialized PostgreSQL database")
     except Exception as e:
-        # If using psycopg2, some cursor factories require explicit usage; try again with explicit RealDictCursor
         logger.exception("Error while initializing Postgres DB: %s", e)
         raise
 
@@ -751,7 +785,8 @@ def api_login():
             if user["role"] == "lecturer" and not user.get("isApproved"):
                 return jsonify({"success": False, "message": "Your account is pending approval"}), 403
 
-            # Set session
+            # Set session with permanent flag
+            session.permanent = True  # Always make sessions permanent
             session.update({
                 "user_id": user["id"],
                 "username": user["username"],
@@ -760,8 +795,10 @@ def api_login():
                 "matric_number": user.get("matricNumber"),
             })
 
-            # If user requested "remember", make session permanent
-            session.permanent = remember
+            # If user requested "remember", extend lifetime further (already permanent, but we can extend)
+            if remember:
+                session.permanent = True
+                # Session already has 30-day lifetime from config
 
             logger.info("User logged in: %s (role=%s) remember=%s", user["username"], user["role"], remember)
             return jsonify({"success": True, "role": user["role"], "message": "Login successful"})
@@ -818,15 +855,15 @@ def api_signup():
 
         create_user(new_user)
 
-        # Auto-login for non-lecturers
+        # Auto-login for non-lecturers with persistent session
         if role != "lecturer":
+            session.permanent = True  # Make session permanent
             session.update({
                 "user_id": new_user["id"],
                 "username": new_user["username"],
                 "role": new_user["role"],
                 "full_name": new_user["fullName"],
             })
-            session.permanent = remember
 
         logger.info("New user created: %s (role=%s)", username, role)
         return jsonify({
@@ -840,6 +877,7 @@ def api_signup():
 
 @app.route("/api/logout", methods=["POST"])
 def api_logout():
+    # Clear session but keep user data in database
     session.clear()
     return jsonify({"success": True})
 
