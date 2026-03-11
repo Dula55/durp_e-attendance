@@ -23,59 +23,41 @@ from flask import (
 # Config & Environment
 # ==========================
 APP_NAME = "attendance_app"
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ── PERSISTENCE FIX ──────────────────────────────────────────────────────────
-# DATA_DIR is where both the SQLite database file and logs live.
-# On Render / Railway / Fly.io, mount a persistent volume at this path so data
-# survives redeploys.  Locally it defaults to <project>/data/.
+# DATA_DIR: mount a persistent volume here on Render/Railway/Fly.io
 DATA_DIR = os.getenv("DATA_DIR", os.path.join(BASE_DIR, "data"))
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Database configuration
-DATABASE_URL = os.environ.get("DATABASE_URL")  # PostgreSQL on Render (optional)
+DATABASE_URL   = os.environ.get("DATABASE_URL")
 USE_POSTGRESQL = bool(DATABASE_URL)
-
-# SQLite DB path (used when DATABASE_URL is not set)
 SQLITE_DB_PATH = os.path.join(DATA_DIR, "app.db")
 
-# ── SECRET KEY ────────────────────────────────────────────────────────────────
-# CRITICAL: If SECRET_KEY is regenerated on every restart all existing browser
-# sessions become invalid and users are logged out.
-# Solution: persist the key to disk so restarts re-use the same value.
-# On PaaS platforms you should set SECRET_KEY as an environment variable instead.
+# ── Stable secret key ────────────────────────────────────────────────────────
 _SECRET_KEY_FILE = os.path.join(DATA_DIR, ".secret_key")
 
 def _load_or_create_secret_key() -> str:
-    """Return a stable secret key, generating and saving one if it doesn't exist."""
     env_key = os.environ.get("SECRET_KEY")
     if env_key:
-        return env_key  # Always prefer an explicit env var
-
+        return env_key
     if os.path.isfile(_SECRET_KEY_FILE):
         with open(_SECRET_KEY_FILE, "r") as fh:
             key = fh.read().strip()
             if key:
                 return key
-
-    # First run: generate and persist the key
     key = secrets.token_hex(32)
     try:
         with open(_SECRET_KEY_FILE, "w") as fh:
             fh.write(key)
-        # Restrict permissions so only the process owner can read it
         os.chmod(_SECRET_KEY_FILE, 0o600)
     except OSError:
-        pass  # Non-fatal; key will still work this session
+        pass
     return key
 
-SECRET_KEY = _load_or_create_secret_key()
-
+SECRET_KEY              = _load_or_create_secret_key()
 SESSION_COOKIE_SECURE   = os.environ.get("SESSION_COOKIE_SECURE",  "False").lower() == "true"
 SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
 
-# Logging config
 LOG_LEVEL        = os.environ.get("LOG_LEVEL", "INFO").upper()
 LOG_FILE         = os.path.join(DATA_DIR, f"{APP_NAME}.log")
 LOG_MAX_BYTES    = int(os.environ.get("LOG_MAX_BYTES",    str(5 * 1024 * 1024)))
@@ -88,48 +70,41 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = SECRET_KEY
 app.debug = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
 
-# Sessions last 30 days when session.permanent = True (set on login/signup)
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 app.config["SESSION_COOKIE_HTTPONLY"]    = True
 app.config["SESSION_COOKIE_SECURE"]      = SESSION_COOKIE_SECURE
 app.config["SESSION_COOKIE_SAMESITE"]    = SESSION_COOKIE_SAMESITE
 
 # ==========================
-# Logging Setup
+# Logging
 # ==========================
 def setup_logging():
     root = logging.getLogger()
     root.setLevel(LOG_LEVEL)
     if root.handlers:
         return
-
-    fmt_simple  = logging.Formatter("%(asctime)s %(levelname)s %(name)s - %(message)s")
-    fmt_verbose = logging.Formatter("%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] - %(message)s")
-
+    fmt_s = logging.Formatter("%(asctime)s %(levelname)s %(name)s - %(message)s")
+    fmt_v = logging.Formatter("%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] - %(message)s")
     ch = logging.StreamHandler()
     ch.setLevel(LOG_LEVEL)
-    ch.setFormatter(fmt_simple)
+    ch.setFormatter(fmt_s)
     root.addHandler(ch)
-
     try:
         fh = RotatingFileHandler(LOG_FILE, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT)
         fh.setLevel(LOG_LEVEL)
-        fh.setFormatter(fmt_verbose)
+        fh.setFormatter(fmt_v)
         root.addHandler(fh)
     except OSError:
-        pass  # Non-fatal if log file can't be created
-
+        pass
 
 setup_logging()
 logger = logging.getLogger(__name__)
-logger.info(
-    "Starting application – DB backend: %s | DB path: %s",
-    "PostgreSQL" if USE_POSTGRESQL else "SQLite",
-    DATABASE_URL if USE_POSTGRESQL else SQLITE_DB_PATH,
-)
+logger.info("Starting – backend: %s | path: %s",
+            "PostgreSQL" if USE_POSTGRESQL else "SQLite",
+            DATABASE_URL if USE_POSTGRESQL else SQLITE_DB_PATH)
 
 # ==========================
-# Utility functions
+# Utilities
 # ==========================
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
@@ -141,7 +116,7 @@ def now_iso() -> str:
     return datetime.utcnow().isoformat()
 
 # ==========================
-# Database helpers
+# Database connection
 # ==========================
 def get_db():
     return get_postgres_db() if USE_POSTGRESQL else get_sqlite_db()
@@ -164,35 +139,26 @@ def get_postgres_db():
     db = getattr(g, "_database", None)
     if db is not None:
         return db
-
     if not DATABASE_URL:
-        raise RuntimeError("DATABASE_URL is not set but get_postgres_db was called.")
-
-    # Try psycopg2 first, then psycopg v3
+        raise RuntimeError("DATABASE_URL is not set.")
     try:
-        import psycopg2
-        import psycopg2.extras
+        import psycopg2, psycopg2.extras
         conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
         g._database = conn
-        logger.info("Using psycopg2 for PostgreSQL")
+        logger.info("Using psycopg2")
         return conn
-    except Exception as e_psycopg2:
-        logger.warning("psycopg2 failed: %s", e_psycopg2)
-
+    except Exception as e1:
+        logger.warning("psycopg2 failed: %s", e1)
     try:
         import psycopg
         from psycopg.rows import dict_row
         conn = psycopg.connect(DATABASE_URL, row_factory=dict_row)
         g._database = conn
-        logger.info("Using psycopg (v3) for PostgreSQL")
+        logger.info("Using psycopg v3")
         return conn
-    except Exception as e_psycopg:
-        logger.warning("psycopg (v3) failed: %s", e_psycopg)
-
-    raise RuntimeError(
-        "No compatible PostgreSQL driver found. "
-        "Install psycopg2-binary or psycopg, or remove DATABASE_URL to use SQLite."
-    )
+    except Exception as e2:
+        logger.warning("psycopg v3 failed: %s", e2)
+    raise RuntimeError("No compatible PostgreSQL driver found.")
 
 @app.teardown_appcontext
 def close_db(error=None):
@@ -205,7 +171,7 @@ def close_db(error=None):
         g._database = None
 
 # ==========================
-# Schema initialisation
+# Schema
 # ==========================
 _SQLITE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -219,12 +185,22 @@ CREATE TABLE IF NOT EXISTS users (
     createdAt    TEXT
 );
 
+CREATE TABLE IF NOT EXISTS courses (
+    id           TEXT PRIMARY KEY,
+    courseCode   TEXT NOT NULL,
+    courseName   TEXT,
+    lecturerId   TEXT NOT NULL,
+    createdAt    TEXT,
+    UNIQUE(courseCode, lecturerId),
+    FOREIGN KEY(lecturerId) REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS attendance (
     id           TEXT PRIMARY KEY,
     studentId    TEXT NOT NULL,
     studentName  TEXT,
     matricNumber TEXT,
-    courseCode   TEXT,
+    courseCode   TEXT NOT NULL,
     latitude     REAL,
     longitude    REAL,
     faceImage    TEXT,
@@ -232,42 +208,51 @@ CREATE TABLE IF NOT EXISTS attendance (
     date         TEXT,
     time         TEXT,
     deviceType   TEXT,
-    -- One record per student per course per day
-    UNIQUE(studentId, courseCode, date)
+    UNIQUE(studentId, courseCode, date),
+    FOREIGN KEY(studentId) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS reset_tokens (
     token   TEXT PRIMARY KEY,
     user_id TEXT,
     expires TEXT
-);
+)
 """
 
 _PG_SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
-    id           TEXT PRIMARY KEY,
-    username     TEXT UNIQUE NOT NULL,
-    password     TEXT NOT NULL,
-    role         TEXT NOT NULL,
-    "fullName"   TEXT,
+    id             TEXT PRIMARY KEY,
+    username       TEXT UNIQUE NOT NULL,
+    password       TEXT NOT NULL,
+    role           TEXT NOT NULL,
+    "fullName"     TEXT,
     "matricNumber" TEXT UNIQUE,
-    "isApproved" INTEGER DEFAULT 0,
-    "createdAt"  TEXT
+    "isApproved"   INTEGER DEFAULT 0,
+    "createdAt"    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS courses (
+    id           TEXT PRIMARY KEY,
+    "courseCode" TEXT NOT NULL,
+    "courseName" TEXT,
+    "lecturerId" TEXT NOT NULL,
+    "createdAt"  TEXT,
+    UNIQUE("courseCode", "lecturerId")
 );
 
 CREATE TABLE IF NOT EXISTS attendance (
-    id            TEXT PRIMARY KEY,
-    "studentId"   TEXT NOT NULL,
-    "studentName" TEXT,
+    id             TEXT PRIMARY KEY,
+    "studentId"    TEXT NOT NULL,
+    "studentName"  TEXT,
     "matricNumber" TEXT,
-    "courseCode"  TEXT,
-    latitude      REAL,
-    longitude     REAL,
-    "faceImage"   TEXT,
-    timestamp     TEXT,
-    date          TEXT,
-    time          TEXT,
-    "deviceType"  TEXT,
+    "courseCode"   TEXT NOT NULL,
+    latitude       REAL,
+    longitude      REAL,
+    "faceImage"    TEXT,
+    timestamp      TEXT,
+    date           TEXT,
+    time           TEXT,
+    "deviceType"   TEXT,
     UNIQUE("studentId", "courseCode", date)
 );
 
@@ -275,54 +260,44 @@ CREATE TABLE IF NOT EXISTS reset_tokens (
     token   TEXT PRIMARY KEY,
     user_id TEXT,
     expires TEXT
-);
+)
 """
 
 def init_db():
-    db = get_db()
-    cur = db.cursor()
-    schema = _PG_SCHEMA if USE_POSTGRESQL else _SQLITE_SCHEMA
-    for statement in schema.strip().split(";"):
-        stmt = statement.strip()
-        if stmt:
-            cur.execute(stmt)
-    db.commit()
-    logger.info("Database schema initialised (%s)", "PostgreSQL" if USE_POSTGRESQL else "SQLite")
-
-
-def _ensure_admin():
-    """Create the default admin account if it doesn't already exist."""
     db  = get_db()
     cur = db.cursor()
+    schema = _PG_SCHEMA if USE_POSTGRESQL else _SQLITE_SCHEMA
+    for stmt in schema.strip().split(";"):
+        s = stmt.strip()
+        if s:
+            cur.execute(s)
+    db.commit()
+    logger.info("Schema initialised (%s)", "PostgreSQL" if USE_POSTGRESQL else "SQLite")
 
+def _ensure_admin():
+    db  = get_db()
+    cur = db.cursor()
     if USE_POSTGRESQL:
         cur.execute("SELECT id FROM users WHERE username = %s LIMIT 1", ("admin",))
     else:
         cur.execute("SELECT id FROM users WHERE username = ? LIMIT 1", ("admin",))
-
     if cur.fetchone():
-        return  # Admin already exists
-
+        return
     admin = {
-        "id":           str(uuid4()),
-        "username":     "admin",
-        "password":     hash_password("admin123"),
-        "role":         "admin",
-        "fullName":     "System Administrator",
-        "matricNumber": None,
-        "isApproved":   True,
-        "createdAt":    now_iso(),
+        "id": str(uuid4()), "username": "admin",
+        "password": hash_password("admin123"), "role": "admin",
+        "fullName": "System Administrator", "matricNumber": None,
+        "isApproved": True, "createdAt": now_iso(),
     }
     _insert_user(cur, admin)
     db.commit()
-    logger.info("Default admin user created (username: admin, password: admin123)")
-
+    logger.info("Default admin created (admin / admin123)")
 
 def _insert_user(cur, user: dict):
     if USE_POSTGRESQL:
         cur.execute(
             """INSERT INTO users (id, username, password, role, "fullName", "matricNumber", "isApproved", "createdAt")
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
             (user["id"], user["username"], user["password"], user["role"],
              user.get("fullName"), user.get("matricNumber"),
              1 if user.get("isApproved") else 0, user.get("createdAt", now_iso())),
@@ -330,23 +305,22 @@ def _insert_user(cur, user: dict):
     else:
         cur.execute(
             """INSERT INTO users (id, username, password, role, fullName, matricNumber, isApproved, createdAt)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?,?,?,?,?,?,?,?)""",
             (user["id"], user["username"], user["password"], user["role"],
              user.get("fullName"), user.get("matricNumber"),
              1 if user.get("isApproved") else 0, user.get("createdAt", now_iso())),
         )
-
 
 with app.app_context():
     try:
         init_db()
         _ensure_admin()
     except Exception as exc:
-        logger.exception("Fatal: could not initialise DB – %s", exc)
+        logger.exception("Fatal DB init: %s", exc)
         raise
 
 # ==========================
-# DB CRUD helpers
+# DB helpers – Users
 # ==========================
 def create_user(user: dict):
     db  = get_db()
@@ -354,96 +328,157 @@ def create_user(user: dict):
     _insert_user(cur, user)
     db.commit()
 
-
 def get_user_by_username_or_matric(identifier: str):
     db  = get_db()
     cur = db.cursor()
     if USE_POSTGRESQL:
         cur.execute(
-            'SELECT * FROM users WHERE username = %s OR "matricNumber" = %s LIMIT 1',
+            'SELECT * FROM users WHERE username=%s OR "matricNumber"=%s LIMIT 1',
             (identifier, identifier),
         )
     else:
         cur.execute(
-            "SELECT * FROM users WHERE username = ? OR matricNumber = ? LIMIT 1",
+            "SELECT * FROM users WHERE username=? OR matricNumber=? LIMIT 1",
             (identifier, identifier),
         )
     row = cur.fetchone()
     return dict(row) if row else None
-
 
 def get_user_by_id(user_id: str):
     db  = get_db()
     cur = db.cursor()
     if USE_POSTGRESQL:
-        cur.execute("SELECT * FROM users WHERE id = %s LIMIT 1", (user_id,))
+        cur.execute("SELECT * FROM users WHERE id=%s LIMIT 1", (user_id,))
     else:
-        cur.execute("SELECT * FROM users WHERE id = ? LIMIT 1", (user_id,))
+        cur.execute("SELECT * FROM users WHERE id=? LIMIT 1", (user_id,))
     row = cur.fetchone()
     return dict(row) if row else None
-
 
 def list_users_safely():
     db  = get_db()
     cur = db.cursor()
     if USE_POSTGRESQL:
-        cur.execute(
-            'SELECT id, username, role, "fullName", "matricNumber", "isApproved", "createdAt" FROM users'
-        )
+        cur.execute('SELECT id,username,role,"fullName","matricNumber","isApproved","createdAt" FROM users')
     else:
-        cur.execute(
-            "SELECT id, username, role, fullName, matricNumber, isApproved, createdAt FROM users"
-        )
+        cur.execute("SELECT id,username,role,fullName,matricNumber,isApproved,createdAt FROM users")
     return [dict(r) for r in cur.fetchall()]
-
 
 def count_admin_users() -> int:
     db  = get_db()
     cur = db.cursor()
-    cur.execute("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
+    cur.execute("SELECT COUNT(*) as count FROM users WHERE role='admin'")
     result = cur.fetchone()
     return (result["count"] if isinstance(result, dict) else result[0]) if result else 0
-
 
 def approve_lecturer_by_id(user_id: str) -> bool:
     db  = get_db()
     cur = db.cursor()
     if USE_POSTGRESQL:
-        cur.execute("UPDATE users SET \"isApproved\" = 1 WHERE id = %s AND role = 'lecturer'", (user_id,))
+        cur.execute("UPDATE users SET \"isApproved\"=1 WHERE id=%s AND role='lecturer'", (user_id,))
     else:
-        cur.execute("UPDATE users SET isApproved = 1 WHERE id = ? AND role = 'lecturer'", (user_id,))
+        cur.execute("UPDATE users SET isApproved=1 WHERE id=? AND role='lecturer'", (user_id,))
     db.commit()
     return cur.rowcount > 0
-
 
 def delete_user_by_id(user_id: str) -> bool:
     db  = get_db()
     cur = db.cursor()
     if USE_POSTGRESQL:
-        cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
     else:
-        cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        cur.execute("DELETE FROM users WHERE id=?", (user_id,))
     db.commit()
     return cur.rowcount > 0
 
+# ==========================
+# DB helpers – Courses
+# ==========================
+def create_course(course: dict):
+    """Register a course under a lecturer."""
+    db  = get_db()
+    cur = db.cursor()
+    if USE_POSTGRESQL:
+        cur.execute(
+            'INSERT INTO courses (id,"courseCode","courseName","lecturerId","createdAt") VALUES (%s,%s,%s,%s,%s)',
+            (course["id"], course["courseCode"], course.get("courseName"),
+             course["lecturerId"], course.get("createdAt", now_iso())),
+        )
+    else:
+        cur.execute(
+            "INSERT INTO courses (id,courseCode,courseName,lecturerId,createdAt) VALUES (?,?,?,?,?)",
+            (course["id"], course["courseCode"], course.get("courseName"),
+             course["lecturerId"], course.get("createdAt", now_iso())),
+        )
+    db.commit()
 
-# ── Attendance ────────────────────────────────────────────────────────────────
+def get_courses_by_lecturer(lecturer_id: str) -> list:
+    """Return all courses owned by a lecturer."""
+    db  = get_db()
+    cur = db.cursor()
+    if USE_POSTGRESQL:
+        cur.execute(
+            'SELECT * FROM courses WHERE "lecturerId"=%s ORDER BY "createdAt" DESC',
+            (lecturer_id,),
+        )
+    else:
+        cur.execute(
+            "SELECT * FROM courses WHERE lecturerId=? ORDER BY createdAt DESC",
+            (lecturer_id,),
+        )
+    return [dict(r) for r in cur.fetchall()]
 
+def get_all_courses() -> list:
+    """Return every registered course (admin view)."""
+    db  = get_db()
+    cur = db.cursor()
+    if USE_POSTGRESQL:
+        cur.execute('SELECT * FROM courses ORDER BY "createdAt" DESC')
+    else:
+        cur.execute("SELECT * FROM courses ORDER BY createdAt DESC")
+    return [dict(r) for r in cur.fetchall()]
+
+def get_distinct_course_codes() -> list:
+    """
+    Return every unique course code from the courses table.
+    Students use this to pick a course when marking attendance.
+    """
+    db  = get_db()
+    cur = db.cursor()
+    if USE_POSTGRESQL:
+        cur.execute('SELECT DISTINCT "courseCode", "courseName" FROM courses ORDER BY "courseCode"')
+    else:
+        cur.execute("SELECT DISTINCT courseCode, courseName FROM courses ORDER BY courseCode")
+    rows = cur.fetchall()
+    return [dict(r) for r in rows]
+
+def delete_course(course_id: str, lecturer_id: str) -> bool:
+    """Delete a course; lecturers may only delete their own."""
+    db  = get_db()
+    cur = db.cursor()
+    if USE_POSTGRESQL:
+        cur.execute('DELETE FROM courses WHERE id=%s AND "lecturerId"=%s', (course_id, lecturer_id))
+    else:
+        cur.execute("DELETE FROM courses WHERE id=? AND lecturerId=?", (course_id, lecturer_id))
+    db.commit()
+    return cur.rowcount > 0
+
+# ==========================
+# DB helpers – Attendance
+# ==========================
 def check_existing_attendance(student_id: str, course_code: str, date: str) -> bool:
     db  = get_db()
     cur = db.cursor()
     if USE_POSTGRESQL:
         cur.execute(
-            'SELECT id FROM attendance WHERE "studentId" = %s AND "courseCode" = %s AND date = %s LIMIT 1',
+            'SELECT id FROM attendance WHERE "studentId"=%s AND "courseCode"=%s AND date=%s LIMIT 1',
             (student_id, course_code, date),
         )
     else:
         cur.execute(
-            "SELECT id FROM attendance WHERE studentId = ? AND courseCode = ? AND date = ? LIMIT 1",
+            "SELECT id FROM attendance WHERE studentId=? AND courseCode=? AND date=? LIMIT 1",
             (student_id, course_code, date),
         )
     return cur.fetchone() is not None
-
 
 def add_attendance_record(record: dict):
     db  = get_db()
@@ -451,107 +486,197 @@ def add_attendance_record(record: dict):
     if USE_POSTGRESQL:
         cur.execute(
             """INSERT INTO attendance
-               (id, "studentId", "studentName", "matricNumber", "courseCode",
-                latitude, longitude, "faceImage", timestamp, date, time, "deviceType")
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+               (id,"studentId","studentName","matricNumber","courseCode",
+                latitude,longitude,"faceImage",timestamp,date,time,"deviceType")
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
             (record["id"], record["studentId"], record.get("studentName"),
-             record.get("matricNumber"), record.get("courseCode"),
+             record.get("matricNumber"), record["courseCode"],
              record.get("latitude"), record.get("longitude"), record.get("faceImage"),
-             record.get("timestamp"), record.get("date"), record.get("time"),
+             record["timestamp"], record["date"], record["time"],
              record.get("deviceType")),
         )
     else:
         cur.execute(
             """INSERT INTO attendance
-               (id, studentId, studentName, matricNumber, courseCode,
-                latitude, longitude, faceImage, timestamp, date, time, deviceType)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               (id,studentId,studentName,matricNumber,courseCode,
+                latitude,longitude,faceImage,timestamp,date,time,deviceType)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
             (record["id"], record["studentId"], record.get("studentName"),
-             record.get("matricNumber"), record.get("courseCode"),
+             record.get("matricNumber"), record["courseCode"],
              record.get("latitude"), record.get("longitude"), record.get("faceImage"),
-             record.get("timestamp"), record.get("date"), record.get("time"),
+             record["timestamp"], record["date"], record["time"],
              record.get("deviceType")),
         )
     db.commit()
 
-
-def get_attendance_all():
+def get_attendance_all() -> list:
+    """All attendance records – for admin."""
     db  = get_db()
     cur = db.cursor()
     cur.execute("SELECT * FROM attendance ORDER BY timestamp DESC")
     return [dict(r) for r in cur.fetchall()]
 
+def get_attendance_by_course_codes(course_codes: list) -> list:
+    """
+    PRIMARY query used by the lecturer dashboard.
+    Returns every attendance record whose courseCode is in the supplied list.
+    """
+    if not course_codes:
+        return []
+    db  = get_db()
+    cur = db.cursor()
+    if USE_POSTGRESQL:
+        placeholders = ",".join(["%s"] * len(course_codes))
+        cur.execute(
+            f'SELECT * FROM attendance WHERE "courseCode" IN ({placeholders}) ORDER BY timestamp DESC',
+            tuple(course_codes),
+        )
+    else:
+        placeholders = ",".join(["?"] * len(course_codes))
+        cur.execute(
+            f"SELECT * FROM attendance WHERE courseCode IN ({placeholders}) ORDER BY timestamp DESC",
+            tuple(course_codes),
+        )
+    return [dict(r) for r in cur.fetchall()]
 
-def get_attendance_by_student(student_id: str):
+def get_attendance_by_course_code(course_code: str) -> list:
+    """All attendance records for a single course code."""
     db  = get_db()
     cur = db.cursor()
     if USE_POSTGRESQL:
         cur.execute(
-            'SELECT * FROM attendance WHERE "studentId" = %s ORDER BY timestamp DESC',
+            'SELECT * FROM attendance WHERE "courseCode"=%s ORDER BY timestamp DESC',
+            (course_code,),
+        )
+    else:
+        cur.execute(
+            "SELECT * FROM attendance WHERE courseCode=? ORDER BY timestamp DESC",
+            (course_code,),
+        )
+    return [dict(r) for r in cur.fetchall()]
+
+def get_attendance_by_student(student_id: str) -> list:
+    db  = get_db()
+    cur = db.cursor()
+    if USE_POSTGRESQL:
+        cur.execute(
+            'SELECT * FROM attendance WHERE "studentId"=%s ORDER BY timestamp DESC',
             (student_id,),
         )
     else:
         cur.execute(
-            "SELECT * FROM attendance WHERE studentId = ? ORDER BY timestamp DESC",
+            "SELECT * FROM attendance WHERE studentId=? ORDER BY timestamp DESC",
             (student_id,),
         )
     return [dict(r) for r in cur.fetchall()]
 
+def _normalise_record(r: dict) -> dict:
+    """
+    Normalise a raw DB row to consistent camelCase keys regardless of
+    whether the backend is SQLite (lowercase keys) or PostgreSQL (quoted keys).
+    """
+    return {
+        "id":           r.get("id"),
+        "studentId":    r.get("studentId")    or r.get("studentid"),
+        "studentName":  r.get("studentName")  or r.get("studentname"),
+        "matricNumber": r.get("matricNumber") or r.get("matricnumber"),
+        "courseCode":   r.get("courseCode")   or r.get("coursecode"),
+        "latitude":     r.get("latitude"),
+        "longitude":    r.get("longitude"),
+        "faceImage":    r.get("faceImage")    or r.get("faceimage"),
+        "timestamp":    r.get("timestamp"),
+        "date":         r.get("date"),
+        "time":         r.get("time"),
+        "deviceType":   r.get("deviceType")   or r.get("devicetype"),
+    }
+
+def get_attendance_summary_by_course(course_code: str) -> dict:
+    """Aggregated stats for a single course (for dashboard charts)."""
+    records = get_attendance_by_course_code(course_code)
+    if not records:
+        return {"courseCode": course_code, "total": 0, "uniqueStudents": 0,
+                "dates": [], "perDate": {}}
+    students = {r.get("studentId") or r.get("studentid") for r in records}
+    per_date: dict = {}
+    for r in records:
+        d = r.get("date") or (r.get("timestamp") or "")[:10]
+        per_date[d] = per_date.get(d, 0) + 1
+    return {
+        "courseCode":     course_code,
+        "total":          len(records),
+        "uniqueStudents": len(students),
+        "dates":          sorted(per_date.keys()),
+        "perDate":        per_date,
+    }
 
 def delete_attendance_by_id(record_id: str) -> bool:
+    db  = get_db()
+    cur = db.cursor()
+    if USE_POSTGRESQL:
+        cur.execute("DELETE FROM attendance WHERE id=%s", (record_id,))
+    else:
+        cur.execute("DELETE FROM attendance WHERE id=?", (record_id,))
+    db.commit()
+    return cur.rowcount > 0
+
+def delete_attendance_by_course(course_code: str, lecturer_id: str) -> int:
     """
-    Permanently delete a single attendance record.
-    This function should ONLY be called after verifying the caller is a
-    lecturer or admin (see api_delete_attendance below).
+    Delete ALL attendance records for a course after verifying ownership.
+    Returns number of rows deleted, or -1 if ownership check fails.
     """
     db  = get_db()
     cur = db.cursor()
     if USE_POSTGRESQL:
-        cur.execute("DELETE FROM attendance WHERE id = %s", (record_id,))
+        cur.execute(
+            'SELECT id FROM courses WHERE "courseCode"=%s AND "lecturerId"=%s LIMIT 1',
+            (course_code, lecturer_id),
+        )
     else:
-        cur.execute("DELETE FROM attendance WHERE id = ?", (record_id,))
+        cur.execute(
+            "SELECT id FROM courses WHERE courseCode=? AND lecturerId=? LIMIT 1",
+            (course_code, lecturer_id),
+        )
+    if not cur.fetchone():
+        return -1
+    if USE_POSTGRESQL:
+        cur.execute('DELETE FROM attendance WHERE "courseCode"=%s', (course_code,))
+    else:
+        cur.execute("DELETE FROM attendance WHERE courseCode=?", (course_code,))
     db.commit()
-    return cur.rowcount > 0
+    return cur.rowcount
 
-
-# ── Reset tokens ──────────────────────────────────────────────────────────────
-
+# ==========================
+# Reset tokens
+# ==========================
 def add_reset_token(token: str, user_id: str, expires_iso: str):
     db  = get_db()
     cur = db.cursor()
     if USE_POSTGRESQL:
-        cur.execute(
-            "INSERT INTO reset_tokens (token, user_id, expires) VALUES (%s, %s, %s)",
-            (token, user_id, expires_iso),
-        )
+        cur.execute("INSERT INTO reset_tokens(token,user_id,expires) VALUES(%s,%s,%s)",
+                    (token, user_id, expires_iso))
     else:
-        cur.execute(
-            "INSERT INTO reset_tokens (token, user_id, expires) VALUES (?, ?, ?)",
-            (token, user_id, expires_iso),
-        )
+        cur.execute("INSERT INTO reset_tokens(token,user_id,expires) VALUES(?,?,?)",
+                    (token, user_id, expires_iso))
     db.commit()
-
 
 def get_reset_token(token: str):
     db  = get_db()
     cur = db.cursor()
     if USE_POSTGRESQL:
-        cur.execute("SELECT * FROM reset_tokens WHERE token = %s LIMIT 1", (token,))
+        cur.execute("SELECT * FROM reset_tokens WHERE token=%s LIMIT 1", (token,))
     else:
-        cur.execute("SELECT * FROM reset_tokens WHERE token = ? LIMIT 1", (token,))
+        cur.execute("SELECT * FROM reset_tokens WHERE token=? LIMIT 1", (token,))
     row = cur.fetchone()
     return dict(row) if row else None
-
 
 def delete_reset_token(token: str):
     db  = get_db()
     cur = db.cursor()
     if USE_POSTGRESQL:
-        cur.execute("DELETE FROM reset_tokens WHERE token = %s", (token,))
+        cur.execute("DELETE FROM reset_tokens WHERE token=%s", (token,))
     else:
-        cur.execute("DELETE FROM reset_tokens WHERE token = ?", (token,))
+        cur.execute("DELETE FROM reset_tokens WHERE token=?", (token,))
     db.commit()
-
 
 # ==========================
 # Auth decorators
@@ -564,7 +689,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-
 def role_required(*roles):
     def decorator(f):
         @wraps(f)
@@ -574,7 +698,6 @@ def role_required(*roles):
             return f(*args, **kwargs)
         return decorated
     return decorator
-
 
 # ==========================
 # Page routes
@@ -617,9 +740,8 @@ def lecturer_dashboard():
 def student_dashboard():
     return render_template("student_dashboard.html")
 
-
 # ==========================
-# API – Authentication
+# API – Auth
 # ==========================
 @app.route("/api/login", methods=["POST"])
 def api_login():
@@ -633,31 +755,28 @@ def api_login():
             return jsonify({"success": False, "message": "Username and password are required"}), 400
 
         user = get_user_by_username_or_matric(username)
-
         if not user or not verify_password(password, user["password"]):
-            logger.warning("Failed login attempt for: %s", username)
+            logger.warning("Failed login: %s", username)
             return jsonify({"success": False, "message": "Invalid username or password"}), 401
 
         if user["role"] == "lecturer" and not user.get("isApproved"):
-            return jsonify({"success": False, "message": "Your account is pending approval by an admin"}), 403
+            return jsonify({"success": False,
+                            "message": "Your account is pending approval by an admin"}), 403
 
-        # Populate session
-        session.permanent = remember  # True → cookie valid for PERMANENT_SESSION_LIFETIME (30 days)
+        session.permanent = remember
         session.update({
-            "user_id":      user["id"],
-            "username":     user["username"],
-            "role":         user["role"],
-            "full_name":    user.get("fullName"),
+            "user_id":       user["id"],
+            "username":      user["username"],
+            "role":          user["role"],
+            "full_name":     user.get("fullName"),
             "matric_number": user.get("matricNumber"),
         })
-
-        logger.info("Login: %s (role=%s, remember=%s)", user["username"], user["role"], remember)
+        logger.info("Login: %s role=%s remember=%s", user["username"], user["role"], remember)
         return jsonify({"success": True, "role": user["role"], "message": "Login successful"})
 
     except Exception as exc:
-        logger.exception("api_login error: %s", exc)
+        logger.exception("api_login: %s", exc)
         return jsonify({"success": False, "message": "Server error"}), 500
-
 
 @app.route("/api/signup", methods=["POST"])
 def api_signup():
@@ -671,67 +790,55 @@ def api_signup():
         remember     = bool(data.get("remember", False))
 
         if not username or not password or not role:
-            return jsonify({"success": False, "message": "Username, password and role are required"}), 400
-
+            return jsonify({"success": False,
+                            "message": "Username, password and role are required"}), 400
         if role not in ("admin", "lecturer", "student"):
             return jsonify({"success": False, "message": "Invalid role"}), 400
-
-        # Only one admin is allowed
         if role == "admin" and count_admin_users() >= 1:
-            return jsonify({
-                "success": False,
-                "message": "An admin account already exists. Only one admin is permitted.",
-            }), 403
-
+            return jsonify({"success": False,
+                            "message": "An admin account already exists."}), 403
         if get_user_by_username_or_matric(username):
             return jsonify({"success": False, "message": "Username already exists"}), 409
-
         if role == "student" and matricNumber and get_user_by_username_or_matric(matricNumber):
-            return jsonify({"success": False, "message": "Matric number already registered"}), 409
+            return jsonify({"success": False,
+                            "message": "Matric number already registered"}), 409
 
         new_user = {
-            "id":           str(uuid4()),
-            "username":     username,
-            "password":     hash_password(password),
-            "role":         role,
-            "fullName":     fullName or None,
+            "id": str(uuid4()), "username": username,
+            "password": hash_password(password), "role": role,
+            "fullName": fullName or None,
             "matricNumber": matricNumber if role == "student" else None,
-            # Lecturers need admin approval; everyone else is immediately active
-            "isApproved":   role != "lecturer",
-            "createdAt":    now_iso(),
+            "isApproved": role != "lecturer",
+            "createdAt": now_iso(),
         }
-
         create_user(new_user)
 
-        # Auto-login for students and admins (not pending lecturers)
         if role != "lecturer":
             session.permanent = remember
             session.update({
-                "user_id":      new_user["id"],
-                "username":     new_user["username"],
-                "role":         new_user["role"],
-                "full_name":    new_user["fullName"],
+                "user_id":       new_user["id"],
+                "username":      new_user["username"],
+                "role":          new_user["role"],
+                "full_name":     new_user["fullName"],
                 "matric_number": new_user["matricNumber"],
             })
 
-        logger.info("New user: %s (role=%s)", username, role)
         msg = "Account created successfully"
         if role == "lecturer":
-            msg += " – your account is pending admin approval"
+            msg += " – pending admin approval"
+        logger.info("Signup: %s role=%s", username, role)
         return jsonify({"success": True, "role": role, "message": msg})
 
     except Exception as exc:
-        logger.exception("api_signup error: %s", exc)
+        logger.exception("api_signup: %s", exc)
         return jsonify({"success": False, "message": "Server error"}), 500
-
 
 @app.route("/api/logout", methods=["POST"])
 def api_logout():
     username = session.get("username", "unknown")
     session.clear()
-    logger.info("User logged out: %s", username)
+    logger.info("Logout: %s", username)
     return jsonify({"success": True})
-
 
 @app.route("/api/forgot-password", methods=["POST"])
 def api_forgot_password():
@@ -739,25 +846,18 @@ def api_forgot_password():
         data     = request.json or {}
         username = (data.get("username") or "").strip()
         user     = get_user_by_username_or_matric(username)
-
         if not user:
             return jsonify({"success": False, "message": "Username not found"}), 404
-
         token   = secrets.token_urlsafe(32)
         expires = (datetime.utcnow() + timedelta(hours=1)).isoformat()
         add_reset_token(token, user["id"], expires)
-
-        logger.info("Password reset token issued for: %s", username)
-        return jsonify({
-            "success": True,
-            "message": "Password reset instructions sent to your email",
-            "demo_token": token,  # Remove this line in production
-        })
-
+        logger.info("Reset token issued for: %s", username)
+        return jsonify({"success": True,
+                        "message": "Password reset instructions sent",
+                        "demo_token": token})  # remove in production
     except Exception as exc:
-        logger.exception("api_forgot_password error: %s", exc)
+        logger.exception("api_forgot_password: %s", exc)
         return jsonify({"success": False, "message": "Server error"}), 500
-
 
 @app.route("/api/reset-password", methods=["POST"])
 def api_reset_password():
@@ -765,34 +865,106 @@ def api_reset_password():
         data         = request.json or {}
         token        = data.get("token", "")
         new_password = data.get("password", "")
-
         if not token or not new_password:
-            return jsonify({"success": False, "message": "Token and new password are required"}), 400
-
+            return jsonify({"success": False,
+                            "message": "Token and new password are required"}), 400
         token_data = get_reset_token(token)
         if not token_data or datetime.fromisoformat(token_data["expires"]) <= datetime.utcnow():
-            return jsonify({"success": False, "message": "Invalid or expired reset token"}), 400
-
+            return jsonify({"success": False,
+                            "message": "Invalid or expired reset token"}), 400
         user = get_user_by_id(token_data["user_id"])
         if not user:
             return jsonify({"success": False, "message": "User not found"}), 404
-
         db  = get_db()
         cur = db.cursor()
         if USE_POSTGRESQL:
-            cur.execute("UPDATE users SET password = %s WHERE id = %s", (hash_password(new_password), user["id"]))
+            cur.execute("UPDATE users SET password=%s WHERE id=%s",
+                        (hash_password(new_password), user["id"]))
         else:
-            cur.execute("UPDATE users SET password = ? WHERE id = ?", (hash_password(new_password), user["id"]))
+            cur.execute("UPDATE users SET password=? WHERE id=?",
+                        (hash_password(new_password), user["id"]))
         db.commit()
-
         delete_reset_token(token)
         logger.info("Password reset for user id: %s", user["id"])
         return jsonify({"success": True, "message": "Password reset successfully"})
-
     except Exception as exc:
-        logger.exception("api_reset_password error: %s", exc)
+        logger.exception("api_reset_password: %s", exc)
         return jsonify({"success": False, "message": "Server error"}), 500
 
+# ==========================
+# API – Courses
+# ==========================
+@app.route("/api/courses", methods=["GET"])
+@login_required
+def api_get_courses():
+    """
+    Lecturer  → their own courses only
+    Admin     → all courses
+    Student   → all distinct course codes (to pick when marking attendance)
+    """
+    try:
+        role = session.get("role")
+        if role == "lecturer":
+            courses = get_courses_by_lecturer(session["user_id"])
+        elif role == "admin":
+            courses = get_all_courses()
+        else:
+            # Students need courseCode + courseName to display a picker
+            courses = get_distinct_course_codes()
+        return jsonify({"success": True, "courses": courses})
+    except Exception as exc:
+        logger.exception("api_get_courses: %s", exc)
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/api/courses", methods=["POST"])
+@login_required
+@role_required("lecturer")
+def api_create_course():
+    """Lecturer registers a new course so students can mark attendance for it."""
+    try:
+        data       = request.json or {}
+        courseCode = (data.get("courseCode") or "").strip().upper()
+        courseName = (data.get("courseName") or "").strip()
+        if not courseCode:
+            return jsonify({"success": False, "message": "courseCode is required"}), 400
+
+        course = {
+            "id":         str(uuid4()),
+            "courseCode": courseCode,
+            "courseName": courseName or None,
+            "lecturerId": session["user_id"],
+            "createdAt":  now_iso(),
+        }
+        try:
+            create_course(course)
+        except Exception as db_exc:
+            if "UNIQUE" in str(db_exc).upper() or "unique" in str(db_exc).lower():
+                return jsonify({"success": False,
+                                "message": f"You already registered course {courseCode}"}), 409
+            raise
+        logger.info("Course created: %s by %s", courseCode, session.get("username"))
+        return jsonify({"success": True,
+                        "message": f"Course {courseCode} registered",
+                        "course": course}), 201
+
+    except Exception as exc:
+        logger.exception("api_create_course: %s", exc)
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/api/courses/<course_id>", methods=["DELETE"])
+@login_required
+@role_required("lecturer", "admin")
+def api_delete_course(course_id):
+    """Lecturer deletes one of their own courses."""
+    try:
+        deleted = delete_course(course_id, session["user_id"])
+        if deleted:
+            logger.info("Course %s deleted by %s", course_id, session.get("username"))
+            return jsonify({"success": True, "message": "Course deleted"})
+        return jsonify({"success": False, "message": "Course not found or not yours"}), 404
+    except Exception as exc:
+        logger.exception("api_delete_course: %s", exc)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 # ==========================
 # API – Attendance
@@ -801,20 +973,33 @@ def api_reset_password():
 @login_required
 @role_required("student")
 def api_submit_attendance():
+    """
+    Student marks attendance for a course.
+    The courseCode must exist in the courses table (lecturer must register it first).
+    """
     try:
         data        = request.json or {}
-        course_code = (data.get("courseCode") or "").strip()
+        course_code = (data.get("courseCode") or "").strip().upper()
 
         if not course_code:
-            return jsonify({"success": False, "message": "Course code is required"}), 400
+            return jsonify({"success": False, "message": "courseCode is required"}), 400
+
+        # Verify the course exists in the courses table
+        db  = get_db()
+        cur = db.cursor()
+        if USE_POSTGRESQL:
+            cur.execute('SELECT id FROM courses WHERE "courseCode"=%s LIMIT 1', (course_code,))
+        else:
+            cur.execute("SELECT id FROM courses WHERE courseCode=? LIMIT 1", (course_code,))
+        if not cur.fetchone():
+            return jsonify({"success": False,
+                            "message": f"Course '{course_code}' does not exist. "
+                                       "Ask your lecturer to register it first."}), 404
 
         today = datetime.utcnow().strftime("%Y-%m-%d")
-
         if check_existing_attendance(session["user_id"], course_code, today):
-            return jsonify({
-                "success": False,
-                "message": "You have already submitted attendance for this course today.",
-            }), 400
+            return jsonify({"success": False,
+                            "message": "You have already submitted attendance for this course today."}), 400
 
         record = {
             "id":           str(uuid4()),
@@ -834,84 +1019,198 @@ def api_submit_attendance():
         try:
             add_attendance_record(record)
         except Exception as db_exc:
-            # Unique constraint violation = duplicate attempt that slipped through the check
-            logger.warning("Duplicate attendance blocked by DB constraint: %s", db_exc)
-            return jsonify({
-                "success": False,
-                "message": "You have already submitted attendance for this course today.",
-            }), 400
+            logger.warning("Duplicate attendance blocked by DB: %s", db_exc)
+            return jsonify({"success": False,
+                            "message": "You have already submitted attendance for this course today."}), 400
 
-        logger.info("Attendance recorded: student=%s course=%s date=%s",
+        logger.info("Attendance: student=%s course=%s date=%s",
                     session.get("username"), course_code, today)
         return jsonify({"success": True, "message": "Attendance submitted successfully"})
 
     except Exception as exc:
-        logger.exception("api_submit_attendance error: %s", exc)
+        logger.exception("api_submit_attendance: %s", exc)
         return jsonify({"success": False, "message": "Server error"}), 500
-
 
 @app.route("/api/check-attendance-status", methods=["GET"])
 @login_required
 @role_required("student")
 def api_check_attendance_status():
     try:
-        course_code = (request.args.get("courseCode") or "").strip()
+        course_code = (request.args.get("courseCode") or "").strip().upper()
         if not course_code:
-            return jsonify({"success": False, "message": "courseCode query param is required"}), 400
-
-        today       = datetime.utcnow().strftime("%Y-%m-%d")
-        submitted   = check_existing_attendance(session["user_id"], course_code, today)
+            return jsonify({"success": False,
+                            "message": "courseCode query param is required"}), 400
+        today     = datetime.utcnow().strftime("%Y-%m-%d")
+        submitted = check_existing_attendance(session["user_id"], course_code, today)
         return jsonify({"success": True, "hasSubmitted": submitted})
-
     except Exception as exc:
-        logger.exception("api_check_attendance_status error: %s", exc)
+        logger.exception("api_check_attendance_status: %s", exc)
         return jsonify({"success": False, "message": "Server error"}), 500
-
 
 @app.route("/api/get-attendance", methods=["GET"])
 @login_required
 def api_get_attendance():
     """
-    Students see only their own records.
-    Lecturers and admins see all records.
-    Records are stored permanently; only lecturers/admins may delete them.
+    GET /api/get-attendance
+    Optional query params:
+      ?courseCode=CS101   – filter by a single course code
+      ?date=2024-06-01    – filter by date
+
+    Role behaviour
+    ──────────────
+    student  → own records only
+    lecturer → records for courses they own (scoped by courseCode if provided)
+    admin    → all records
     """
     try:
-        role = session.get("role")
+        role        = session.get("role")
+        filter_code = (request.args.get("courseCode") or "").strip().upper() or None
+        filter_date = (request.args.get("date") or "").strip() or None
+
+        # ── Fetch base record set ─────────────────────────────────────────
         if role == "student":
-            attendance = get_attendance_by_student(session["user_id"])
-        elif role in ("lecturer", "admin"):
-            attendance = get_attendance_all()
-        else:
-            attendance = []
-        return jsonify({"success": True, "attendance": attendance})
+            records = get_attendance_by_student(session["user_id"])
+
+        elif role == "lecturer":
+            my_courses = get_courses_by_lecturer(session["user_id"])
+            my_codes   = [
+                c.get("courseCode") or c.get("coursecode") for c in my_courses
+            ]
+            if filter_code:
+                if filter_code not in my_codes:
+                    return jsonify({"success": False,
+                                    "message": "You do not own that course"}), 403
+                records = get_attendance_by_course_code(filter_code)
+            else:
+                # Return attendance for ALL courses this lecturer owns
+                records = get_attendance_by_course_codes(my_codes)
+
+        else:  # admin
+            if filter_code:
+                records = get_attendance_by_course_code(filter_code)
+            else:
+                records = get_attendance_all()
+
+        # ── Optional date filter ──────────────────────────────────────────
+        if filter_date:
+            records = [r for r in records if (r.get("date") or "") == filter_date]
+
+        # ── Normalise to consistent camelCase keys ────────────────────────
+        normalised = [_normalise_record(r) for r in records]
+
+        return jsonify({"success": True, "attendance": normalised, "total": len(normalised)})
 
     except Exception as exc:
-        logger.exception("api_get_attendance error: %s", exc)
+        logger.exception("api_get_attendance: %s", exc)
         return jsonify({"success": False, "message": "Server error"}), 500
 
+@app.route("/api/attendance-summary", methods=["GET"])
+@login_required
+@role_required("lecturer", "admin")
+def api_attendance_summary():
+    """
+    GET /api/attendance-summary?courseCode=CS101
+    Returns per-course summary stats for dashboard charts.
+    Omit courseCode to get summaries for all owned courses.
+    """
+    try:
+        filter_code = (request.args.get("courseCode") or "").strip().upper() or None
+        role        = session.get("role")
+
+        if role == "lecturer":
+            my_courses = get_courses_by_lecturer(session["user_id"])
+            my_codes   = [c.get("courseCode") or c.get("coursecode") for c in my_courses]
+            if filter_code:
+                if filter_code not in my_codes:
+                    return jsonify({"success": False,
+                                    "message": "You do not own that course"}), 403
+                codes = [filter_code]
+            else:
+                codes = my_codes
+        else:  # admin
+            codes = [filter_code] if filter_code else \
+                    [c.get("courseCode") or c.get("coursecode") for c in get_all_courses()]
+
+        summaries = [get_attendance_summary_by_course(c) for c in codes]
+        return jsonify({"success": True, "summaries": summaries})
+
+    except Exception as exc:
+        logger.exception("api_attendance_summary: %s", exc)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 @app.route("/api/delete-attendance/<record_id>", methods=["DELETE"])
 @login_required
-@role_required("lecturer", "admin")   # ← ONLY lecturers and admins may delete
+@role_required("lecturer", "admin")
 def api_delete_attendance(record_id):
     """
-    Permanently remove an attendance record.
-    Students cannot delete any records.
-    Lecturers and admins can delete any record.
+    Delete a single attendance record.
+    Lecturers may only delete records that belong to their own courses.
+    Admins may delete any record.
+    Attendance records are permanent and only removed by explicit deletion.
     """
     try:
+        if session.get("role") == "lecturer":
+            db  = get_db()
+            cur = db.cursor()
+            if USE_POSTGRESQL:
+                cur.execute('SELECT "courseCode" FROM attendance WHERE id=%s LIMIT 1',
+                            (record_id,))
+            else:
+                cur.execute("SELECT courseCode FROM attendance WHERE id=? LIMIT 1",
+                            (record_id,))
+            row = cur.fetchone()
+            if not row:
+                return jsonify({"success": False, "message": "Record not found"}), 404
+            code       = row["courseCode"] if isinstance(row, dict) else row[0]
+            my_courses = get_courses_by_lecturer(session["user_id"])
+            my_codes   = [c.get("courseCode") or c.get("coursecode") for c in my_courses]
+            if code not in my_codes:
+                return jsonify({"success": False,
+                                "message": "You cannot delete records for a course you don't own"}), 403
+
         deleted = delete_attendance_by_id(record_id)
         if deleted:
-            logger.info("Attendance record %s deleted by %s (%s)",
+            logger.info("Attendance %s deleted by %s (%s)",
                         record_id, session.get("username"), session.get("role"))
-            return jsonify({"success": True, "message": "Record deleted successfully"})
+            return jsonify({"success": True, "message": "Record deleted"})
         return jsonify({"success": False, "message": "Record not found"}), 404
 
     except Exception as exc:
-        logger.exception("api_delete_attendance error: %s", exc)
+        logger.exception("api_delete_attendance: %s", exc)
         return jsonify({"success": False, "message": "Server error"}), 500
 
+@app.route("/api/delete-attendance-by-course/<course_code>", methods=["DELETE"])
+@login_required
+@role_required("lecturer", "admin")
+def api_delete_attendance_by_course(course_code):
+    """
+    Bulk-delete ALL attendance records for a course.
+    Lecturer must own the course; admin bypasses ownership check.
+    """
+    try:
+        course_code = course_code.strip().upper()
+        if session.get("role") == "admin":
+            db  = get_db()
+            cur = db.cursor()
+            if USE_POSTGRESQL:
+                cur.execute('DELETE FROM attendance WHERE "courseCode"=%s', (course_code,))
+            else:
+                cur.execute("DELETE FROM attendance WHERE courseCode=?", (course_code,))
+            db.commit()
+            count = cur.rowcount
+        else:
+            count = delete_attendance_by_course(course_code, session["user_id"])
+            if count == -1:
+                return jsonify({"success": False,
+                                "message": "Course not found or you don't own it"}), 403
+
+        logger.info("Bulk delete: %d records for %s by %s",
+                    count, course_code, session.get("username"))
+        return jsonify({"success": True,
+                        "message": f"{count} attendance record(s) deleted for {course_code}"})
+    except Exception as exc:
+        logger.exception("api_delete_attendance_by_course: %s", exc)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 # ==========================
 # API – User management
@@ -923,9 +1222,8 @@ def api_get_users():
     try:
         return jsonify({"success": True, "users": list_users_safely()})
     except Exception as exc:
-        logger.exception("api_get_users error: %s", exc)
+        logger.exception("api_get_users: %s", exc)
         return jsonify({"success": False, "message": "Server error"}), 500
-
 
 @app.route("/api/approve-lecturer/<user_id>", methods=["POST"])
 @login_required
@@ -934,12 +1232,12 @@ def api_approve_lecturer(user_id):
     try:
         if approve_lecturer_by_id(user_id):
             logger.info("Lecturer approved: %s", user_id)
-            return jsonify({"success": True, "message": "Lecturer approved successfully"})
-        return jsonify({"success": False, "message": "User not found or not a lecturer"}), 404
+            return jsonify({"success": True, "message": "Lecturer approved"})
+        return jsonify({"success": False,
+                        "message": "User not found or not a lecturer"}), 404
     except Exception as exc:
-        logger.exception("api_approve_lecturer error: %s", exc)
+        logger.exception("api_approve_lecturer: %s", exc)
         return jsonify({"success": False, "message": "Server error"}), 500
-
 
 @app.route("/api/reject-lecturer/<user_id>", methods=["POST"])
 @login_required
@@ -951,9 +1249,8 @@ def api_reject_lecturer(user_id):
             return jsonify({"success": True, "message": "Lecturer rejected and removed"})
         return jsonify({"success": False, "message": "User not found"}), 404
     except Exception as exc:
-        logger.exception("api_reject_lecturer error: %s", exc)
+        logger.exception("api_reject_lecturer: %s", exc)
         return jsonify({"success": False, "message": "Server error"}), 500
-
 
 @app.route("/api/current-user", methods=["GET"])
 def api_current_user():
@@ -970,10 +1267,9 @@ def api_current_user():
             "username":     session.get("username"),
             "role":         session.get("role"),
             "fullName":     session.get("full_name"),
-            "matricNumber": user.get("matricNumber", ""),
+            "matricNumber": user.get("matricNumber") or user.get("matricnumber", ""),
         },
     })
-
 
 # ==========================
 # Misc
@@ -982,20 +1278,18 @@ def api_current_user():
 def health_check():
     return jsonify({"status": "healthy"}), 200
 
-
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template("error.html", message="Page not found"), 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    return render_template("error.html", message="Internal server error. Please try again later."), 500
-
+    return render_template("error.html", message="Internal server error"), 500
 
 # ==========================
 # Dev runner
 # ==========================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    logger.info("Dev server starting on port %s", port)
+    logger.info("Dev server on port %s", port)
     app.run(host="0.0.0.0", port=port, debug=app.debug)
