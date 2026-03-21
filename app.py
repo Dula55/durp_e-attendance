@@ -28,6 +28,7 @@ from flask import (
 APP_NAME = "attendance_app"
 
 # Persistent storage directory (mount a volume here in production if necessary)
+# For fly.io, we'll use /app/data which can be mounted as a volume
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 DATA_DIR = os.getenv(
@@ -38,7 +39,7 @@ DATA_DIR = os.getenv(
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # Database configuration
-DATABASE_URL = os.environ.get("DATABASE_URL")  # For PostgreSQL on Render
+DATABASE_URL = os.environ.get("DATABASE_URL")  # For PostgreSQL on fly.io
 USE_POSTGRESQL = DATABASE_URL is not None and DATABASE_URL != ""
 
 # SQLite DB path (fallback)
@@ -46,7 +47,7 @@ SQLITE_DB_PATH = os.path.join(DATA_DIR, "app.db")
 
 # Secret key and session settings
 SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_hex(32))
-SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "False").lower() == "true"
+SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "True").lower() == "true"  # Default to True for fly.io
 SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
 SESSION_TYPE = os.environ.get("SESSION_TYPE", "filesystem")  # Use filesystem for persistent sessions
 SESSION_PERMANENT = True  # Make sessions permanent by default
@@ -198,7 +199,7 @@ def get_postgres_db():
     msg = (
         "No compatible PostgreSQL driver available. The application attempted to use psycopg2 "
         "and psycopg (psycopg v3) but both failed to import/connect. "
-        "On Render this commonly happens when Python 3.14 is used with a psycopg2-binary build "
+        "On fly.io this commonly happens when Python 3.14 is used with a psycopg2-binary build "
         "that wasn't compiled for that Python ABI (undefined symbol: _PyInterpreterState_Get). "
         "Possible fixes:\n"
         "  * Pin your Python runtime to 3.11 by adding a runtime.txt with 'python-3.11.9' (recommended),\n"
@@ -1096,12 +1097,18 @@ def api_current_user():
 
 @app.route("/health", methods=["GET"])
 def health_check():
-    return jsonify({"status": "healthy"}), 200
+    """Health check endpoint for Fly.io"""
+    return jsonify({"status": "healthy", "database": "SQLite"}), 200
+
+# Application factory pattern for gunicorn compatibility
+application = app
 
 # ==========================
 # Local runner (for dev only)
 # ==========================
 if __name__ == "__main__":
+    # Use PORT from environment (Fly.io sets this) or default to 8000
     port = int(os.environ.get("PORT", 8000))
     logger.info("Running dev server on port %s", port)
+    # Use host='0.0.0.0' to accept connections from outside the container
     app.run(host="0.0.0.0", port=port, debug=app.debug)

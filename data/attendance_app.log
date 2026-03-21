@@ -60,3 +60,20 @@ NameError: name 'now_iso' is not defined
  * Running on http://127.0.0.1:8000
  * Running on http://10.65.23.106:8000
 2026-03-09 11:44:40,856 INFO werkzeug [_internal.py:97] - [33mPress CTRL+C to quit[0m
+2026-03-11 21:20:37,975 INFO __main__ [app.py:102] - Starting – backend: SQLite | path: C:\Users\HP\Desktop\durp_e-attendance\data\app.db
+2026-03-11 21:20:38,019 INFO __main__ [app.py:275] - Schema initialised (SQLite)
+2026-03-11 21:20:38,064 INFO __main__ [app.py:1294] - Dev server on port 8000
+2026-03-11 21:20:40,133 INFO werkzeug [_internal.py:187] - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://10.206.154.106:8000
+2026-03-11 21:20:40,135 INFO werkzeug [_internal.py:187] - [33mPress CTRL+C to quit[0m
+2026-03-11 22:33:02,484 INFO __main__ [app.py:124] - Starting application - using SQLite database
+2026-03-11 22:33:02,485 INFO __main__ [app.py:125] - Logs to C:\Users\HP\Desktop\durp_e-attendance\data\attendance_app.log
+2026-03-11 22:33:02,508 INFO __main__ [app.py:292] - Initialized SQLite database at C:\Users\HP\Desktop\durp_e-attendance\data\app.db
+2026-03-11 22:33:02,538 INFO __main__ [app.py:1106] - Running dev server on port 8000
+2026-03-11 22:33:04,848 INFO werkzeug [_internal.py:187] - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://10.206.154.106:8000
+2026-03-11 22:33:04,849 INFO werkzeug [_internal.py:187] - [33mPress CTRL+C to quit[0m
